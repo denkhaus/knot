@@ -76,19 +76,19 @@ go build -o knot cmd/knot/main.go
 knot project create --name "My Project" --description "Project description"
 
 # Create a task
-knot --project-id <project-id> task create --title "Implement feature" --complexity 5
+knot --project-id <project-uuid> task create --title "Implement feature" --complexity 5
 
 # List tasks
-knot --project-id <project-id> task list
+knot --project-id <project-uuid> task list
 
 # Find ready work
-knot --project-id <project-id> ready
+knot --project-id <project-uuid> ready
 
 # Check what's blocked
-knot --project-id <project-id> blocked
+knot --project-id <project-uuid> blocked
 
 # Find next actionable task
-knot --project-id <project-id> actionable
+knot --project-id <project-uuid> actionable
 ```
 
 ## Core Commands
@@ -103,118 +103,118 @@ knot project create --name "Web App" --description "Main web application"
 knot project list
 
 # Update project
-knot project update --id <project-id> --name "Updated Name"
+knot project update --id <project-uuid> --name "Updated Name"
 
 # Delete project
-knot project delete --id <project-id>
+knot project delete --id <project-uuid>
 ```
 
 ### Task Management
 
 ```bash
 # Create root task
-knot --project-id <id> task create --title "Feature X" --complexity 7
+knot --project-id <project-uuid> task create --title "Feature X" --complexity 7
 
 # Create subtask
-knot --project-id <id> task create --title "Subtask" --parent-id <parent-id>
+knot --project-id <project-uuid> task create --title "Subtask" --parent-id <parent-task-uuid>
 
 # Update task state
-knot --project-id <id> task update-state --id <task-id> --state in-progress
+knot --project-id <project-uuid> task update-state --id <task-uuid> --state in-progress
 
 # Update task details
-knot --project-id <id> task update-title --id <task-id> --title "New Title"
-knot --project-id <id> task update-description --id <task-id> --description "New desc"
-knot --project-id <id> task update-priority --id <task-id> --priority high
+knot --project-id <project-uuid> task update-title --id <task-uuid> --title "New Title"
+knot --project-id <project-uuid> task update-description --id <task-uuid> --description "New desc"
+knot --project-id <project-uuid> task update-priority --id <task-uuid> --priority high
 
 # List with filtering
-knot --project-id <id> task list --state pending --complexity-min 5 --search "feature"
+knot --project-id <project-uuid> task list --state pending --complexity-min 5 --search "feature"
 
 # Delete task (two-step process)
-knot --project-id <id> task delete --id <task-id>  # Mark for deletion
-knot --project-id <id> task delete --id <task-id>  # Confirm deletion
+knot --project-id <project-uuid> task delete --id <task-uuid>  # Mark for deletion
+knot --project-id <project-uuid> task delete --id <task-uuid>  # Confirm deletion
 
 # Delete task with all children
-knot --project-id <id> task delete-subtree --id <task-id>
+knot --project-id <project-uuid> task delete-subtree --id <task-uuid>
 ```
 
 ### Hierarchy Navigation
 
 ```bash
 # Get task children
-knot --project-id <id> task children --task-id <task-id>
+knot --project-id <project-uuid> task children --task-id <task-uuid>
 
 # Get all descendants recursively
-knot --project-id <id> task children --task-id <task-id> --recursive
+knot --project-id <project-uuid> task children --task-id <task-uuid> --recursive
 
 # Get parent task
-knot --project-id <id> task parent --task-id <task-id>
+knot --project-id <project-uuid> task parent --task-id <task-uuid>
 
 # Get root tasks
-knot --project-id <id> task roots
+knot --project-id <project-uuid> task roots
 
 # Show task tree
-knot --project-id <id> task tree --max-depth 3
+knot --project-id <project-uuid> task tree --max-depth 3
 ```
 
 ### Dependency Management
 
 ```bash
 # Add dependency
-knot dependency add --task-id <task-id> --depends-on <other-task-id>
+knot --project-id <project-uuid> dependency add --task-id <task-uuid> --depends-on <other-task-uuid>
 
 # Remove dependency
-knot dependency remove --task-id <task-id> --depends-on <other-task-id>
+knot --project-id <project-uuid> dependency remove --task-id <task-uuid> --depends-on <other-task-uuid>
 
 # List dependencies
-knot dependency list --task-id <task-id>
+knot --project-id <project-uuid> dependency list --task-id <task-uuid>
 
 # Show dependency chain
-knot dependency chain --task-id <task-id> --upstream --downstream
+knot --project-id <project-uuid> dependency chain --task-id <task-uuid> --upstream --downstream
 
 # Find dependent tasks
-knot dependency dependents --task-id <task-id> --recursive
+knot --project-id <project-uuid> dependency dependents --task-id <task-uuid> --recursive
 
 # Detect circular dependencies
-knot --project-id <id> dependency cycles
+knot --project-id <project-uuid> dependency cycles
 
 # Validate all dependencies
-knot --project-id <id> dependency validate
+knot --project-id <project-uuid> dependency validate
 ```
 
 ### Workflow Analysis
 
 ```bash
 # Find ready tasks (no blockers)
-knot --project-id <id> ready --limit 5
+knot --project-id <project-uuid> ready --limit 5
 
 # Find blocked tasks
-knot --project-id <id> blocked --limit 10
+knot --project-id <project-uuid> blocked --limit 10
 
 # Get next actionable task
-knot --project-id <id> actionable
+knot --project-id <project-uuid> actionable
 
 # Find tasks needing breakdown
-knot --project-id <id> breakdown --threshold 8
+knot --project-id <project-uuid> breakdown --threshold 8
 ```
 
 ### Bulk Operations
 
 ```bash
 # Bulk update tasks
-knot task bulk-update --task-ids "id1,id2,id3" --state completed
+knot --project-id <project-uuid> task bulk-update --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --state completed
 
 # Bulk create from JSON
-knot --project-id <id> task bulk-create --file tasks.json
+knot --project-id <project-uuid> task bulk-create --file tasks.json
 
 # Bulk delete with confirmation
-knot task bulk-delete --task-ids "id1,id2,id3" --dry-run
-knot task bulk-delete --task-ids "id1,id2,id3" --force
+knot --project-id <project-uuid> task bulk-delete --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --dry-run
+knot --project-id <project-uuid> task bulk-delete --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --force
 
 # Duplicate task to another project
-knot task duplicate --task-id <task-id> --target-project-id <target-id>
+knot --project-id <project-uuid> task duplicate --task-id <task-uuid> --target-project-id <target-project-uuid>
 
 # List tasks by state
-knot --project-id <id> task list-by-state --state pending --json
+knot --project-id <project-uuid> task list-by-state --state pending --json
 ```
 
 ### Template Management
@@ -224,7 +224,7 @@ knot --project-id <id> task list-by-state --state pending --json
 knot template list
 
 # Create project from template
-knot template apply --template-name "feature-development" --project-id <id>
+knot --project-id <project-uuid> template apply --template-name "feature-development"
 
 # Create custom template
 knot template create --name "My Template" --file template.yaml
@@ -262,10 +262,10 @@ knot config reset
 knot health check
 
 # Validate task states
-knot --project-id <id> validate states
+knot --project-id <project-uuid> validate states
 
 # Validate task hierarchy
-knot --project-id <id> validate hierarchy
+knot --project-id <project-uuid> validate hierarchy
 
 # Check database integrity
 knot health integrity
@@ -281,8 +281,8 @@ knot health performance
 Most commands support `--json` flag for machine-readable output:
 
 ```bash
-knot --project-id <id> task list --json
-knot --project-id <id> ready --json
+knot --project-id <project-uuid> task list --json
+knot --project-id <project-uuid> ready --json
 knot project list --json
 ```
 
@@ -291,8 +291,8 @@ knot project list --json
 Track who makes changes using the `--actor` flag:
 
 ```bash
-knot --actor "john.doe" --project-id <id> task create --title "New task"
-knot --actor "jane.smith" --project-id <id> task update-state --id <task-id> --state completed
+knot --actor "john.doe" --project-id <project-uuid> task create --title "New task"
+knot --actor "jane.smith" --project-id <project-uuid> task update-state --id <task-uuid> --state completed
 ```
 
 ### Environment Variables
@@ -308,7 +308,7 @@ export KNOT_LOG_LEVEL=debug
 
 ```bash
 # Find high-priority pending tasks with complexity 5-8
-knot --project-id <id> task list \
+knot --project-id <project-uuid> task list \
   --state pending \
   --priority high \
   --complexity-min 5 \
@@ -317,7 +317,7 @@ knot --project-id <id> task list \
   --reverse
 
 # Search for tasks containing "api" in title or description
-knot --project-id <id> task list --search "api" --limit 10
+knot --project-id <project-uuid> task list --search "api" --limit 10
 ```
 
 ### Template Variables Example
@@ -389,20 +389,20 @@ Knot provides enhanced error messages with:
 ### Complete Feature Development Workflow
 
 ```bash
-# 1. Create project
+# Example with environment variables for convenience
 PROJECT_ID=$(knot project create --name "Web App" --json | jq -r '.id')
 
-# 2. Apply feature template
+# Apply feature template
 knot --project-id $PROJECT_ID template apply --template-name "feature-development"
 
-# 3. Find ready work
+# Find ready work
 knot --project-id $PROJECT_ID ready
 
-# 4. Start working on first task
+# Start working on first task
 TASK_ID=$(knot --project-id $PROJECT_ID ready --json | jq -r '.[0].id')
 knot --project-id $PROJECT_ID task update-state --id $TASK_ID --state in-progress
 
-# 5. Complete task and find next
+# Complete task and find next
 knot --project-id $PROJECT_ID task update-state --id $TASK_ID --state completed
 knot --project-id $PROJECT_ID actionable
 ```
@@ -411,31 +411,31 @@ knot --project-id $PROJECT_ID actionable
 
 ```bash
 # Create bug fix from template
-knot --project-id $PROJECT_ID template apply --template-name "bug-fix" \
+knot --project-id <project-uuid> template apply --template-name "bug-fix" \
   --var bug_id="BUG-123" \
   --var bug_description="Login form validation error" \
   --var priority="High"
 
 # Track progress
-knot --project-id $PROJECT_ID blocked
-knot --project-id $PROJECT_ID ready
+knot --project-id <project-uuid> blocked
+knot --project-id <project-uuid> ready
 ```
 
 ### Dependency Management
 
 ```bash
 # Create tasks with dependencies
-DESIGN_ID=$(knot --project-id $PROJECT_ID task create --title "Design API" --json | jq -r '.id')
-IMPL_ID=$(knot --project-id $PROJECT_ID task create --title "Implement API" --json | jq -r '.id')
-TEST_ID=$(knot --project-id $PROJECT_ID task create --title "Test API" --json | jq -r '.id')
+DESIGN_ID=$(knot --project-id <project-uuid> task create --title "Design API" --json | jq -r '.id')
+IMPL_ID=$(knot --project-id <project-uuid> task create --title "Implement API" --json | jq -r '.id')
+TEST_ID=$(knot --project-id <project-uuid> task create --title "Test API" --json | jq -r '.id')
 
 # Set up dependency chain
-knot dependency add --task-id $IMPL_ID --depends-on $DESIGN_ID
-knot dependency add --task-id $TEST_ID --depends-on $IMPL_ID
+knot --project-id <project-uuid> dependency add --task-id $IMPL_ID --depends-on $DESIGN_ID
+knot --project-id <project-uuid> dependency add --task-id $TEST_ID --depends-on $IMPL_ID
 
 # Validate dependency chain
-knot dependency chain --task-id $TEST_ID --upstream
-knot --project-id $PROJECT_ID dependency cycles
+knot --project-id <project-uuid> dependency chain --task-id $TEST_ID --upstream
+knot --project-id <project-uuid> dependency cycles
 ```
 
 ## Contributing

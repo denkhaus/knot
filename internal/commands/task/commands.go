@@ -300,8 +300,8 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 		if complexity >= 8 {
 			fmt.Printf("\nNote: This task has high complexity (%d >= 8 threshold).\n", complexity)
 			fmt.Printf("Consider breaking it down into smaller subtasks:\n")
-			fmt.Printf("  knot task create --project-id %s --parent-id %s --title \"Subtask 1\"\n", projectID, task.ID)
-			fmt.Printf("  knot breakdown --project-id %s  # to see all tasks needing breakdown\n", projectID)
+			fmt.Printf("  knot --project-id %s task create --parent-id %s --title \"Subtask 1\"\n", projectID, task.ID)
+			fmt.Printf("  knot --project-id %s breakdown  # to see all tasks needing breakdown\n", projectID)
 		}
 
 		return nil

@@ -21,7 +21,7 @@ func (e *EnhancedError) Error() string {
 	
 	// Main error message
 	if e.Cause != nil {
-		parts = append(parts, fmt.Sprintf("Error: %s", e.Cause.Error()))
+		parts = append(parts, e.Cause.Error())
 	} else {
 		parts = append(parts, fmt.Sprintf("Error in %s", e.Operation))
 	}
@@ -56,7 +56,7 @@ func InvalidUUIDError(fieldName, value string) *EnhancedError {
 		Operation:   fmt.Sprintf("parsing %s", fieldName),
 		Cause:       fmt.Errorf("invalid %s format: '%s'", fieldName, value),
 		Suggestion:  fmt.Sprintf("Ensure %s is a valid UUID (36 characters with hyphens)", fieldName),
-		Example:     "knot task list --project-id 7ea9f625-b7a9-4f9c-a560-2c27b2a41234",
+		Example:     "knot --project-id 7ea9f625-b7a9-4f9c-a560-2c27b2a41234 task list",
 		HelpCommand: "knot project list  # to see available project IDs",
 	}
 }
@@ -67,7 +67,7 @@ func TaskNotFoundError(taskID uuid.UUID) *EnhancedError {
 		Operation:   "finding task",
 		Cause:       fmt.Errorf("task not found: %s", taskID),
 		Suggestion:  "Verify the task ID exists in the current project",
-		Example:     "knot task list --project-id <project-id>  # to see available tasks",
+		Example:     "knot --project-id <project-id> task list  # to see available tasks",
 		HelpCommand: "knot project list  # to see available projects",
 	}
 }
@@ -90,7 +90,7 @@ func InvalidTaskStateError(state string) *EnhancedError {
 		Operation:   "validating task state",
 		Cause:       fmt.Errorf("invalid task state: '%s'", state),
 		Suggestion:  fmt.Sprintf("Use one of the valid states: %s", strings.Join(validStates, ", ")),
-		Example:     "knot task update-state --id <task-id> --state completed",
+		Example:     "knot --project-id <project-id> task update-state --id <task-id> --state completed",
 		HelpCommand: "knot task update-state --help",
 	}
 }
@@ -101,8 +101,8 @@ func CircularDependencyError(taskID, dependsOnID uuid.UUID) *EnhancedError {
 		Operation:   "adding task dependency",
 		Cause:       fmt.Errorf("circular dependency detected between %s and %s", taskID, dependsOnID),
 		Suggestion:  "Remove existing dependencies that create a cycle, or restructure your task hierarchy",
-		Example:     "knot dependency cycles --project-id <project-id>  # to detect all cycles",
-		HelpCommand: "knot dependency validate --project-id <project-id>",
+		Example:     "knot --project-id <project-id> dependency cycles  # to detect all cycles",
+		HelpCommand: "knot --project-id <project-id> dependency validate",
 	}
 }
 
@@ -128,13 +128,13 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError {
 	
 	switch flagName {
 	case "project-id":
-		example = "knot " + commandContext + " --project-id $(knot project list | head -1 | cut -d' ' -f6 | tr -d '()')"
+		example = "knot --project-id <project-id> " + commandContext
 		helpCommand = "knot project list  # to see available projects"
 	case "task-id":
-		example = "knot " + commandContext + " --task-id $(knot task list --project-id <project-id> | head -1 | cut -d' ' -f6 | tr -d '()')"
-		helpCommand = "knot task list --project-id <project-id>  # to see available tasks"
+		example = "knot --project-id <project-id> " + commandContext + " --task-id <task-id>"
+		helpCommand = "knot --project-id <project-id> task list  # to see available tasks"
 	default:
-		example = "knot " + commandContext + " --" + flagName + " <value>"
+		example = "knot --project-id <project-id> " + commandContext + " --" + flagName + " <value>"
 		helpCommand = "knot --help"
 	}
 	
@@ -146,9 +146,16 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError {
 		}
 	}
 	
+	var flagType string
+	if flagName == "project-id" {
+		flagType = "required global flag"
+	} else {
+		flagType = "required flag"
+	}
+	
 	return &EnhancedError{
 		Operation:   "parsing command flags",
-		Cause:       fmt.Errorf("required flag --%s not provided", flagName),
+		Cause:       fmt.Errorf("%s --%s not provided", flagType, flagName),
 		Suggestion:  fmt.Sprintf("Add the --%s flag with a valid value", flagName),
 		Example:     example,
 		HelpCommand: helpCommand,
@@ -161,7 +168,7 @@ func ComplexityOutOfRangeError(complexity int) *EnhancedError {
 		Operation:   "validating task complexity",
 		Cause:       fmt.Errorf("complexity %d is out of range", complexity),
 		Suggestion:  "Use a complexity value between 1 and 10 (1=very simple, 10=very complex)",
-		Example:     "knot task create --project-id <id> --title \"Task\" --complexity 5",
+		Example:     "knot --project-id <project-id> task create --title \"Task\" --complexity 5",
 		HelpCommand: "knot task create --help",
 	}
 }
@@ -173,7 +180,7 @@ func TooManyTasksError(currentCount, maxAllowed int, depth int) *EnhancedError {
 		Cause:       fmt.Errorf("maximum tasks per depth exceeded: %d/%d at depth %d", currentCount, maxAllowed, depth),
 		Suggestion:  "Break down existing complex tasks into subtasks, or increase the limit via environment variable",
 		Example:     "export KNOT_MAX_TASKS_PER_DEPTH=200  # increase limit",
-		HelpCommand: "knot breakdown --project-id <project-id>  # find tasks to break down",
+		HelpCommand: "knot --project-id <project-id> breakdown  # find tasks to break down",
 	}
 }
 
@@ -195,13 +202,13 @@ func EmptyResultError(operation, context string) *EnhancedError {
 	switch operation {
 	case "list tasks":
 		suggestion = "Create some tasks first, or check if you're using the correct project ID"
-		example = "knot task create --project-id <project-id> --title \"First Task\""
+		example = "knot --project-id <project-id> task create --title \"First Task\""
 	case "list projects":
 		suggestion = "Create a project first to get started"
 		example = "knot project create --title \"My Project\" --description \"Project description\""
 	case "find actionable tasks":
 		suggestion = "Check if all tasks are completed, blocked, or have unmet dependencies"
-		example = "knot ready --project-id <project-id>  # see tasks ready to work on"
+		example = "knot --project-id <project-id> ready  # see tasks ready to work on"
 	default:
 		suggestion = "Check your query parameters or create the required resources first"
 		example = "knot --help  # see available commands"
