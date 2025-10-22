@@ -1,0 +1,20 @@
+# Test Configuration for Knot Project
+
+# Test Database Settings
+TEST_DB_PATH=.knot/test_knot.db
+TEST_DB_MEMORY=true
+
+# Test Coverage Settings
+COVERAGE_THRESHOLD=80
+COVERAGE_EXCLUDE_PATTERNS=*_gen.go,*/ent/*
+
+# Test Timeouts
+TEST_TIMEOUT=30s
+INTEGRATION_TEST_TIMEOUT=60s
+
+# Test Parallelism
+TEST_PARALLEL=4
+
+# Test Flags
+TEST_FLAGS=-race -timeout=$(TEST_TIMEOUT)
+INTEGRATION_TEST_FLAGS=-timeout=$(INTEGRATION_TEST_TIMEOUT)

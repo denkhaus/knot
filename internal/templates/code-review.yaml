@@ -1,0 +1,75 @@
+name: "Code Review"
+description: "Systematic code review process for quality assurance"
+category: "Quality Assurance"
+tags: ["review", "quality", "code"]
+variables:
+  - name: "pr_number"
+    description: "Pull request or merge request number"
+    type: "string"
+    required: true
+  - name: "author"
+    description: "Code author name"
+    type: "string"
+    required: true
+  - name: "component"
+    description: "Component or module being reviewed"
+    type: "string"
+    required: true
+  - name: "review_type"
+    description: "Type of review needed"
+    type: "choice"
+    required: true
+    options: ["Standard", "Security", "Performance", "Architecture"]
+
+tasks:
+  - id: "initial_review"
+    title: "Initial Review of PR {{pr_number}}"
+    description: "First pass review of {{component}} changes by {{author}}"
+    complexity: 3
+    estimate: 60   # 1 hour
+    
+  - id: "code_style"
+    title: "Code Style Check for PR {{pr_number}}"
+    description: "Verify code style and formatting standards for {{component}}"
+    complexity: 2
+    dependencies: ["initial_review"]
+    estimate: 30   # 30 minutes
+    
+  - id: "logic_review"
+    title: "Logic Review for PR {{pr_number}}"
+    description: "Review business logic and implementation approach in {{component}}"
+    complexity: 4
+    dependencies: ["initial_review"]
+    estimate: 90   # 1.5 hours
+    
+  - id: "test_review"
+    title: "Test Coverage Review for PR {{pr_number}}"
+    description: "Review test coverage and quality for {{component}} changes"
+    complexity: 3
+    dependencies: ["logic_review"]
+    estimate: 45   # 45 minutes
+    
+  - id: "security_check"
+    title: "Security Review for PR {{pr_number}}"
+    description: "Security-focused review of {{component}} changes"
+    complexity: 4
+    dependencies: ["logic_review"]
+    estimate: 60   # 1 hour
+    metadata:
+      conditional: "{{review_type == 'Security'}}"
+    
+  - id: "performance_check"
+    title: "Performance Review for PR {{pr_number}}"
+    description: "Performance impact analysis for {{component}} changes"
+    complexity: 4
+    dependencies: ["logic_review"]
+    estimate: 75   # 1.25 hours
+    metadata:
+      conditional: "{{review_type == 'Performance'}}"
+    
+  - id: "final_approval"
+    title: "Final Approval for PR {{pr_number}}"
+    description: "Final review and approval decision for {{component}} by {{author}}"
+    complexity: 2
+    dependencies: ["code_style", "test_review"]
+    estimate: 15   # 15 minutes

@@ -1,0 +1,47 @@
+	github.com/denkhaus/knot/cmd/knot		coverage: 0.0% of statements
+ok  	github.com/denkhaus/knot/internal	(cached)	coverage: [no statements]
+	github.com/denkhaus/knot/internal/app		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/commands/config		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/commands/dependency		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/commands/health		coverage: 0.0% of statements
+ok  	github.com/denkhaus/knot/internal/commands/project	(cached)	coverage: 50.8% of statements
+--- FAIL: TestBlockedCommandWithDependencies (0.00s)
+--- FAIL: TestBlockedCommandEdgeCases (0.00s)
+    --- FAIL: TestBlockedCommandEdgeCases/Completed_tasks_should_not_be_considered_blocked (0.00s)
+--- FAIL: TestBlockedCommandDependencyChains (0.00s)
+--- FAIL: TestTaskUpdateStateAction (0.00s)
+    --- FAIL: TestTaskUpdateStateAction/invalid_task_ID (0.00s)
+    --- FAIL: TestTaskUpdateStateAction/invalid_state (0.00s)
+--- FAIL: TestTaskUpdateTitleAction (0.00s)
+    --- FAIL: TestTaskUpdateTitleAction/invalid_task_ID (0.00s)
+--- FAIL: TestCreateActionValidation (0.00s)
+    --- FAIL: TestCreateActionValidation/valid_task_creation (0.00s)
+--- FAIL: TestValidateProjectID (0.00s)
+    --- FAIL: TestValidateProjectID/valid_UUID (0.00s)
+    --- FAIL: TestValidateProjectID/empty_project_ID (0.00s)
+    --- FAIL: TestValidateProjectID/invalid_UUID_format (0.00s)
+    --- FAIL: TestValidateProjectID/partial_UUID (0.00s)
+--- FAIL: TestInputValidationIntegration (0.00s)
+FAIL
+coverage: 14.5% of statements
+FAIL	github.com/denkhaus/knot/internal/commands/task	0.034s
+	github.com/denkhaus/knot/internal/commands/validation		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/config		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/errors		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/logger		coverage: 0.0% of statements
+ok  	github.com/denkhaus/knot/internal/manager	(cached)	coverage: 25.4% of statements
+	github.com/denkhaus/knot/internal/repository/inmemory		coverage: 0.0% of statements
+ok  	github.com/denkhaus/knot/internal/repository/sqlite	(cached)	coverage: 31.8% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/enttest		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/hook		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/migrate		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/project		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/schema		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/task		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/shared		coverage: 0.0% of statements
+	github.com/denkhaus/knot/internal/testutil		coverage: 0.0% of statements
+ok  	github.com/denkhaus/knot/internal/types	(cached)	coverage: [no statements]
+ok  	github.com/denkhaus/knot/internal/validation	(cached)	coverage: 87.4% of statements
+FAIL
