@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/denkhaus/knot/internal/logger"
 	"github.com/denkhaus/knot/internal/shared"
-	"github.com/nacos-group/nacos-sdk-go/v2/common/logger"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -67,13 +67,13 @@ func checkAction(appCtx *shared.AppContext) cli.ActionFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		logger.Info("Performing database health check", zap.Duration("timeout", timeout))
+		logger.Log.Info("Performing database health check", zap.Duration("timeout", timeout))
 
 		// Get health status from repository
 		// Note: This requires extending the manager interface to expose health checks
 		health, err := performHealthCheck(ctx, appCtx)
 		if err != nil {
-			logger.Error("Health check failed", zap.Error(err))
+			logger.Log.Error("Health check failed", zap.Error(err))
 			return fmt.Errorf("health check failed: %w", err)
 		}
 
@@ -102,20 +102,20 @@ func pingAction(appCtx *shared.AppContext) cli.ActionFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		logger.Info("Pinging database", zap.Duration("timeout", timeout))
+		logger.Log.Info("Pinging database", zap.Duration("timeout", timeout))
 
 		start := time.Now()
 		err := performPing(ctx, appCtx)
 		latency := time.Since(start)
 
 		if err != nil {
-			logger.Error("Database ping failed", zap.Error(err), zap.Duration("latency", latency))
+			logger.Log.Error("Database ping failed", zap.Error(err), zap.Duration("latency", latency))
 			fmt.Printf("Database ping failed: %v\n", err)
 			fmt.Printf("Latency: %v\n", latency)
 			return err
 		}
 
-		logger.Info("Database ping successful", zap.Duration("latency", latency))
+		logger.Log.Info("Database ping successful", zap.Duration("latency", latency))
 		fmt.Printf("Database ping successful\n")
 		fmt.Printf("Latency: %v\n", latency)
 
@@ -134,16 +134,16 @@ func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		logger.Info("Validating database connection", zap.Duration("timeout", timeout))
+		logger.Log.Info("Validating database connection", zap.Duration("timeout", timeout))
 
 		err := performValidation(ctx, appCtx)
 		if err != nil {
-			logger.Error("Database validation failed", zap.Error(err))
+			logger.Log.Error("Database validation failed", zap.Error(err))
 			fmt.Printf("Database validation failed: %v\n", err)
 			return err
 		}
 
-		logger.Info("Database validation successful")
+		logger.Log.Info("Database validation successful")
 		fmt.Printf("✅ Database connection validation successful\n")
 		fmt.Printf("   All checks passed\n")
 
@@ -223,7 +223,7 @@ func performValidation(ctx context.Context, appCtx *shared.AppContext) error {
 		if err := test.test(); err != nil {
 			return fmt.Errorf("%s failed: %w", test.name, err)
 		}
-		logger.Debug("Validation test passed", zap.String("test", test.name))
+		logger.Log.Debug("Validation test passed", zap.String("test", test.name))
 	}
 
 	return nil

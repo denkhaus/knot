@@ -1,6 +1,6 @@
 # Knot
 
-A standalone CLI tool for hierarchical project and task management with dependencies. Perfect for LLM agents to organize complex workflows.
+A standalone CLI tool for hierarchical project and task management with dependencies. Specifically designed to be the best friend of every LLM agent - with structured, parsable outputs, comprehensive error handling, and a built-in `get-started` command that makes it easy for AI agents to understand and use all functionality. Perfect for organizing complex workflows and project hierarchies.
 
 ## Features
 
@@ -13,6 +13,8 @@ A standalone CLI tool for hierarchical project and task management with dependen
 - **Local SQLite Storage**: Automatic .knot directory with persistent SQLite database and connection pooling
 - **Clean CLI Output**: No JSON logs in normal operation, debug mode available
 - **LLM-Friendly**: Structured, parsable outputs perfect for AI agents
+- **LLM Onboarding**: Built-in `get-started` command that provides comprehensive getting started guidance - perfect for LLM agents to understand all capabilities
+- **Help Integration**: The `get-started` command is explicitly mentioned in the main help output (`knot --help`) for easy discovery
 - **Audit Trail**: Track all changes with actor information using `--actor` flag
 
 ### Advanced Task Operations

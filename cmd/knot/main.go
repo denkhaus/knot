@@ -7,7 +7,17 @@ import (
 	"github.com/denkhaus/knot/internal/app"
 )
 
+// Version, commit, and build date are set by ldflags during build
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
 func main() {
+	// Set version information from build variables
+	app.SetVersionFromBuild(version, commit, date)
+
 	// Create and run the application
 	application, err := app.New()
 	if err != nil {

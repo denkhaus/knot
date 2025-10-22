@@ -6,7 +6,6 @@ require (
 	entgo.io/ent v0.14.5
 	github.com/google/uuid v1.6.0
 	github.com/magefile/mage v1.15.0
-	github.com/nacos-group/nacos-sdk-go/v2 v2.3.4
 	github.com/stretchr/testify v1.11.1
 	github.com/urfave/cli/v2 v2.27.7
 	go.uber.org/zap v1.27.0
@@ -41,8 +40,6 @@ require (
 	golang.org/x/sys v0.36.0 // indirect
 	golang.org/x/text v0.28.0 // indirect
 	golang.org/x/tools v0.36.0 // indirect
-	gopkg.in/natefinch/lumberjack.v2 v2.0.0 // indirect
-	gopkg.in/yaml.v2 v2.4.0 // indirect
 	modernc.org/libc v1.66.10 // indirect
 	modernc.org/mathutil v1.7.1 // indirect
 	modernc.org/memory v1.11.0 // indirect

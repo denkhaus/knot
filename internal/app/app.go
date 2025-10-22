@@ -24,6 +24,20 @@ import (
 	"go.uber.org/zap"
 )
 
+// Version variables that will be set by ldflags during build
+var (
+	version = "dev"
+	commit  = "unknown"
+	date    = "unknown"
+)
+
+// SetVersionFromBuild allows setting version information from build time variables
+func SetVersionFromBuild(v, c, d string) {
+	version = v
+	commit = c
+	date = d
+}
+
 // App represents the CLI application
 type App struct {
 	*cli.App
@@ -104,7 +118,10 @@ func New() (*App, error) {
 	cliApp := &cli.App{
 		Name:    "knot",
 		Usage:   "A CLI tool for hierarchical project and task management with dependencies",
-		Version: "1.0.0",
+		Description: `A CLI tool for hierarchical project and task management with dependencies.
+Designed to be the best friend of every LLM agent with structured, parsable outputs and comprehensive error handling.
+For new users or LLM agents, run 'knot get-started' for a comprehensive guide to all available commands and usage.`,
+		Version: version,
 		Authors: []*cli.Author{
 			{
 				Name:  "denkhaus",
@@ -129,7 +146,7 @@ func New() (*App, error) {
 			appCtx.Logger = logger.GetLogger()
 			
 			appCtx.SetActor(c.String("actor"))
-			appCtx.Logger.Info("Knot CLI started", zap.String("version", "1.0.0"))
+			appCtx.Logger.Info("Knot CLI started", zap.String("version", version))
 			return nil
 		},
 		Commands: []*cli.Command{
@@ -215,6 +232,11 @@ func New() (*App, error) {
 					},
 				},
 			},
+			{
+				Name:   "get-started",
+				Usage:  "Get started guide for LLM agents with available commands and usage",
+				Action: task.GetStartedAction(appCtx),
+			},
 		},
 	}
 
@@ -232,11 +254,13 @@ func (a *App) Run(args []string) error {
 		// For user input errors, print them cleanly without JSON logging
 		if isUserInputError(err) {
 			fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+			fmt.Fprintf(os.Stderr, "💡 For help getting started with Knot and a list of all commands, run: knot get-started\n")
 			return err
 		}
 
-		// For internal errors, use the logger
+		// For internal errors, use the logger but also suggest the get-started command
 		a.context.Logger.Error("Application error", zap.Error(err))
+		fmt.Fprintf(os.Stderr, "💡 For help getting started with Knot and a list of all commands, run: knot get-started\n")
 		return err
 	}
 
