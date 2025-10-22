@@ -1,0 +1,11 @@
+blank_issues_enabled: false
+contact_links:
+  - name: 📚 Documentation
+    url: https://github.com/denkhaus/knot/blob/main/README.md
+    about: Check the comprehensive README for usage examples and documentation
+  - name: 💬 Discussions
+    url: https://github.com/denkhaus/knot/discussions
+    about: Ask questions and discuss ideas with the community
+  - name: 🐛 Security Issues
+    url: https://github.com/denkhaus/knot/security/advisories
+    about: Report security vulnerabilities privately

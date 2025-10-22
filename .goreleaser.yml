@@ -1,0 +1,118 @@
+project_name: knot
+
+before:
+  hooks:
+    - go mod tidy
+    - go generate ./...
+
+builds:
+  - main: ./cmd/knot
+    binary: knot
+    env:
+      - CGO_ENABLED=0
+    goos:
+      - linux
+      - windows
+      - darwin
+    goarch:
+      - amd64
+      - arm64
+    ignore:
+      - goos: windows
+        goarch: arm64
+    ldflags:
+      - -s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}}
+
+archives:
+  - format: tar.gz
+    name_template: >-
+      {{ .ProjectName }}_
+      {{- title .Os }}_
+      {{- if eq .Arch "amd64" }}x86_64
+      {{- else if eq .Arch "386" }}i386
+      {{- else }}{{ .Arch }}{{ end }}
+      {{- if .Arm }}v{{ .Arm }}{{ end }}
+    format_overrides:
+    - goos: windows
+      format: zip
+
+checksum:
+  name_template: 'checksums.txt'
+
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+      - '^ci:'
+      - '^chore:'
+      - '^style:'
+      - '^refactor:'
+
+release:
+  github:
+    owner: denkhaus
+    name: knot
+  draft: false
+  prerelease: auto
+  name_template: "{{.ProjectName}} v{{.Version}}"
+  header: |
+    ## Knot v{{.Version}}
+    
+    A standalone CLI tool for hierarchical project and task management with dependencies.
+    
+    ### Installation
+    
+    #### Homebrew (macOS/Linux)
+    ```bash
+    brew install denkhaus/tap/knot
+    ```
+    
+    #### Go Install
+    ```bash
+    go install github.com/denkhaus/knot/cmd/knot@{{.Tag}}
+    ```
+    
+    #### Download Binary
+    Download the appropriate binary for your platform from the assets below.
+
+brews:
+  - name: knot
+    repository:
+      owner: denkhaus
+      name: homebrew-tap
+    homepage: "https://github.com/denkhaus/knot"
+    description: "A standalone CLI tool for hierarchical project and task management with dependencies"
+    license: "MIT"
+    install: |
+      bin.install "knot"
+    test: |
+      system "#{bin}/knot", "--version"
+
+nfpms:
+  - file_name_template: '{{ .ProjectName }}_{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    homepage: https://github.com/denkhaus/knot
+    description: A standalone CLI tool for hierarchical project and task management with dependencies
+    maintainer: denkhaus <denkhaus@example.com>
+    license: MIT
+    vendor: denkhaus
+    formats:
+      - deb
+      - rpm
+      - apk
+
+dockers:
+  - image_templates:
+      - "ghcr.io/denkhaus/knot:{{ .Tag }}"
+      - "ghcr.io/denkhaus/knot:latest"
+    dockerfile: Dockerfile
+    build_flag_templates:
+      - "--pull"
+      - "--label=org.opencontainers.image.created={{.Date}}"
+      - "--label=org.opencontainers.image.title={{.ProjectName}}"
+      - "--label=org.opencontainers.image.revision={{.FullCommit}}"
+      - "--label=org.opencontainers.image.version={{.Version}}"

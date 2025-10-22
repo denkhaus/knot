@@ -1,0 +1,149 @@
+name: Template Request
+description: Request a new task template for common workflows
+title: "[Template]: "
+labels: ["template", "enhancement", "triage"]
+assignees:
+  - denkhaus
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for suggesting a new template! Templates help users quickly set up common workflows.
+
+  - type: input
+    id: template-name
+    attributes:
+      label: Template Name
+      description: What should this template be called?
+      placeholder: "e.g., 'code-review', 'deployment', 'research'"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: category
+    attributes:
+      label: Category
+      description: What category does this template belong to?
+      options:
+        - Development
+        - Testing
+        - Deployment
+        - Research
+        - Planning
+        - Review
+        - Maintenance
+        - Documentation
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Template Description
+      description: Describe what this template is for and when it should be used
+      placeholder: This template is for... It should be used when...
+    validations:
+      required: true
+
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Workflow Steps
+      description: List the typical steps in this workflow
+      placeholder: |
+        1. Initial step (complexity: X)
+        2. Second step (complexity: Y, depends on step 1)
+        3. Final step (complexity: Z, depends on step 2)
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: variables
+    attributes:
+      label: Template Variables
+      description: What variables should this template support?
+      placeholder: |
+        - project_name (string, required): Name of the project
+        - complexity_level (choice: Simple/Medium/Complex, required)
+        - include_tests (boolean, optional, default: true)
+        - deadline (string, optional): Project deadline
+    validations:
+      required: true
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Task Dependencies
+      description: Describe the dependency relationships between tasks
+      placeholder: |
+        - Task A must be completed before Task B
+        - Tasks C and D can run in parallel
+        - Task E depends on both C and D
+        ...
+
+  - type: textarea
+    id: use-case
+    attributes:
+      label: Use Case
+      description: Describe a specific scenario where this template would be useful
+      placeholder: |
+        When working on [specific situation], this template would help by...
+        
+        Example project: ...
+        Expected outcome: ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: example-yaml
+    attributes:
+      label: Example Template YAML
+      description: If you have an idea of the template structure, provide an example
+      render: yaml
+      placeholder: |
+        name: "Your Template"
+        description: "Template description"
+        category: "Development"
+        variables:
+          - name: "project_name"
+            type: "string"
+            required: true
+        tasks:
+          - id: "task1"
+            title: "{{project_name}} - Step 1"
+            complexity: 3
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Priority
+      description: How important is this template to you?
+      options:
+        - Low - Nice to have
+        - Medium - Would be helpful
+        - High - Important for my workflow
+        - Critical - Essential for my use case
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: implementation
+    attributes:
+      label: Implementation
+      description: Are you willing to help create this template?
+      options:
+        - label: I can help write the template YAML
+        - label: I can help with testing
+        - label: I can provide real-world examples
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

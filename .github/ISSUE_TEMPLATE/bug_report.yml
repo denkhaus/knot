@@ -1,0 +1,100 @@
+name: Bug Report
+description: File a bug report to help us improve Knot
+title: "[Bug]: "
+labels: ["bug", "triage"]
+assignees:
+  - denkhaus
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to fill out this bug report! Please provide as much detail as possible.
+
+  - type: input
+    id: version
+    attributes:
+      label: Knot Version
+      description: What version of Knot are you running?
+      placeholder: "v1.0.0 or output of 'knot --version'"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: os
+    attributes:
+      label: Operating System
+      description: What operating system are you using?
+      options:
+        - Linux
+        - macOS
+        - Windows
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: what-happened
+    attributes:
+      label: What happened?
+      description: A clear and concise description of what the bug is.
+      placeholder: Tell us what you see!
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected Behavior
+      description: A clear and concise description of what you expected to happen.
+      placeholder: What should have happened instead?
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Steps to Reproduce
+      description: Steps to reproduce the behavior
+      placeholder: |
+        1. Run command '...'
+        2. Create task with '...'
+        3. See error
+    validations:
+      required: true
+
+  - type: textarea
+    id: command-output
+    attributes:
+      label: Command Output
+      description: If applicable, paste the full command output
+      render: shell
+      placeholder: |
+        $ knot task create --title "Test"
+        Error: ...
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Debug Logs
+      description: If applicable, run with debug logging and paste relevant logs
+      render: shell
+      placeholder: |
+        $ KNOT_LOG_LEVEL=debug knot task create --title "Test"
+        DEBUG: ...
+
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional Context
+      description: Add any other context about the problem here
+      placeholder: Screenshots, configuration files, etc.
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true

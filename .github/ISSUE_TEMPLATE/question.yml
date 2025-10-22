@@ -1,0 +1,87 @@
+name: Question
+description: Ask a question about using Knot
+title: "[Question]: "
+labels: ["question", "triage"]
+assignees:
+  - denkhaus
+
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for your question! Please check the README and documentation first.
+
+  - type: dropdown
+    id: question-type
+    attributes:
+      label: Question Type
+      description: What type of question is this?
+      options:
+        - Usage - How to use a feature
+        - Configuration - How to configure Knot
+        - Integration - How to integrate with other tools
+        - Best Practices - Recommended approaches
+        - Troubleshooting - Something isn't working as expected
+        - Other
+    validations:
+      required: true
+
+  - type: textarea
+    id: question
+    attributes:
+      label: Your Question
+      description: What would you like to know?
+      placeholder: How do I...?
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Provide context about what you're trying to achieve
+      placeholder: |
+        I'm trying to...
+        My goal is to...
+        I'm working on...
+
+  - type: textarea
+    id: attempted
+    attributes:
+      label: What Have You Tried?
+      description: What have you already tried or researched?
+      placeholder: |
+        I've tried:
+        - Reading the README
+        - Running command X
+        - Looking at examples
+
+  - type: textarea
+    id: example
+    attributes:
+      label: Example
+      description: If applicable, provide an example of what you're trying to do
+      render: shell
+      placeholder: |
+        $ knot command --flag value
+        # Expected: ...
+        # Actual: ...
+
+  - type: checkboxes
+    id: documentation
+    attributes:
+      label: Documentation
+      description: Have you checked the available documentation?
+      options:
+        - label: I have read the README
+        - label: I have checked the command help (knot --help)
+        - label: I have searched existing issues
+
+  - type: checkboxes
+    id: terms
+    attributes:
+      label: Code of Conduct
+      description: By submitting this issue, you agree to follow our Code of Conduct
+      options:
+        - label: I agree to follow this project's Code of Conduct
+          required: true
