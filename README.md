@@ -221,15 +221,60 @@ knot --project-id <project-uuid> task list-by-state --state pending --json
 
 ### Template Management
 
+Templates are reusable task blueprints that help standardize common workflows. Each template is defined in YAML format with the following structure:
+
+```yaml
+name: "Template Name"                        # Human-readable name
+description: "Template description"         # Detailed description
+category: "Category"                        # Category for organization (e.g. "Development")
+tags: ["tag1", "tag2"]                     # Tags for searching and filtering
+variables:                                 # List of variables for customization
+  - name: "variable_name"                  # Variable name
+    type: "string"                         # Type: string, int, bool, or choice
+    required: true                         # Whether variable is required
+    default_value: "default"              # Optional default value
+    description: "What this variable is for"
+    options: ["option1", "option2"]       # For choice type variables
+tasks:                                     # List of tasks to be created
+  - id: "unique_task_id"                   # Unique ID within template (for dependencies)
+    title: "Task title with {{variable}}"  # Title with variable substitution
+    description: "Task description"        # Description with variable substitution
+    complexity: 5                          # Task complexity (1-10)
+    estimate: 120                          # Time estimate in minutes (optional)
+    parent_id: "parent_task_id"           # Parent task ID within template (optional)
+    dependencies: ["other_task_id"]       # Dependencies within template (optional)
+    metadata:                             # Additional metadata (optional)
+      conditional: "{{variable_name}}"    # Only include if variable matches condition
+```
+
+**Key Features:**
+- **Variable Substitution**: Use `{{variable_name}}` in titles and descriptions
+- **Task Dependencies**: Define dependency relationships between tasks
+- **Conditional Tasks**: Include tasks based on variable values using metadata
+- **Nested Tasks**: Define parent-child relationships within the template
+- **Time Estimates**: Plan work with time estimates for each task
+
+**Built-in Templates:**
+- `bug-fix`: Complete bug fix workflow with investigation, implementation, and testing
+- `feature-development`: Full feature development lifecycle from design to deployment  
+- `code-review`: Systematic code review process
+
+**Template Commands:**
 ```bash
-# List available templates
+# List all available templates
 knot template list
 
-# Create project from template
-knot --project-id <project-uuid> template apply --template-name "feature-development"
+# Show detailed information about a template
+knot template show --name "feature-development"
 
-# Create custom template
-knot template create --name "My Template" --file template.yaml
+# Apply a template to your project (replace project UUID)
+knot --project-id <project-uuid> template apply --name "bug-fix" --var bug_id="BUG-123" --var bug_description="Issue description"
+
+# Validate a template file before using it
+knot template validate --file my-template.yaml
+
+# Create a custom template
+knot template create --file my-template.yaml
 
 # Update template
 knot template update --id <template-id> --file updated-template.yaml
@@ -239,9 +284,24 @@ knot template delete --id <template-id>
 
 # Seed built-in templates
 knot template seed
+
+# Show detailed information about a template including source
+knot template info --name "feature-development"
+
+# Edit a user template in your default editor
+knot template edit --name "my-template"
 ```
 
-### Configuration
+**Creating Custom Templates:**
+1. Create a YAML file with the template definition
+2. Save it in `.knot/templates/` directory to make it available as a user template
+3. Use the template with the `apply` command
+
+**Variable Types:**
+- `string`: Free-form text input
+- `int`: Integer numbers
+- `bool`: Boolean values (true/false)
+- `choice`: Pick from predefined options
 
 ```bash
 # Show current configuration
@@ -327,22 +387,116 @@ knot --project-id <project-uuid> task list --search "api" --limit 10
 ```yaml
 # feature-template.yaml
 name: "Feature Development"
+description: "Complete workflow for developing new features from design to deployment"
+category: "Development"
+tags: ["feature", "development", "design", "testing"]
 variables:
   - name: "feature_name"
+    description: "Name of the feature to be developed"
+    type: "string"
+    required: true
+  - name: "feature_description"
+    description: "Detailed description of the feature"
     type: "string"
     required: true
   - name: "complexity_level"
+    description: "Overall feature complexity"
     type: "choice"
+    required: true
     options: ["Simple", "Medium", "Complex"]
+  - name: "include_api"
+    description: "Does this feature require API changes?"
+    type: "bool"
+    required: false
+    default_value: "false"
+  - name: "include_ui"
+    description: "Does this feature require UI changes?"
+    type: "bool"
+    required: false
+    default_value: "true"
 
 tasks:
-  - title: "Design {{feature_name}}"
-    description: "Design the {{feature_name}} feature"
+  - id: "requirements"
+    title: "Define Requirements for {{feature_name}}"
+    description: "Gather and document detailed requirements for: {{feature_description}}"
+    complexity: 4
+    estimate: 240  # 4 hours
+    
+  - id: "design"
+    title: "Design {{feature_name}}"
+    description: "Create technical design and architecture for: {{feature_description}}"
     complexity: 5
-  - title: "Implement {{feature_name}}"
-    description: "Implement {{feature_name}} with {{complexity_level}} complexity"
-    complexity: 7
+    dependencies: ["requirements"]
+    estimate: 360  # 6 hours
+    
+  - id: "api_design"
+    title: "API Design for {{feature_name}}"
+    description: "Design API endpoints and data models for: {{feature_description}}"
+    complexity: 4
     dependencies: ["design"]
+    estimate: 180  # 3 hours
+    metadata:
+      conditional: "{{include_api}}"
+    
+  - id: "ui_mockups"
+    title: "UI Mockups for {{feature_name}}"
+    description: "Create UI mockups and user flow for: {{feature_description}}"
+    complexity: 3
+    dependencies: ["design"]
+    estimate: 240  # 4 hours
+    metadata:
+      conditional: "{{include_ui}}"
+    
+  - id: "backend_implementation"
+    title: "Backend Implementation for {{feature_name}}"
+    description: "Implement backend logic and data layer for: {{feature_description}}"
+    complexity: 6
+    dependencies: ["api_design"]
+    estimate: 480  # 8 hours
+    
+  - id: "frontend_implementation"
+    title: "Frontend Implementation for {{feature_name}}"
+    description: "Implement user interface for: {{feature_description}}"
+    complexity: 5
+    dependencies: ["ui_mockups", "backend_implementation"]
+    estimate: 360  # 6 hours
+    metadata:
+      conditional: "{{include_ui}}"
+    
+  - id: "unit_tests"
+    title: "Unit Tests for {{feature_name}}"
+    description: "Write comprehensive unit tests for: {{feature_description}}"
+    complexity: 4
+    dependencies: ["backend_implementation"]
+    estimate: 240  # 4 hours
+    
+  - id: "integration_tests"
+    title: "Integration Tests for {{feature_name}}"
+    description: "Write integration tests for: {{feature_description}}"
+    complexity: 5
+    dependencies: ["frontend_implementation", "unit_tests"]
+    estimate: 300  # 5 hours
+    
+  - id: "documentation"
+    title: "Documentation for {{feature_name}}"
+    description: "Write user and technical documentation for: {{feature_description}}"
+    complexity: 3
+    dependencies: ["integration_tests"]
+    estimate: 180  # 3 hours
+    
+  - id: "code_review"
+    title: "Code Review for {{feature_name}}"
+    description: "Comprehensive code review for: {{feature_description}}"
+    complexity: 3
+    dependencies: ["documentation"]
+    estimate: 120  # 2 hours
+    
+  - id: "deployment"
+    title: "Deploy {{feature_name}}"
+    description: "Deploy feature to production: {{feature_description}}"
+    complexity: 3
+    dependencies: ["code_review"]
+    estimate: 90   # 1.5 hours
 ```
 
 ## Task States
