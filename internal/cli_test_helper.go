@@ -135,7 +135,11 @@ func (h *CLITestHelper) CreateTestProject(title, description string) string {
 
 // CreateTestTask creates a test task and returns its ID
 func (h *CLITestHelper) CreateTestTask(projectID, title, description string, complexity int) string {
-	stdout, _ := h.RunCommandExpectSuccess("--project-id", projectID, "task", "create", 
+	// First select the project
+	h.RunCommandExpectSuccess("project", "select", "--id", projectID)
+	
+	// Then create the task
+	stdout, _ := h.RunCommandExpectSuccess("task", "create", 
 		"--title", title,
 		"--description", description,
 		"--complexity", strconv.Itoa(complexity),

@@ -73,7 +73,6 @@ func TestTaskCreateAction(t *testing.T) {
 			// Create CLI context
 			app := &cli.App{}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-			flagSet.String("project-id", "", "")
 			flagSet.String("title", "", "")
 			flagSet.String("description", "", "")
 			flagSet.String("complexity", "", "")
@@ -81,7 +80,6 @@ func TestTaskCreateAction(t *testing.T) {
 			flagSet.String("parent-id", "", "")
 			flagSet.String("actor", "", "")
 			
-			flagSet.Set("project-id", project.ID.String())
 			flagSet.Set("title", tt.title)
 			flagSet.Set("description", tt.description)
 			flagSet.Set("complexity", tt.complexity)
@@ -93,9 +91,13 @@ func TestTaskCreateAction(t *testing.T) {
 			
 			ctx := cli.NewContext(app, flagSet, nil)
 
+			// Set project context for the test
+			err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+			require.NoError(t, err)
+
 			// Execute action
 			action := createAction(appCtx)
-			err := action(ctx)
+			err = action(ctx)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -121,14 +123,16 @@ func TestTaskListAction(t *testing.T) {
 		// Create CLI context
 		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.String("project-id", "", "")
-		flagSet.Set("project-id", project.ID.String())
 		
 		ctx := cli.NewContext(app, flagSet, nil)
 
+		// Set project context for the test
+		err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Execute action
 		action := listAction(appCtx)
-		err := action(ctx)
+		err = action(ctx)
 
 		// Should succeed but show no tasks
 		require.NoError(t, err)
@@ -142,14 +146,16 @@ func TestTaskListAction(t *testing.T) {
 		// Create CLI context
 		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.String("project-id", "", "")
-		flagSet.Set("project-id", project.ID.String())
 		
 		ctx := cli.NewContext(app, flagSet, nil)
 
+		// Set project context for the test
+		err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Execute action
 		action := listAction(appCtx)
-		err := action(ctx)
+		err = action(ctx)
 
 		// Should succeed
 		assert.NoError(t, err)
@@ -328,14 +334,12 @@ func TestTaskWorkflow(t *testing.T) {
 		// 1. Create task
 		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.String("project-id", "", "")
 		flagSet.String("title", "", "")
 		flagSet.String("description", "", "")
 		flagSet.String("complexity", "", "")
 		flagSet.String("priority", "", "")
 		flagSet.String("actor", "", "")
 		
-		flagSet.Set("project-id", project.ID.String())
 		flagSet.Set("title", "Workflow Test Task")
 		flagSet.Set("description", "Created during workflow test")
 		flagSet.Set("complexity", "5")
@@ -344,14 +348,16 @@ func TestTaskWorkflow(t *testing.T) {
 		
 		ctx := cli.NewContext(app, flagSet, nil)
 
+		// Set project context for the test
+		err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+		require.NoError(t, err)
+
 		createActionFunc := createAction(appCtx)
-		err := createActionFunc(ctx)
+		err = createActionFunc(ctx)
 		require.NoError(t, err)
 
 		// 2. List tasks (should now have at least one)
 		listFlagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		listFlagSet.String("project-id", "", "")
-		listFlagSet.Set("project-id", project.ID.String())
 		
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 

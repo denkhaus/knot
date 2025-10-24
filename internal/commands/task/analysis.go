@@ -69,6 +69,9 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 		}
 
+		// Show project context indicator
+		shared.ShowProjectContextWithSeparator(c, appCtx)
+
 		// Prioritize in-progress tasks first
 		if len(inProgressTasks) > 0 {
 			// For in-progress tasks, find one that has all its dependencies met
@@ -180,6 +183,9 @@ func ReadyAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return outputTasksAsJSON(readyTasks)
 		}
 
+		// Show project context indicator
+		shared.ShowProjectContextWithSeparator(c, appCtx)
+
 		if limit > 0 && len(readyTasks) == limit {
 			fmt.Printf("Ready work (showing %d of %d tasks with no blockers):\n\n", limit, len(readyTasks))
 		} else {
@@ -240,6 +246,9 @@ func BlockedAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		appCtx.Logger.Info("Blocked tasks found", zap.Int("count", len(blockedTasks)))
+
+		// Show project context indicator
+		shared.ShowProjectContextWithSeparator(c, appCtx)
 
 		if len(blockedTasks) == 0 {
 			fmt.Println("No blocked tasks found. All tasks are either ready, completed, or have no dependencies.")

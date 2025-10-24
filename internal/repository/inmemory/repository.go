@@ -80,6 +80,11 @@ func (r *simpleMemoryRepository) DeleteProject(ctx context.Context, id uuid.UUID
 		return fmt.Errorf("project not found")
 	}
 
+	// Clear project selection if this project is currently selected
+	if r.selectedProjectID != nil && *r.selectedProjectID == id {
+		r.selectedProjectID = nil
+	}
+
 	delete(r.projects, id)
 	delete(r.tasksByProject, id)
 	return nil

@@ -346,6 +346,9 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return outputTasksAsJSON(finalTasks)
 		}
 
+		// Show project context indicator
+		shared.ShowProjectContextWithSeparator(c, appCtx)
+
 		// Show filter summary if filters were applied
 		if hasFiltersApplied(c) {
 			fmt.Printf("Found %d task(s) matching criteria (out of %d total):\n\n", len(finalTasks), len(tasks))

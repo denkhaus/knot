@@ -167,15 +167,12 @@ func TestProjectSelectionWithDeletedProject(t *testing.T) {
 		t.Fatalf("Failed to delete project: %v", err)
 	}
 
-	// Check that selection is cleared or returns error gracefully
+	// Check that selection is automatically cleared when project is deleted
 	selectedID, err := manager.GetSelectedProject(context.Background())
-	// Either the selection should be cleared (selectedID == nil) or an error should be returned
-	// The exact behavior depends on implementation, but it shouldn't crash
-	if err == nil && selectedID != nil {
-		// If no error, verify the project actually exists
-		_, getErr := manager.GetProject(context.Background(), *selectedID)
-		if getErr != nil {
-			t.Errorf("Selected project ID points to non-existent project")
-		}
+	if err != nil {
+		t.Errorf("Unexpected error getting selection after project deletion: %v", err)
+	}
+	if selectedID != nil {
+		t.Errorf("Expected selection to be automatically cleared when project is deleted, but got %v", selectedID)
 	}
 }

@@ -69,9 +69,10 @@ func TestCLITaskCommands(t *testing.T) {
 		_, _, err := helper.RunCommandExpectError("task", "create", "--title", "Invalid Task", "--complexity", "15")
 		assert.Error(t, err, "Invalid complexity should fail")
 		
-		// Test missing project ID
-		_, _, err = helper.RunCommandExpectError("task", "create", "--title", "No Project Task")
-		assert.Error(t, err, "Missing project ID should fail")
+		// Test missing project selection (use a fresh helper to ensure no selection)
+		freshHelper := NewCLITestHelper(t)
+		_, _, err = freshHelper.RunCommandExpectError("task", "create", "--title", "No Project Task")
+		assert.Error(t, err, "Missing project selection should fail")
 	})
 }
 

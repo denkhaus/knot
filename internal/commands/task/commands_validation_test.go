@@ -107,7 +107,7 @@ func TestCreateActionValidation(t *testing.T) {
 			action := createAction(appCtx)
 
 			// Execute the action
-			err := action(ctx)
+			err = action(ctx)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -161,7 +161,7 @@ func TestInputValidationIntegration(t *testing.T) {
 	
 	action := createAction(appCtx)
 
-	err := action(ctx)
+	err = action(ctx)
 	require.Error(t, err)
 
 	// Check that it's wrapped as a validation error
