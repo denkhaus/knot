@@ -66,8 +66,6 @@ func isUserInputError(err error) bool {
 		"command not found",
 		"incorrect usage",
 		"flag needs an argument",
-		"project-id is required",
-		"required flag --project-id not provided",
 		"No help topic for",
 	}
 

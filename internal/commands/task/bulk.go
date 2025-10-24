@@ -133,14 +133,9 @@ func DuplicateAction(appCtx *shared.AppContext) cli.ActionFunc {
 // ListByStateAction lists tasks filtered by state
 func ListByStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectIDStr := c.String("project-id")
-		if projectIDStr == "" {
-			return fmt.Errorf("project-id is required")
-		}
-
-		projectID, err := uuid.Parse(projectIDStr)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
+			return err
 		}
 
 		stateStr := c.String("state")
@@ -190,14 +185,9 @@ func ListByStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 // BulkCreateAction creates multiple tasks from JSON input
 func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectIDStr := c.String("project-id")
-		if projectIDStr == "" {
-			return fmt.Errorf("project-id is required")
-		}
-
-		projectID, err := uuid.Parse(projectIDStr)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
+			return err
 		}
 
 		inputFile := c.String("file")

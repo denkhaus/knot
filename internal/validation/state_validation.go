@@ -137,7 +137,7 @@ func (sv *StateValidator) addValidationRules() {
 						Operation:   "validating state transition",
 						Cause:       fmt.Errorf("completing high complexity task (complexity: %d)", task.Complexity),
 						Suggestion:  "Consider breaking down high complexity tasks into smaller subtasks",
-						Example:     "knot breakdown --project-id <project-id> --threshold 7",
+						Example:     "knot breakdown --threshold 7",
 						HelpCommand: "knot task create --help  # to create subtasks",
 					}
 				}

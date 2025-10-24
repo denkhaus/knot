@@ -15,17 +15,30 @@ knot project list
 knot project get --id <project-id>
 ```
 
+### Project Selection (Required First)
+
+```
+# Select a project to work with (required before task operations)
+knot project select --id <project-id>
+
+# Check which project is currently selected
+knot project get-selected
+
+# Clear project selection
+knot project clear-selection
+```
+
 ### Essential Task Commands
 
 ```
-# Create a new task
-knot --project-id <project-id> task create --title "<task-title>" --description "<task-description>" --complexity 5
+# Create a new task (requires project selection first)
+knot task create --title "<task-title>" --description "<task-description>" --complexity 5
 
-# List tasks in a project
-knot --project-id <project-id> task list
+# List tasks in the selected project
+knot task list
 
 # Update a task state
-knot --project-id <project-id> task update-state --id <task-id> --state in-progress
+knot task update-state --id <task-id> --state in-progress
 ```
 
 ### Task State Management
@@ -34,16 +47,16 @@ Tasks move through these states: `pending` → `in-progress` → `completed` (or
 
 ```
 # Set task as in-progress
-knot --project-id <project-id> task update-state --id <task-id> --state in-progress
+knot task update-state --id <task-id> --state in-progress
 
 # Mark task as completed
-knot --project-id <project-id> task update-state --id <task-id> --state completed
+knot task update-state --id <task-id> --state completed
 
 # Check tasks that are ready to work on
-knot --project-id <project-id> ready
+knot ready
 
 # See blocked tasks
-knot --project-id <project-id> blocked
+knot blocked
 ```
 
 ### Task Dependencies
@@ -52,13 +65,13 @@ Dependencies control task execution order:
 
 ```
 # Add a dependency (task A depends on task B)
-knot --project-id <project-id> dependency add --task-id <task-a-id> --depends-on <task-b-id>
+knot dependency add --task-id <task-a-id> --depends-on <task-b-id>
 
 # List dependencies for a task
-knot --project-id <project-id> dependency list --task-id <task-id>
+knot dependency list --task-id <task-id>
 
 # Find the next actionable task
-knot --project-id <project-id> actionable
+knot actionable
 ```
 
 ### Project Structure
@@ -67,13 +80,13 @@ Projects can have hierarchical tasks. Tasks with complexity ≥ 8 should be brok
 
 ```
 # Create a subtask
-knot --project-id <project-id> task create --parent-id <parent-task-id> --title "<subtask-title>"
+knot task create --parent-id <parent-task-id> --title "<subtask-title>"
 
 # Find tasks needing breakdown
-knot --project-id <project-id> breakdown
+knot breakdown
 
 # List tasks with hierarchical view
-knot --project-id <project-id> task list --depth-max 3
+knot task list --depth-max 3
 ```
 
 ### Templates for Common Patterns
@@ -84,11 +97,11 @@ Use templates to create standardized sets of tasks:
 # List available templates
 knot template list
 
-# Apply a template
-knot --project-id <project-id> template apply --name <template-name>
+# Apply a template (requires project selection first)
+knot template apply --name <template-name>
 
 # Apply with variables
-knot --project-id <project-id> template apply --name <template-name> --var name=value
+knot template apply --name <template-name> --var name=value
 ```
 
 ### Key Concepts
@@ -100,8 +113,14 @@ knot --project-id <project-id> template apply --name <template-name> --var name=
 
 ### Common Workflows
 
-1. Create project → Create tasks → Set dependencies → Work through tasks
+1. Create project → Select project → Create tasks → Set dependencies → Work through tasks
 2. For complex tasks (complexity ≥8) → Break down into subtasks → Work on subtasks
-3. Use `ready` command to find next task → Work on task → Update state to `in-progress` → Update state to `completed`
+3. Select project → Use `ready` command to find next task → Work on task → Update state to `in-progress` → Update state to `completed`
+
+### Important Notes
+
+- **Always select a project first** using `knot project select --id <project-id>` before working with tasks
+- Use `knot project get-selected` to check which project is currently active
+- All task operations work on the currently selected project
 
 For detailed help on any command, use `knot <command> --help`

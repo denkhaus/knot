@@ -77,20 +77,26 @@ go build -o knot cmd/knot/main.go
 # Create a project
 knot project create --name "My Project" --description "Project description"
 
+# List available projects to see project IDs
+knot project list
+
+# Select the project to work with
+knot project select --id <project-uuid>
+
 # Create a task
-knot --project-id <project-uuid> task create --title "Implement feature" --complexity 5
+knot task create --title "Implement feature" --complexity 5
 
 # List tasks
-knot --project-id <project-uuid> task list
+knot task list
 
 # Find ready work
-knot --project-id <project-uuid> ready
+knot ready
 
 # Check what's blocked
-knot --project-id <project-uuid> blocked
+knot blocked
 
 # Find next actionable task
-knot --project-id <project-uuid> actionable
+knot actionable
 ```
 
 ## Core Commands
@@ -114,73 +120,76 @@ knot project delete --id <project-uuid>
 ### Task Management
 
 ```bash
+# Select project first
+knot project select --id <project-uuid>
+
 # Create root task
-knot --project-id <project-uuid> task create --title "Feature X" --complexity 7
+knot task create --title "Feature X" --complexity 7
 
 # Create subtask
-knot --project-id <project-uuid> task create --title "Subtask" --parent-id <parent-task-uuid>
+knot task create --title "Subtask" --parent-id <parent-task-uuid>
 
 # Update task state
-knot --project-id <project-uuid> task update-state --id <task-uuid> --state in-progress
+knot task update-state --id <task-uuid> --state in-progress
 
 # Update task details
-knot --project-id <project-uuid> task update-title --id <task-uuid> --title "New Title"
-knot --project-id <project-uuid> task update-description --id <task-uuid> --description "New desc"
-knot --project-id <project-uuid> task update-priority --id <task-uuid> --priority high
+knot task update-title --id <task-uuid> --title "New Title"
+knot task update-description --id <task-uuid> --description "New desc"
+knot task update-priority --id <task-uuid> --priority high
 
 # List with filtering
-knot --project-id <project-uuid> task list --state pending --complexity-min 5 --search "feature"
+knot task list --state pending --complexity-min 5 --search "feature"
 
 # Delete task (two-step process)
-knot --project-id <project-uuid> task delete --id <task-uuid>  # Mark for deletion
-knot --project-id <project-uuid> task delete --id <task-uuid>  # Confirm deletion
+knot task delete --id <task-uuid>  # Mark for deletion
+knot task delete --id <task-uuid>  # Confirm deletion
 
 # Delete task with all children
-knot --project-id <project-uuid> task delete-subtree --id <task-uuid>
+knot task delete-subtree --id <task-uuid>
 ```
 
 ### Hierarchy Navigation
 
 ```bash
 # Get task children
-knot --project-id <project-uuid> task children --task-id <task-uuid>
+knot task children --task-id <task-uuid>
 
 # Get all descendants recursively
-knot --project-id <project-uuid> task children --task-id <task-uuid> --recursive
+knot task children --task-id <task-uuid> --recursive
 
 # Get parent task
-knot --project-id <project-uuid> task parent --task-id <task-uuid>
+knot task parent --task-id <task-uuid>
 
 # Get root tasks
-knot --project-id <project-uuid> task roots
+knot task roots
 
 # Show task tree
-knot --project-id <project-uuid> task tree --max-depth 3
+knot task tree --max-depth 3
 ```
 
 ### Dependency Management
 
 ```bash
 # Add dependency
-knot --project-id <project-uuid> dependency add --task-id <task-uuid> --depends-on <other-task-uuid>
+knot dependency add --task-id <task-uuid> --depends-on <other-task-uuid>
 
 # Remove dependency
-knot --project-id <project-uuid> dependency remove --task-id <task-uuid> --depends-on <other-task-uuid>
+knot dependency remove --task-id <task-uuid> --depends-on <other-task-uuid>
 
 # List dependencies
-knot --project-id <project-uuid> dependency list --task-id <task-uuid>
+knot dependency list --task-id <task-uuid>
 
 # Show dependency chain
-knot --project-id <project-uuid> dependency chain --task-id <task-uuid> --upstream --downstream
+knot dependency chain --task-id <task-uuid> --upstream --downstream
 
 # Find dependent tasks
-knot --project-id <project-uuid> dependency dependents --task-id <task-uuid> --recursive
+knot dependency dependents --task-id <task-uuid> --recursive
 
 # Detect circular dependencies
-knot --project-id <project-uuid> dependency cycles
+knot dependency cycles
 
 # Validate all dependencies
-knot --project-id <project-uuid> dependency validate
+knot dependency validate
 ```
 
 ### Workflow Analysis
