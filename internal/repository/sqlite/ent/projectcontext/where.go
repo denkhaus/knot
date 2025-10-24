@@ -91,6 +91,16 @@ func SelectedProjectIDNotIn(vs ...uuid.UUID) predicate.ProjectContext {
 	return predicate.ProjectContext(sql.FieldNotIn(FieldSelectedProjectID, vs...))
 }
 
+// SelectedProjectIDIsNil applies the IsNil predicate on the "selected_project_id" field.
+func SelectedProjectIDIsNil() predicate.ProjectContext {
+	return predicate.ProjectContext(sql.FieldIsNull(FieldSelectedProjectID))
+}
+
+// SelectedProjectIDNotNil applies the NotNil predicate on the "selected_project_id" field.
+func SelectedProjectIDNotNil() predicate.ProjectContext {
+	return predicate.ProjectContext(sql.FieldNotNull(FieldSelectedProjectID))
+}
+
 // UpdatedAtEQ applies the EQ predicate on the "updated_at" field.
 func UpdatedAtEQ(v time.Time) predicate.ProjectContext {
 	return predicate.ProjectContext(sql.FieldEQ(FieldUpdatedAt, v))

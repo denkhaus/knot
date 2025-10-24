@@ -57,8 +57,9 @@ func TestCLITaskCommands(t *testing.T) {
 		taskID := helper.CreateTestTask(projectID, "Test Task", "CLI test task", 3)
 		require.NotEmpty(t, taskID, "Should create task successfully")
 		
-		// Test task listing
-		stdout, _ := helper.RunCommandExpectSuccess("--project-id", projectID, "task", "list")
+		// Select project and test task listing
+		helper.RunCommandExpectSuccess("project", "select", "--id", projectID)
+		stdout, _ := helper.RunCommandExpectSuccess("task", "list")
 		assert.Contains(t, stdout, "Test Task", "Task list should contain our task")
 		assert.Contains(t, stdout, taskID, "Task list should contain task ID")
 	})
@@ -126,18 +127,21 @@ func TestCLIWorkflowCommands(t *testing.T) {
 		// Create a project first to have data for workflow commands
 		projectID := helper.CreateTestProject("Workflow Test Project", "For testing workflow commands")
 		
+		// Select the project
+		helper.RunCommandExpectSuccess("project", "select", "--id", projectID)
+		
 		// Test ready command
-		stdout, _ := helper.RunCommandExpectSuccess("--project-id", projectID, "ready")
+		stdout, _ := helper.RunCommandExpectSuccess("ready")
 		// Command succeeds whether there are ready tasks or not
 		assert.True(t, len(stdout) > 0, "Ready command should produce output")
 		
 		// Test blocked command  
-		stdout, _ = helper.RunCommandExpectSuccess("--project-id", projectID, "blocked")
+		stdout, _ = helper.RunCommandExpectSuccess("blocked")
 		// Command succeeds whether there are blocked tasks or not
 		assert.True(t, len(stdout) > 0, "Blocked command should produce output")
 		
 		// Test actionable command
-		stdout, _ = helper.RunCommandExpectSuccess("--project-id", projectID, "actionable")
+		stdout, _ = helper.RunCommandExpectSuccess("actionable")
 		assert.Contains(t, stdout, "actionable", "Actionable command should show actionable tasks")
 	})
 }
@@ -152,7 +156,9 @@ func TestCLIOutputFormats(t *testing.T) {
 		helper.CreateTestProject("JSON Test Project", "For testing JSON output")
 		
 		// Test JSON output with a command that supports --json flag
-		stdout, _ := helper.RunCommandExpectSuccess("--project-id", helper.CreateTestProject("JSON Test Project", "For testing JSON output"), "ready", "--json")
+		projectID := helper.CreateTestProject("JSON Test Project", "For testing JSON output")
+		helper.RunCommandExpectSuccess("project", "select", "--id", projectID)
+		stdout, _ := helper.RunCommandExpectSuccess("ready", "--json")
 		// Just verify the command succeeds with JSON flag
 		assert.True(t, len(stdout) > 0, "JSON command should produce output")
 	})

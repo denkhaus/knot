@@ -28,6 +28,14 @@ func (_c *ProjectContextCreate) SetSelectedProjectID(v uuid.UUID) *ProjectContex
 	return _c
 }
 
+// SetNillableSelectedProjectID sets the "selected_project_id" field if the given value is not nil.
+func (_c *ProjectContextCreate) SetNillableSelectedProjectID(v *uuid.UUID) *ProjectContextCreate {
+	if v != nil {
+		_c.SetSelectedProjectID(*v)
+	}
+	return _c
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_c *ProjectContextCreate) SetUpdatedAt(v time.Time) *ProjectContextCreate {
 	_c.mutation.SetUpdatedAt(v)
@@ -102,9 +110,6 @@ func (_c *ProjectContextCreate) defaults() {
 
 // check runs all checks and user-defined validators on the builder.
 func (_c *ProjectContextCreate) check() error {
-	if _, ok := _c.mutation.SelectedProjectID(); !ok {
-		return &ValidationError{Name: "selected_project_id", err: errors.New(`ent: missing required field "ProjectContext.selected_project_id"`)}
-	}
 	if _, ok := _c.mutation.UpdatedAt(); !ok {
 		return &ValidationError{Name: "updated_at", err: errors.New(`ent: missing required field "ProjectContext.updated_at"`)}
 	}
@@ -115,9 +120,6 @@ func (_c *ProjectContextCreate) check() error {
 		if err := projectcontext.UpdatedByValidator(v); err != nil {
 			return &ValidationError{Name: "updated_by", err: fmt.Errorf(`ent: validator failed for field "ProjectContext.updated_by": %w`, err)}
 		}
-	}
-	if len(_c.mutation.SelectedProjectIDs()) == 0 {
-		return &ValidationError{Name: "selected_project", err: errors.New(`ent: missing required edge "ProjectContext.selected_project"`)}
 	}
 	return nil
 }

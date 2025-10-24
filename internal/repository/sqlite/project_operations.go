@@ -6,6 +6,7 @@ import (
 
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
+	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
 	"github.com/denkhaus/knot/internal/types"
@@ -58,7 +59,15 @@ func (r *sqliteRepository) UpdateProject(ctx context.Context, project *types.Pro
 // DeleteProject deletes a project and all its tasks using ent transaction
 func (r *sqliteRepository) DeleteProject(ctx context.Context, id uuid.UUID) error {
 	return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error {
-		// First, delete all task dependencies for tasks in this project
+		// First, clear any project context that references this project
+		_, err := tx.ProjectContext.Delete().
+			Where(projectcontext.SelectedProjectIDEQ(id)).
+			Exec(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to clear project context: %w", err)
+		}
+
+		// Delete all task dependencies for tasks in this project
 		taskIDs, err := tx.Task.Query().
 			Where(task.ProjectID(id)).
 			IDs(ctx)

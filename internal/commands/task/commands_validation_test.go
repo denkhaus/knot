@@ -77,17 +77,15 @@ func TestCreateActionValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create CLI context
+			// Create CLI context (no longer needs project-id flag)
 			app := &cli.App{}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-			flagSet.String("project-id", "", "")
 			flagSet.String("title", "", "")
 			flagSet.String("description", "", "")
 			flagSet.String("complexity", "", "")
 			flagSet.String("priority", "", "")
 			flagSet.String("actor", "", "")
 
-			flagSet.Set("project-id", project.ID.String())
 			flagSet.Set("title", tt.title)
 			flagSet.Set("description", tt.description)
 			flagSet.Set("complexity", strconv.Itoa(tt.complexity))
@@ -96,11 +94,16 @@ func TestCreateActionValidation(t *testing.T) {
 
 			ctx := cli.NewContext(app, flagSet, nil)
 
-			// Create the action
+			// Create the action and set project context
 			appCtx := &shared.AppContext{
 				ProjectManager: mgr,
 				Logger:         config.Logger,
 			}
+			
+			// Set project context for the test
+			err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+			require.NoError(t, err)
+			
 			action := createAction(appCtx)
 
 			// Execute the action
@@ -116,62 +119,10 @@ func TestCreateActionValidation(t *testing.T) {
 	}
 }
 
-func TestValidateProjectID(t *testing.T) {
-	tests := []struct {
-		name        string
-		projectID   string
-		expectError bool
-		errorMsg    string
-	}{
-		{
-			name:        "valid UUID",
-			projectID:   "123e4567-e89b-12d3-a456-426614174000",
-			expectError: false,
-		},
-		{
-			name:        "empty project ID",
-			projectID:   "",
-			expectError: true,
-			errorMsg:    "required flag --project-id not provided",
-		},
-		{
-			name:        "invalid UUID format",
-			projectID:   "invalid-uuid",
-			expectError: true,
-			errorMsg:    "invalid project-id format",
-		},
-		{
-			name:        "partial UUID",
-			projectID:   "123e4567-e89b-12d3",
-			expectError: true,
-			errorMsg:    "invalid project-id format",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create a proper CLI context with flag set
-			app := &cli.App{}
-			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-			flagSet.String("project-id", "", "")
-
-			if tt.projectID != "" {
-				flagSet.Set("project-id", tt.projectID)
-			}
-
-			ctx := cli.NewContext(app, flagSet, nil)
-
-			// Test the validation function
-			_, err := shared.ValidateProjectID(ctx)
-
-			if tt.expectError {
-				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errorMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
+// TestValidateProjectID is deprecated - project validation now happens through context
+// This test is kept for backward compatibility but should be removed in future versions
+func TestValidateProjectID_Deprecated(t *testing.T) {
+	t.Skip("Skipping deprecated ValidateProjectID test - project validation now uses context system")
 }
 
 func TestInputValidationIntegration(t *testing.T) {
@@ -185,14 +136,12 @@ func TestInputValidationIntegration(t *testing.T) {
 	// Test that validation errors are properly wrapped as EnhancedErrors
 	app := &cli.App{}
 	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-	flagSet.String("project-id", "", "")
 	flagSet.String("title", "", "")
 	flagSet.String("description", "", "")
 	flagSet.String("complexity", "", "")
 	flagSet.String("priority", "", "")
 	flagSet.String("actor", "", "")
 
-	flagSet.Set("project-id", project.ID.String())
 	flagSet.Set("title", "<script>alert('xss')</script>") // Should trigger validation error
 	flagSet.Set("description", "Valid description")
 	flagSet.Set("complexity", "5")
@@ -205,6 +154,11 @@ func TestInputValidationIntegration(t *testing.T) {
 		ProjectManager: mgr,
 		Logger:         config.Logger,
 	}
+	
+	// Set project context for the test
+	err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+	require.NoError(t, err)
+	
 	action := createAction(appCtx)
 
 	err := action(ctx)

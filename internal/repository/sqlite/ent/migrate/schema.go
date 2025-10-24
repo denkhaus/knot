@@ -53,7 +53,7 @@ var (
 		{Name: "id", Type: field.TypeInt, Increment: true},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "updated_by", Type: field.TypeString},
-		{Name: "selected_project_id", Type: field.TypeUUID},
+		{Name: "selected_project_id", Type: field.TypeUUID, Nullable: true},
 	}
 	// ProjectContextsTable holds the schema information for the "project_contexts" table.
 	ProjectContextsTable = &schema.Table{
@@ -65,7 +65,7 @@ var (
 				Symbol:     "project_contexts_projects_selected_project",
 				Columns:    []*schema.Column{ProjectContextsColumns[3]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
-				OnDelete:   schema.NoAction,
+				OnDelete:   schema.SetNull,
 			},
 		},
 	}

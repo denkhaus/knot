@@ -23,6 +23,7 @@ func (ProjectContext) Fields() []ent.Field {
 			Immutable().
 			Comment("Primary key - should always be 1 (singleton)"),
 		field.UUID("selected_project_id", uuid.UUID{}).
+			Optional().
 			Comment("Currently selected project ID"),
 		field.Time("updated_at").
 			Default(time.Now).
@@ -38,9 +39,9 @@ func (ProjectContext) Fields() []ent.Field {
 func (ProjectContext) Edges() []ent.Edge {
 	return []ent.Edge{
 		// Reference to the selected project
+		// Note: Not using Required() to allow project deletion without constraint issues
 		edge.To("selected_project", Project.Type).
 			Field("selected_project_id").
-			Unique().
-			Required(),
+			Unique(),
 	}
 }

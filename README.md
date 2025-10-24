@@ -7,6 +7,7 @@ A standalone CLI tool for hierarchical project and task management with dependen
 ### Core Management
 
 - **Project Management**: Create, list, update, and delete projects with full lifecycle support
+- **Project Context System**: Select a project once, then work seamlessly without repeating project IDs
 - **Hierarchical Task Management**: Create tasks with parent-child relationships and unlimited depth
 - **Task Dependencies**: Manage complex task dependencies and blocking relationships with cycle detection
 - **Smart Complexity Management**: Auto-reduce parent task complexity when subtasks are added
@@ -80,23 +81,21 @@ knot project create --name "My Project" --description "Project description"
 # List available projects to see project IDs
 knot project list
 
-# Select the project to work with
+# Select the project to work with (do this once)
 knot project select --id <project-uuid>
 
-# Create a task
+# Now work seamlessly without repeating project ID
 knot task create --title "Implement feature" --complexity 5
-
-# List tasks
 knot task list
-
-# Find ready work
 knot ready
-
-# Check what's blocked
 knot blocked
-
-# Find next actionable task
 knot actionable
+
+# Check which project is currently selected
+knot project get-selected
+
+# Switch to a different project when needed
+knot project select --id <other-project-uuid>
 ```
 
 ## Core Commands
@@ -120,7 +119,7 @@ knot project delete --id <project-uuid>
 ### Task Management
 
 ```bash
-# Select project first
+# Select project first (do this once)
 knot project select --id <project-uuid>
 
 # Create root task
@@ -195,37 +194,43 @@ knot dependency validate
 ### Workflow Analysis
 
 ```bash
+# Select project first (if not already selected)
+knot project select --id <project-uuid>
+
 # Find ready tasks (no blockers)
-knot --project-id <project-uuid> ready --limit 5
+knot ready --limit 5
 
 # Find blocked tasks
-knot --project-id <project-uuid> blocked --limit 10
+knot blocked --limit 10
 
 # Get next actionable task
-knot --project-id <project-uuid> actionable
+knot actionable
 
 # Find tasks needing breakdown
-knot --project-id <project-uuid> breakdown --threshold 8
+knot breakdown --threshold 8
 ```
 
 ### Bulk Operations
 
 ```bash
+# Select project first (if not already selected)
+knot project select --id <project-uuid>
+
 # Bulk update tasks
-knot --project-id <project-uuid> task bulk-update --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --state completed
+knot task bulk-update --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --state completed
 
 # Bulk create from JSON
-knot --project-id <project-uuid> task bulk-create --file tasks.json
+knot task bulk-create --file tasks.json
 
 # Bulk delete with confirmation
-knot --project-id <project-uuid> task bulk-delete --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --dry-run
-knot --project-id <project-uuid> task bulk-delete --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --force
+knot task bulk-delete --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --dry-run
+knot task bulk-delete --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --force
 
 # Duplicate task to another project
-knot --project-id <project-uuid> task duplicate --task-id <task-uuid> --target-project-id <target-project-uuid>
+knot task duplicate --task-id <task-uuid> --target-project-id <target-project-uuid>
 
 # List tasks by state
-knot --project-id <project-uuid> task list-by-state --state pending --json
+knot task list-by-state --state pending --json
 ```
 
 ### Template Management
@@ -276,8 +281,9 @@ knot template list
 # Show detailed information about a template
 knot template show --name "feature-development"
 
-# Apply a template to your project (replace project UUID)
-knot --project-id <project-uuid> template apply --name "bug-fix" --var bug_id="BUG-123" --var bug_description="Issue description"
+# Apply a template to your project (select project first)
+knot project select --id <project-uuid>
+knot template apply --name "bug-fix" --var bug_id="BUG-123" --var bug_description="Issue description"
 
 # Validate a template file before using it
 knot template validate --file my-template.yaml
@@ -332,11 +338,14 @@ knot config reset
 # Check database health
 knot health check
 
+# Select project first (if not already selected)
+knot project select --id <project-uuid>
+
 # Validate task states
-knot --project-id <project-uuid> validate states
+knot validate states
 
 # Validate task hierarchy
-knot --project-id <project-uuid> validate hierarchy
+knot validate hierarchy
 
 # Check database integrity
 knot health integrity
@@ -352,8 +361,12 @@ knot health performance
 Most commands support `--json` flag for machine-readable output:
 
 ```bash
-knot --project-id <project-uuid> task list --json
-knot --project-id <project-uuid> ready --json
+# Select project first (if not already selected)
+knot project select --id <project-uuid>
+
+# Get JSON output for tasks and analysis
+knot task list --json
+knot ready --json
 knot project list --json
 ```
 
@@ -362,8 +375,12 @@ knot project list --json
 Track who makes changes using the `--actor` flag:
 
 ```bash
-knot --actor "john.doe" --project-id <project-uuid> task create --title "New task"
-knot --actor "jane.smith" --project-id <project-uuid> task update-state --id <task-uuid> --state completed
+# Select project first
+knot project select --id <project-uuid>
+
+# Track changes with actor information
+knot --actor "john.doe" task create --title "New task"
+knot --actor "jane.smith" task update-state --id <task-uuid> --state completed
 ```
 
 ### Environment Variables
@@ -378,8 +395,11 @@ export KNOT_LOG_LEVEL=debug
 ### Complex Filtering
 
 ```bash
+# Select project first (if not already selected)
+knot project select --id <project-uuid>
+
 # Find high-priority pending tasks with complexity 5-8
-knot --project-id <project-uuid> task list \
+knot task list \
   --state pending \
   --priority high \
   --complexity-min 5 \
@@ -388,7 +408,7 @@ knot --project-id <project-uuid> task list \
   --reverse
 
 # Search for tasks containing "api" in title or description
-knot --project-id <project-uuid> task list --search "api" --limit 10
+knot task list --search "api" --limit 10
 ```
 
 ### Template Variables Example
@@ -554,53 +574,60 @@ Knot provides enhanced error messages with:
 ### Complete Feature Development Workflow
 
 ```bash
-# Example with environment variables for convenience
+# Create project and select it
 PROJECT_ID=$(knot project create --name "Web App" --json | jq -r '.id')
+knot project select --id $PROJECT_ID
 
 # Apply feature template
-knot --project-id $PROJECT_ID template apply --template-name "feature-development"
+knot template apply --template-name "feature-development"
 
 # Find ready work
-knot --project-id $PROJECT_ID ready
+knot ready
 
 # Start working on first task
-TASK_ID=$(knot --project-id $PROJECT_ID ready --json | jq -r '.[0].id')
-knot --project-id $PROJECT_ID task update-state --id $TASK_ID --state in-progress
+TASK_ID=$(knot ready --json | jq -r '.[0].id')
+knot task update-state --id $TASK_ID --state in-progress
 
 # Complete task and find next
-knot --project-id $PROJECT_ID task update-state --id $TASK_ID --state completed
-knot --project-id $PROJECT_ID actionable
+knot task update-state --id $TASK_ID --state completed
+knot actionable
 ```
 
 ### Bug Fix Workflow
 
 ```bash
+# Select project first
+knot project select --id <project-uuid>
+
 # Create bug fix from template
-knot --project-id <project-uuid> template apply --template-name "bug-fix" \
+knot template apply --template-name "bug-fix" \
   --var bug_id="BUG-123" \
   --var bug_description="Login form validation error" \
   --var priority="High"
 
 # Track progress
-knot --project-id <project-uuid> blocked
-knot --project-id <project-uuid> ready
+knot blocked
+knot ready
 ```
 
 ### Dependency Management
 
 ```bash
+# Select project first
+knot project select --id <project-uuid>
+
 # Create tasks with dependencies
-DESIGN_ID=$(knot --project-id <project-uuid> task create --title "Design API" --json | jq -r '.id')
-IMPL_ID=$(knot --project-id <project-uuid> task create --title "Implement API" --json | jq -r '.id')
-TEST_ID=$(knot --project-id <project-uuid> task create --title "Test API" --json | jq -r '.id')
+DESIGN_ID=$(knot task create --title "Design API" --json | jq -r '.id')
+IMPL_ID=$(knot task create --title "Implement API" --json | jq -r '.id')
+TEST_ID=$(knot task create --title "Test API" --json | jq -r '.id')
 
 # Set up dependency chain
-knot --project-id <project-uuid> dependency add --task-id $IMPL_ID --depends-on $DESIGN_ID
-knot --project-id <project-uuid> dependency add --task-id $TEST_ID --depends-on $IMPL_ID
+knot dependency add --task-id $IMPL_ID --depends-on $DESIGN_ID
+knot dependency add --task-id $TEST_ID --depends-on $IMPL_ID
 
 # Validate dependency chain
-knot --project-id <project-uuid> dependency chain --task-id $TEST_ID --upstream
-knot --project-id <project-uuid> dependency cycles
+knot dependency chain --task-id $TEST_ID --upstream
+knot dependency cycles
 ```
 
 ## Contributing

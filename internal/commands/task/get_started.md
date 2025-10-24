@@ -6,7 +6,7 @@ Knot is a hierarchical project and task management tool with dependencies. It's 
 
 ```
 # Create a new project
-knot project create --title "<project-title>" --description "<project-description>"
+knot project create --name "<project-name>" --description "<project-description>"
 
 # List all projects
 knot project list

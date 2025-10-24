@@ -44,6 +44,12 @@ func (_u *ProjectContextUpdate) SetNillableSelectedProjectID(v *uuid.UUID) *Proj
 	return _u
 }
 
+// ClearSelectedProjectID clears the value of the "selected_project_id" field.
+func (_u *ProjectContextUpdate) ClearSelectedProjectID() *ProjectContextUpdate {
+	_u.mutation.ClearSelectedProjectID()
+	return _u
+}
+
 // SetUpdatedAt sets the "updated_at" field.
 func (_u *ProjectContextUpdate) SetUpdatedAt(v time.Time) *ProjectContextUpdate {
 	_u.mutation.SetUpdatedAt(v)
@@ -122,9 +128,6 @@ func (_u *ProjectContextUpdate) check() error {
 		if err := projectcontext.UpdatedByValidator(v); err != nil {
 			return &ValidationError{Name: "updated_by", err: fmt.Errorf(`ent: validator failed for field "ProjectContext.updated_by": %w`, err)}
 		}
-	}
-	if _u.mutation.SelectedProjectCleared() && len(_u.mutation.SelectedProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "ProjectContext.selected_project"`)
 	}
 	return nil
 }
@@ -207,6 +210,12 @@ func (_u *ProjectContextUpdateOne) SetNillableSelectedProjectID(v *uuid.UUID) *P
 	if v != nil {
 		_u.SetSelectedProjectID(*v)
 	}
+	return _u
+}
+
+// ClearSelectedProjectID clears the value of the "selected_project_id" field.
+func (_u *ProjectContextUpdateOne) ClearSelectedProjectID() *ProjectContextUpdateOne {
+	_u.mutation.ClearSelectedProjectID()
 	return _u
 }
 
@@ -301,9 +310,6 @@ func (_u *ProjectContextUpdateOne) check() error {
 		if err := projectcontext.UpdatedByValidator(v); err != nil {
 			return &ValidationError{Name: "updated_by", err: fmt.Errorf(`ent: validator failed for field "ProjectContext.updated_by": %w`, err)}
 		}
-	}
-	if _u.mutation.SelectedProjectCleared() && len(_u.mutation.SelectedProjectIDs()) > 0 {
-		return errors.New(`ent: clearing a required unique edge "ProjectContext.selected_project"`)
 	}
 	return nil
 }

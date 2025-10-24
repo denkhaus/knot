@@ -1112,9 +1112,22 @@ func (m *ProjectContextMutation) OldSelectedProjectID(ctx context.Context) (v uu
 	return oldValue.SelectedProjectID, nil
 }
 
+// ClearSelectedProjectID clears the value of the "selected_project_id" field.
+func (m *ProjectContextMutation) ClearSelectedProjectID() {
+	m.selected_project = nil
+	m.clearedFields[projectcontext.FieldSelectedProjectID] = struct{}{}
+}
+
+// SelectedProjectIDCleared returns if the "selected_project_id" field was cleared in this mutation.
+func (m *ProjectContextMutation) SelectedProjectIDCleared() bool {
+	_, ok := m.clearedFields[projectcontext.FieldSelectedProjectID]
+	return ok
+}
+
 // ResetSelectedProjectID resets all changes to the "selected_project_id" field.
 func (m *ProjectContextMutation) ResetSelectedProjectID() {
 	m.selected_project = nil
+	delete(m.clearedFields, projectcontext.FieldSelectedProjectID)
 }
 
 // SetUpdatedAt sets the "updated_at" field.
@@ -1197,7 +1210,7 @@ func (m *ProjectContextMutation) ClearSelectedProject() {
 
 // SelectedProjectCleared reports if the "selected_project" edge to the Project entity was cleared.
 func (m *ProjectContextMutation) SelectedProjectCleared() bool {
-	return m.clearedselected_project
+	return m.SelectedProjectIDCleared() || m.clearedselected_project
 }
 
 // SelectedProjectIDs returns the "selected_project" edge IDs in the mutation.
@@ -1348,7 +1361,11 @@ func (m *ProjectContextMutation) AddField(name string, value ent.Value) error {
 // ClearedFields returns all nullable fields that were cleared during this
 // mutation.
 func (m *ProjectContextMutation) ClearedFields() []string {
-	return nil
+	var fields []string
+	if m.FieldCleared(projectcontext.FieldSelectedProjectID) {
+		fields = append(fields, projectcontext.FieldSelectedProjectID)
+	}
+	return fields
 }
 
 // FieldCleared returns a boolean indicating if a field with the given name was
@@ -1361,6 +1378,11 @@ func (m *ProjectContextMutation) FieldCleared(name string) bool {
 // ClearField clears the value of the field with the given name. It returns an
 // error if the field is not defined in the schema.
 func (m *ProjectContextMutation) ClearField(name string) error {
+	switch name {
+	case projectcontext.FieldSelectedProjectID:
+		m.ClearSelectedProjectID()
+		return nil
+	}
 	return fmt.Errorf("unknown ProjectContext nullable field %s", name)
 }
 
