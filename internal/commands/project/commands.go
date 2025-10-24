@@ -2,6 +2,7 @@ package project
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"os"
 
@@ -81,6 +82,35 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 					Value: false,
 				},
 			},
+		},
+		{
+			Name:   "select",
+			Usage:  "Select a project as the current context",
+			Action: selectAction(appCtx),
+			Flags: []cli.Flag{
+				&cli.StringFlag{
+					Name:     "id",
+					Usage:    "Project ID to select",
+					Required: true,
+				},
+			},
+		},
+		{
+			Name:   "get-selected",
+			Usage:  "Show the currently selected project",
+			Action: getSelectedAction(appCtx),
+			Flags: []cli.Flag{
+				&cli.BoolFlag{
+					Name:    "json",
+					Aliases: []string{"j"},
+					Usage:   "Output in JSON format",
+				},
+			},
+		},
+		{
+			Name:   "clear-selection",
+			Usage:  "Clear the currently selected project",
+			Action: clearSelectionAction(appCtx),
 		},
 	}
 }
@@ -306,5 +336,102 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 			return nil
 		}
+	}
+}
+
+// selectAction selects a project as the current context
+func selectAction(appCtx *shared.AppContext) cli.ActionFunc {
+	return func(c *cli.Context) error {
+		projectIDStr := c.String("id")
+		projectID, err := uuid.Parse(projectIDStr)
+		if err != nil {
+			return errors.InvalidUUIDError("project-id", projectIDStr)
+		}
+
+		// Verify project exists
+		project, err := appCtx.ProjectManager.GetProject(context.Background(), projectID)
+		if err != nil {
+			return fmt.Errorf("project not found: %w", err)
+		}
+
+		// Set as selected project
+		actor := appCtx.GetActor()
+		err = appCtx.ProjectManager.SetSelectedProject(context.Background(), projectID, actor)
+		if err != nil {
+			return fmt.Errorf("failed to select project: %w", err)
+		}
+
+		fmt.Printf("Selected project: %s (ID: %s)\n", project.Title, project.ID)
+		return nil
+	}
+}
+
+// getSelectedAction shows the currently selected project
+func getSelectedAction(appCtx *shared.AppContext) cli.ActionFunc {
+	return func(c *cli.Context) error {
+		selectedProjectID, err := appCtx.ProjectManager.GetSelectedProject(context.Background())
+		if err != nil {
+			return fmt.Errorf("failed to get selected project: %w", err)
+		}
+
+		if selectedProjectID == nil {
+			if c.Bool("json") {
+				fmt.Println("null")
+				return nil
+			}
+			fmt.Println("No project currently selected")
+			fmt.Println("Use 'knot project select --id <project-id>' to select a project")
+			return nil
+		}
+
+		// Get project details
+		project, err := appCtx.ProjectManager.GetProject(context.Background(), *selectedProjectID)
+		if err != nil {
+			return fmt.Errorf("selected project not found: %w", err)
+		}
+
+		if c.Bool("json") {
+			projectJSON, err := json.Marshal(project)
+			if err != nil {
+				return fmt.Errorf("failed to marshal project: %w", err)
+			}
+			fmt.Println(string(projectJSON))
+			return nil
+		}
+
+		fmt.Printf("Currently selected project:\n\n")
+		fmt.Printf("* %s (ID: %s)\n", project.Title, project.ID)
+		if project.Description != "" {
+			fmt.Printf("  %s\n", project.Description)
+		}
+		fmt.Printf("  State: %s | Progress: %.1f%%\n", project.State, project.Progress)
+		fmt.Printf("  Tasks: %d total, %d completed\n", project.TotalTasks, project.CompletedTasks)
+		return nil
+	}
+}
+
+// clearSelectionAction clears the currently selected project
+func clearSelectionAction(appCtx *shared.AppContext) cli.ActionFunc {
+	return func(c *cli.Context) error {
+		// Check if there's a selection to clear
+		hasSelected, err := appCtx.ProjectManager.HasSelectedProject(context.Background())
+		if err != nil {
+			return fmt.Errorf("failed to check selected project: %w", err)
+		}
+
+		if !hasSelected {
+			fmt.Println("No project currently selected")
+			return nil
+		}
+
+		// Clear the selection
+		err = appCtx.ProjectManager.ClearSelectedProject(context.Background())
+		if err != nil {
+			return fmt.Errorf("failed to clear selected project: %w", err)
+		}
+
+		fmt.Println("Project selection cleared")
+		fmt.Println("Use 'knot project select --id <project-id>' to select a project")
+		return nil
 	}
 }

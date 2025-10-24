@@ -9,6 +9,9 @@ import (
 // Project is the predicate function for project builders.
 type Project func(*sql.Selector)
 
+// ProjectContext is the predicate function for projectcontext builders.
+type ProjectContext func(*sql.Selector)
+
 // Task is the predicate function for task builders.
 type Task func(*sql.Selector)
 

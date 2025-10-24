@@ -211,7 +211,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 
 func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ValidateProjectID(c)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
 			return err
 		}
@@ -294,14 +294,14 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Show workflow reminder for task state management
 		fmt.Printf("\nReminder: Set this task to 'in-progress' before starting work:\n")
-		fmt.Printf("  knot --project-id %s task update-state --id %s --state in-progress\n", projectID, task.ID)
+		fmt.Printf("  knot task update-state --id %s --state in-progress\n", task.ID)
 
 		// Show breakdown suggestion for high complexity tasks
 		if complexity >= 8 {
 			fmt.Printf("\nNote: This task has high complexity (%d >= 8 threshold).\n", complexity)
 			fmt.Printf("Consider breaking it down into smaller subtasks:\n")
-			fmt.Printf("  knot --project-id %s task create --parent-id %s --title \"Subtask 1\"\n", projectID, task.ID)
-			fmt.Printf("  knot --project-id %s breakdown  # to see all tasks needing breakdown\n", projectID)
+			fmt.Printf("  knot task create --parent-id %s --title \"Subtask 1\"\n", task.ID)
+			fmt.Printf("  knot breakdown  # to see all tasks needing breakdown\n")
 		}
 
 		return nil
@@ -310,7 +310,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ValidateProjectID(c)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
 			return err
 		}

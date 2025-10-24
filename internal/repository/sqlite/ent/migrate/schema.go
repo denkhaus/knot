@@ -48,6 +48,27 @@ var (
 			},
 		},
 	}
+	// ProjectContextsColumns holds the columns for the "project_contexts" table.
+	ProjectContextsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeInt, Increment: true},
+		{Name: "updated_at", Type: field.TypeTime},
+		{Name: "updated_by", Type: field.TypeString},
+		{Name: "selected_project_id", Type: field.TypeUUID},
+	}
+	// ProjectContextsTable holds the schema information for the "project_contexts" table.
+	ProjectContextsTable = &schema.Table{
+		Name:       "project_contexts",
+		Columns:    ProjectContextsColumns,
+		PrimaryKey: []*schema.Column{ProjectContextsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "project_contexts_projects_selected_project",
+				Columns:    []*schema.Column{ProjectContextsColumns[3]},
+				RefColumns: []*schema.Column{ProjectsColumns[0]},
+				OnDelete:   schema.NoAction,
+			},
+		},
+	}
 	// TasksColumns holds the columns for the "tasks" table.
 	TasksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
@@ -224,12 +245,14 @@ var (
 	// Tables holds all the tables in the schema.
 	Tables = []*schema.Table{
 		ProjectsTable,
+		ProjectContextsTable,
 		TasksTable,
 		TaskDependenciesTable,
 	}
 )
 
 func init() {
+	ProjectContextsTable.ForeignKeys[0].RefTable = ProjectsTable
 	TasksTable.ForeignKeys[0].RefTable = ProjectsTable
 	TasksTable.ForeignKeys[1].RefTable = TasksTable
 	TaskDependenciesTable.ForeignKeys[0].RefTable = TasksTable

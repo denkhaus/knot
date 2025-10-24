@@ -190,10 +190,9 @@ func transitionAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 func projectAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectIDStr := c.String("project-id")
-		projectID, err := uuid.Parse(projectIDStr)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
+			return err
 		}
 
 		fix := c.Bool("fix")

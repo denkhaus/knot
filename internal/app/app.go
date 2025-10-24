@@ -129,7 +129,6 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 			},
 		},
 		Flags: []cli.Flag{
-			NewProjectIDFlag(),
 			&cli.StringFlag{
 				Name:    "actor",
 				Usage:   "Actor name for audit trail (default: $USER)",

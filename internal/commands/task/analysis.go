@@ -38,7 +38,7 @@ func isTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool {
 // ActionableAction finds the next actionable task in a project
 func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ValidateProjectID(c)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
 			return err
 		}
@@ -128,7 +128,7 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 // ReadyAction shows tasks that are ready to work on (no blockers)
 func ReadyAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ValidateProjectID(c)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
 			return err
 		}
@@ -209,7 +209,7 @@ func ReadyAction(appCtx *shared.AppContext) cli.ActionFunc {
 // BlockedAction shows tasks that are blocked by dependencies
 func BlockedAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ValidateProjectID(c)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
 			return err
 		}
@@ -281,7 +281,7 @@ func BlockedAction(appCtx *shared.AppContext) cli.ActionFunc {
 // BreakdownAction finds tasks that need breakdown based on complexity threshold
 func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ValidateProjectID(c)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
 			return err
 		}

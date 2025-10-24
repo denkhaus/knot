@@ -204,10 +204,9 @@ func ParentAction(appCtx *shared.AppContext) cli.ActionFunc {
 // RootsAction gets root tasks of a project
 func RootsAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectIDStr := c.String("project-id")
-		projectID, err := uuid.Parse(projectIDStr)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
+			return err
 		}
 
 		limit := c.Int("limit")

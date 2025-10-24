@@ -14,6 +14,8 @@ type Tx struct {
 	config
 	// Project is the client for interacting with the Project builders.
 	Project *ProjectClient
+	// ProjectContext is the client for interacting with the ProjectContext builders.
+	ProjectContext *ProjectContextClient
 	// Task is the client for interacting with the Task builders.
 	Task *TaskClient
 	// TaskDependency is the client for interacting with the TaskDependency builders.
@@ -150,6 +152,7 @@ func (tx *Tx) Client() *Client {
 
 func (tx *Tx) init() {
 	tx.Project = NewProjectClient(tx.config)
+	tx.ProjectContext = NewProjectContextClient(tx.config)
 	tx.Task = NewTaskClient(tx.config)
 	tx.TaskDependency = NewTaskDependencyClient(tx.config)
 }

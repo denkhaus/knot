@@ -142,4 +142,10 @@ type Repository interface {
 	// Metrics and analysis
 	GetProjectProgress(ctx context.Context, projectID uuid.UUID) (*ProjectProgress, error)
 	GetTaskCountByDepth(ctx context.Context, projectID uuid.UUID, maxDepth int) (map[int]int, error)
+
+	// Project context management
+	GetSelectedProject(ctx context.Context) (*uuid.UUID, error)
+	SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error
+	ClearSelectedProject(ctx context.Context) error
+	HasSelectedProject(ctx context.Context) (bool, error)
 }

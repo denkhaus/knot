@@ -18,16 +18,18 @@ type simpleMemoryRepository struct {
 	tasksByProject    map[uuid.UUID][]uuid.UUID
 	tasksByParent     map[uuid.UUID][]uuid.UUID
 	taskDependencies  map[uuid.UUID][]uuid.UUID // taskID -> list of dependency taskIDs
+	selectedProjectID *uuid.UUID                 // Currently selected project
 }
 
 // NewMemoryRepository creates a new in-memory repository
 func NewMemoryRepository() types.Repository {
 	return &simpleMemoryRepository{
-		projects:         make(map[uuid.UUID]*types.Project),
-		tasks:            make(map[uuid.UUID]*types.Task),
-		tasksByProject:   make(map[uuid.UUID][]uuid.UUID),
-		tasksByParent:    make(map[uuid.UUID][]uuid.UUID),
-		taskDependencies: make(map[uuid.UUID][]uuid.UUID),
+		projects:          make(map[uuid.UUID]*types.Project),
+		tasks:             make(map[uuid.UUID]*types.Task),
+		tasksByProject:    make(map[uuid.UUID][]uuid.UUID),
+		tasksByParent:     make(map[uuid.UUID][]uuid.UUID),
+		taskDependencies:  make(map[uuid.UUID][]uuid.UUID),
+		selectedProjectID: nil,
 	}
 }
 
@@ -418,6 +420,53 @@ func (r *simpleMemoryRepository) GetTaskCountByDepth(ctx context.Context, projec
 	}
 
 	return counts, nil
+}
+
+// Project context management methods
+
+// GetSelectedProject retrieves the currently selected project ID
+func (r *simpleMemoryRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	
+	if r.selectedProjectID == nil {
+		return nil, nil
+	}
+	
+	// Return a copy to avoid mutation
+	projectID := *r.selectedProjectID
+	return &projectID, nil
+}
+
+// SetSelectedProject sets the currently selected project ID
+func (r *simpleMemoryRepository) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
+	// Verify project exists
+	if _, exists := r.projects[projectID]; !exists {
+		return fmt.Errorf("project with ID %s does not exist", projectID)
+	}
+	
+	r.selectedProjectID = &projectID
+	return nil
+}
+
+// ClearSelectedProject removes the currently selected project
+func (r *simpleMemoryRepository) ClearSelectedProject(ctx context.Context) error {
+	r.mu.Lock()
+	defer r.mu.Unlock()
+	
+	r.selectedProjectID = nil
+	return nil
+}
+
+// HasSelectedProject checks if there is a currently selected project
+func (r *simpleMemoryRepository) HasSelectedProject(ctx context.Context) (bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+	
+	return r.selectedProjectID != nil, nil
 }
 
 // Helper function to match tasks against filter

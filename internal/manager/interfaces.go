@@ -61,6 +61,12 @@ type ProjectManager interface {
 	LoadConfigFromFile() error
 	SaveConfigToFile() error
 
+	// Project context management
+	GetSelectedProject(ctx context.Context) (*uuid.UUID, error)
+	SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error
+	ClearSelectedProject(ctx context.Context) error
+	HasSelectedProject(ctx context.Context) (bool, error)
+
 	// Utility methods
 	GetCurrentTime() time.Time
 }

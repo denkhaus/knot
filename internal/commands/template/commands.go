@@ -283,14 +283,9 @@ func showAction(appCtx *shared.AppContext) cli.ActionFunc {
 // applyAction applies a template to create tasks
 func applyAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectIDStr := c.String("project-id")
-		if projectIDStr == "" {
-			return fmt.Errorf("project-id is required")
-		}
-
-		projectID, err := uuid.Parse(projectIDStr)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
+			return err
 		}
 
 		templateName := c.String("name")

@@ -1005,6 +1005,28 @@ func isValidProjectStateTransition(from, to types.ProjectState) bool {
 	return false
 }
 
+// Project context management methods
+
+// GetSelectedProject retrieves the currently selected project ID
+func (s *service) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
+	return s.repo.GetSelectedProject(ctx)
+}
+
+// SetSelectedProject sets the currently selected project ID
+func (s *service) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
+	return s.repo.SetSelectedProject(ctx, projectID, actor)
+}
+
+// ClearSelectedProject removes the currently selected project
+func (s *service) ClearSelectedProject(ctx context.Context) error {
+	return s.repo.ClearSelectedProject(ctx)
+}
+
+// HasSelectedProject checks if there is a currently selected project
+func (s *service) HasSelectedProject(ctx context.Context) (bool, error) {
+	return s.repo.HasSelectedProject(ctx)
+}
+
 // GetCurrentTime returns the current time
 func (s *service) GetCurrentTime() time.Time {
 	return time.Now()

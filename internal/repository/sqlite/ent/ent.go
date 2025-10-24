@@ -13,6 +13,7 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
+	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
 )
@@ -76,6 +77,7 @@ func checkColumn(t, c string) error {
 	initCheck.Do(func() {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			project.Table:        project.ValidColumn,
+			projectcontext.Table: projectcontext.ValidColumn,
 			task.Table:           task.ValidColumn,
 			taskdependency.Table: taskdependency.ValidColumn,
 		})

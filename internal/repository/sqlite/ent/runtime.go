@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
+	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/schema"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
@@ -82,6 +83,18 @@ func init() {
 	projectDescID := projectFields[0].Descriptor()
 	// project.DefaultID holds the default value on creation for the id field.
 	project.DefaultID = projectDescID.Default.(func() uuid.UUID)
+	projectcontextFields := schema.ProjectContext{}.Fields()
+	_ = projectcontextFields
+	// projectcontextDescUpdatedAt is the schema descriptor for updated_at field.
+	projectcontextDescUpdatedAt := projectcontextFields[2].Descriptor()
+	// projectcontext.DefaultUpdatedAt holds the default value on creation for the updated_at field.
+	projectcontext.DefaultUpdatedAt = projectcontextDescUpdatedAt.Default.(func() time.Time)
+	// projectcontext.UpdateDefaultUpdatedAt holds the default value on update for the updated_at field.
+	projectcontext.UpdateDefaultUpdatedAt = projectcontextDescUpdatedAt.UpdateDefault.(func() time.Time)
+	// projectcontextDescUpdatedBy is the schema descriptor for updated_by field.
+	projectcontextDescUpdatedBy := projectcontextFields[3].Descriptor()
+	// projectcontext.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
+	projectcontext.UpdatedByValidator = projectcontextDescUpdatedBy.Validators[0].(func(string) error)
 	taskFields := schema.Task{}.Fields()
 	_ = taskFields
 	// taskDescTitle is the schema descriptor for title field.

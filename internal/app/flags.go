@@ -4,13 +4,6 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func NewProjectIDFlag() cli.Flag {
-	return &cli.StringFlag{
-		Name:    "project-id",
-		Aliases: []string{"p"},
-		Usage:   "Project ID",
-	}
-}
 
 func NewTaskLimitFlag() cli.Flag {
 	return &cli.IntFlag{

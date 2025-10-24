@@ -7,6 +7,7 @@ import (
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
+	"entgo.io/ent/dialect/sql/schema"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent"
 	"github.com/denkhaus/knot/internal/types"
 	_ "modernc.org/sqlite"
@@ -17,6 +18,7 @@ import (
 type sqliteRepository struct {
 	client *ent.Client
 	config *Config
+	logger *zap.Logger
 }
 
 // NewRepository creates a new SQLite repository using ent ORM
@@ -25,6 +27,7 @@ func NewRepository(opts ...Option) (types.Repository, error) {
 
 	repo := &sqliteRepository{
 		config: config,
+		logger: config.Logger,
 	}
 
 	// Apply options
@@ -79,9 +82,15 @@ func (r *sqliteRepository) initialize() error {
 		ctx, cancel := context.WithTimeout(context.Background(), r.config.MigrationTimeout)
 		defer cancel()
 
-		if err := r.client.Schema.Create(ctx); err != nil {
+		// Use safe migration options to add new tables without affecting existing data
+		if err := r.client.Schema.Create(ctx, 
+			schema.WithDropIndex(false),
+			schema.WithDropColumn(false),
+		); err != nil {
 			return NewMigrationError("auto-migration failed", err)
 		}
+		
+		r.logger.Info("Database schema migration completed successfully")
 	}
 
 	return nil
