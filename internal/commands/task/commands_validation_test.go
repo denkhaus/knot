@@ -86,11 +86,11 @@ func TestCreateActionValidation(t *testing.T) {
 			flagSet.String("priority", "", "")
 			flagSet.String("actor", "", "")
 
-			flagSet.Set("title", tt.title)
-			flagSet.Set("description", tt.description)
-			flagSet.Set("complexity", strconv.Itoa(tt.complexity))
-			flagSet.Set("priority", "medium")
-			flagSet.Set("actor", "test-user")
+			_ = flagSet.Set("title", tt.title)
+			_ = flagSet.Set("description", tt.description)
+			_ = flagSet.Set("complexity", strconv.Itoa(tt.complexity))
+			_ = flagSet.Set("priority", "medium")
+			_ = flagSet.Set("actor", "test-user")
 
 			ctx := cli.NewContext(app, flagSet, nil)
 
@@ -142,11 +142,11 @@ func TestInputValidationIntegration(t *testing.T) {
 	flagSet.String("priority", "", "")
 	flagSet.String("actor", "", "")
 
-	flagSet.Set("title", "<script>alert('xss')</script>") // Should trigger validation error
-	flagSet.Set("description", "Valid description")
-	flagSet.Set("complexity", "5")
-	flagSet.Set("priority", "medium")
-	flagSet.Set("actor", "test-user")
+	_ = flagSet.Set("title", "<script>alert('xss')</script>") // Should trigger validation error
+	_ = flagSet.Set("description", "Valid description")
+	_ = flagSet.Set("complexity", "5")
+	_ = flagSet.Set("priority", "medium")
+	_ = flagSet.Set("actor", "test-user")
 
 	ctx := cli.NewContext(app, flagSet, nil)
 

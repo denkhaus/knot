@@ -171,8 +171,8 @@ func TestSetAction(t *testing.T) {
 			set.String("key", "", "config key")
 			set.String("value", "", "config value")
 
-			set.Set("key", tt.key)
-			set.Set("value", tt.value)
+			_ = set.Set("key", tt.key)
+			_ = set.Set("value", tt.value)
 
 			ctx := cli.NewContext(app, set, nil)
 
@@ -233,8 +233,8 @@ func TestSetActionWithValidValues(t *testing.T) {
 			set.String("key", "", "config key")
 			set.String("value", "", "config value")
 
-			set.Set("key", tc.key)
-			set.Set("value", tc.value)
+			_ = set.Set("key", tc.key)
+			_ = set.Set("value", tc.value)
 
 			ctx := cli.NewContext(app, set, nil)
 
@@ -420,8 +420,8 @@ func TestSetActionWithDifferentValues(t *testing.T) {
 			set.String("key", "", "config key")
 			set.String("value", "", "config value")
 
-			set.Set("key", key)
-			set.Set("value", value)
+			_ = set.Set("key", key)
+			_ = set.Set("value", value)
 
 			ctx := cli.NewContext(app, set, nil)
 
@@ -523,8 +523,8 @@ func TestSetActionErrorMessages(t *testing.T) {
 			set.String("key", "", "config key")
 			set.String("value", "", "config value")
 
-			set.Set("key", tc.key)
-			set.Set("value", tc.value)
+			_ = set.Set("key", tc.key)
+			_ = set.Set("value", tc.value)
 
 			ctx := cli.NewContext(app, set, nil)
 

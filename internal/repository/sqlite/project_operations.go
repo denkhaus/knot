@@ -122,49 +122,50 @@ func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, 
 }
 
 // updateProjectMetrics updates project metrics (total tasks, completed tasks, progress)
-func (r *sqliteRepository) updateProjectMetrics(ctx context.Context, projectID uuid.UUID) error {
-	// Get task counts by state using ent aggregation
-	var totalTasks int
-	var completedTasks int
-
-	// Count total tasks
-	totalTasks, err := r.client.Task.Query().
-		Where(task.ProjectID(projectID)).
-		Count(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to count total tasks: %w", err)
-	}
-
-	// Count completed tasks
-	completedTasks, err = r.client.Task.Query().
-		Where(
-			task.ProjectID(projectID),
-			task.StateEQ(task.StateCompleted),
-		).
-		Count(ctx)
-	if err != nil {
-		return fmt.Errorf("failed to count completed tasks: %w", err)
-	}
-
-	// Calculate progress
-	progress := 0.0
-	if totalTasks > 0 {
-		progress = float64(completedTasks) / float64(totalTasks) * 100.0
-	}
-
-	// Update project metrics
-	err = r.client.Project.UpdateOneID(projectID).
-		SetTotalTasks(totalTasks).
-		SetCompletedTasks(completedTasks).
-		SetProgress(progress).
-		Exec(ctx)
-
-	if err != nil {
-		return fmt.Errorf("failed to update project metrics: %w", err)
-	}
-
-	return nil
-}
+// Currently unused but kept for potential future use
+// func (r *sqliteRepository) updateProjectMetrics(ctx context.Context, projectID uuid.UUID) error {
+// 	// Get task counts by state using ent aggregation
+// 	var totalTasks int
+// 	var completedTasks int
+//
+// 	// Count total tasks
+// 	totalTasks, err := r.client.Task.Query().
+// 		Where(task.ProjectID(projectID)).
+// 		Count(ctx)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to count total tasks: %w", err)
+// 	}
+//
+// 	// Count completed tasks
+// 	completedTasks, err = r.client.Task.Query().
+// 		Where(
+// 			task.ProjectID(projectID),
+// 			task.StateEQ(task.StateCompleted),
+// 		).
+// 		Count(ctx)
+// 	if err != nil {
+// 		return fmt.Errorf("failed to count completed tasks: %w", err)
+// 	}
+//
+// 	// Calculate progress
+// 	progress := 0.0
+// 	if totalTasks > 0 {
+// 		progress = float64(completedTasks) / float64(totalTasks) * 100.0
+// 	}
+//
+// 	// Update project metrics
+// 	err = r.client.Project.UpdateOneID(projectID).
+// 		SetTotalTasks(totalTasks).
+// 		SetCompletedTasks(completedTasks).
+// 		SetProgress(progress).
+// 		Exec(ctx)
+//
+// 	if err != nil {
+// 		return fmt.Errorf("failed to update project metrics: %w", err)
+// 	}
+//
+// 	return nil
+// }
 
 // updateProjectMetricsInTx updates project metrics within a transaction
 func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID) error {

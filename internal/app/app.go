@@ -27,8 +27,8 @@ import (
 // Version variables that will be set by ldflags during build
 var (
 	version = "dev"
-	commit  = "unknown"
-	date    = "unknown"
+	commit  = "unknown" // nolint:unused // set by ldflags during build
+	date    = "unknown" // nolint:unused // set by ldflags during build
 )
 
 // SetVersionFromBuild allows setting version information from build time variables

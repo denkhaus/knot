@@ -289,16 +289,17 @@ func deleteSubtreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // confirmDeletion prompts user for confirmation
-func confirmDeletion(itemType, itemName string) bool {
-	fmt.Printf("\nAre you sure you want to delete this %s?\n", itemType)
-	fmt.Printf("   %s\n", itemName)
-	fmt.Printf("\nThis action cannot be undone. Type 'yes' to confirm: ")
-
-	var response string
-	fmt.Scanln(&response)
-
-	return strings.ToLower(strings.TrimSpace(response)) == "yes"
-}
+// Currently unused but kept for potential future use
+// func confirmDeletion(itemType, itemName string) bool {
+// 	fmt.Printf("\nAre you sure you want to delete this %s?\n", itemType)
+// 	fmt.Printf("   %s\n", itemName)
+// 	fmt.Printf("\nThis action cannot be undone. Type 'yes' to confirm: ")
+//
+// 	var response string
+// 	_, _ = fmt.Scanln(&response)
+//
+// 	return strings.ToLower(strings.TrimSpace(response)) == "yes"
+// }
 
 // getTaskDescendants recursively gets all descendants of a task (renamed to avoid conflict)
 func getTaskDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) {

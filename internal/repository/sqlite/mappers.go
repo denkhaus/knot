@@ -191,49 +191,51 @@ func entProjectsToProjects(entProjects []*ent.Project) []*types.Project {
 }
 
 // entTasksToTasks converts slice of ent Tasks to domain Tasks
-func entTasksToTasks(entTasks []*ent.Task) []*types.Task {
-	tasks := make([]*types.Task, len(entTasks))
-	for i, et := range entTasks {
-		tasks[i] = entTaskToTask(et)
-	}
-	return tasks
-}
+// Currently unused but kept for potential future use
+// func entTasksToTasks(entTasks []*ent.Task) []*types.Task {
+// 	tasks := make([]*types.Task, len(entTasks))
+// 	for i, et := range entTasks {
+// 		tasks[i] = entTaskToTask(et)
+// 	}
+// 	return tasks
+// }
 
 // Helper functions for filtering
 
 // filterMatchesTaskFilter checks if an ent Task matches the given TaskFilter
-func filterMatchesTaskFilter(task *ent.Task, filter types.TaskFilter) bool {
-	if filter.ProjectID != nil && task.ProjectID != *filter.ProjectID {
-		return false
-	}
-	if filter.ParentID != nil {
-		if task.ParentID == nil && *filter.ParentID != uuid.Nil {
-			return false
-		}
-		if task.ParentID != nil && *task.ParentID != *filter.ParentID {
-			return false
-		}
-	}
-	if filter.State != nil && types.TaskState(task.State) != *filter.State {
-		return false
-	}
-	if filter.Priority != nil && types.TaskPriority(task.Priority) != *filter.Priority {
-		return false
-	}
-	if filter.MinDepth != nil && task.Depth < *filter.MinDepth {
-		return false
-	}
-	if filter.MaxDepth != nil && task.Depth > *filter.MaxDepth {
-		return false
-	}
-	if filter.MinComplexity != nil && task.Complexity < *filter.MinComplexity {
-		return false
-	}
-	if filter.MaxComplexity != nil && task.Complexity > *filter.MaxComplexity {
-		return false
-	}
-	return true
-}
+// Currently unused but kept for potential future use
+// func filterMatchesTaskFilter(task *ent.Task, filter types.TaskFilter) bool {
+// 	if filter.ProjectID != nil && task.ProjectID != *filter.ProjectID {
+// 		return false
+// 	}
+// 	if filter.ParentID != nil {
+// 		if task.ParentID == nil && *filter.ParentID != uuid.Nil {
+// 			return false
+// 		}
+// 		if task.ParentID != nil && *task.ParentID != *filter.ParentID {
+// 			return false
+// 		}
+// 	}
+// 	if filter.State != nil && types.TaskState(task.State) != *filter.State {
+// 		return false
+// 	}
+// 	if filter.Priority != nil && types.TaskPriority(task.Priority) != *filter.Priority {
+// 		return false
+// 	}
+// 	if filter.MinDepth != nil && task.Depth < *filter.MinDepth {
+// 		return false
+// 	}
+// 	if filter.MaxDepth != nil && task.Depth > *filter.MaxDepth {
+// 		return false
+// 	}
+// 	if filter.MinComplexity != nil && task.Complexity < *filter.MinComplexity {
+// 		return false
+// 	}
+// 	if filter.MaxComplexity != nil && task.Complexity > *filter.MaxComplexity {
+// 		return false
+// 	}
+// 	return true
+// }
 
 // Project state conversion functions
 

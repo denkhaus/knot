@@ -443,14 +443,15 @@ func outputTasksAsJSON(tasks []*types.Task) error {
 }
 
 // outputSingleTaskAsJSON outputs a single task in JSON format
-func outputSingleTaskAsJSON(task *types.Task) error {
-	jsonData, err := json.MarshalIndent(task, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal task to JSON: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
+// Currently unused but kept for potential future use
+// func outputSingleTaskAsJSON(task *types.Task) error {
+// 	jsonData, err := json.MarshalIndent(task, "", "  ")
+// 	if err != nil {
+// 		return fmt.Errorf("failed to marshal task to JSON: %w", err)
+// 	}
+// 	fmt.Println(string(jsonData))
+// 	return nil
+// }
 
 func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {

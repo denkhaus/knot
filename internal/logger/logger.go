@@ -63,6 +63,6 @@ func SetLogLevel(logLevel string) {
 // Sync flushes any buffered log entries
 func Sync() {
 	if Log != nil {
-		Log.Sync()
+		_ = Log.Sync()
 	}
 }

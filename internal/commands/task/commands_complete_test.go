@@ -80,14 +80,14 @@ func TestTaskCreateAction(t *testing.T) {
 			flagSet.String("parent-id", "", "")
 			flagSet.String("actor", "", "")
 			
-			flagSet.Set("title", tt.title)
-			flagSet.Set("description", tt.description)
-			flagSet.Set("complexity", tt.complexity)
-			flagSet.Set("priority", "medium")
+			_ = flagSet.Set("title", tt.title)
+			_ = flagSet.Set("description", tt.description)
+			_ = flagSet.Set("complexity", tt.complexity)
+			_ = flagSet.Set("priority", "medium")
 			if tt.parentID != "" {
-				flagSet.Set("parent-id", tt.parentID)
+				_ = flagSet.Set("parent-id", tt.parentID)
 			}
-			flagSet.Set("actor", tt.actor)
+			_ = flagSet.Set("actor", tt.actor)
 			
 			ctx := cli.NewContext(app, flagSet, nil)
 
@@ -223,9 +223,9 @@ func TestTaskUpdateStateAction(t *testing.T) {
 			flagSet.String("state", "", "")
 			flagSet.String("actor", "", "")
 			
-			flagSet.Set("id", tt.taskID)
-			flagSet.Set("state", tt.state)
-			flagSet.Set("actor", tt.actor)
+			_ = flagSet.Set("id", tt.taskID)
+			_ = flagSet.Set("state", tt.state)
+			_ = flagSet.Set("actor", tt.actor)
 			
 			ctx := cli.NewContext(app, flagSet, nil)
 
@@ -299,9 +299,9 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 			flagSet.String("title", "", "")
 			flagSet.String("actor", "", "")
 			
-			flagSet.Set("id", tt.taskID)
-			flagSet.Set("title", tt.title)
-			flagSet.Set("actor", tt.actor)
+			_ = flagSet.Set("id", tt.taskID)
+			_ = flagSet.Set("title", tt.title)
+			_ = flagSet.Set("actor", tt.actor)
 			
 			ctx := cli.NewContext(app, flagSet, nil)
 
@@ -340,11 +340,11 @@ func TestTaskWorkflow(t *testing.T) {
 		flagSet.String("priority", "", "")
 		flagSet.String("actor", "", "")
 		
-		flagSet.Set("title", "Workflow Test Task")
-		flagSet.Set("description", "Created during workflow test")
-		flagSet.Set("complexity", "5")
-		flagSet.Set("priority", "medium")
-		flagSet.Set("actor", "workflow-test")
+		_ = flagSet.Set("title", "Workflow Test Task")
+		_ = flagSet.Set("description", "Created during workflow test")
+		_ = flagSet.Set("complexity", "5")
+		_ = flagSet.Set("priority", "medium")
+		_ = flagSet.Set("actor", "workflow-test")
 		
 		ctx := cli.NewContext(app, flagSet, nil)
 
@@ -374,9 +374,9 @@ func TestTaskWorkflow(t *testing.T) {
 		updateFlagSet.String("id", "", "")
 		updateFlagSet.String("state", "", "")
 		updateFlagSet.String("actor", "", "")
-		updateFlagSet.Set("id", tasks[0].ID.String())
-		updateFlagSet.Set("state", "in-progress")
-		updateFlagSet.Set("actor", "workflow-test")
+		_ = updateFlagSet.Set("id", tasks[0].ID.String())
+		_ = updateFlagSet.Set("state", "in-progress")
+		_ = updateFlagSet.Set("actor", "workflow-test")
 		
 		updateCtx := cli.NewContext(app, updateFlagSet, nil)
 

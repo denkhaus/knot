@@ -192,7 +192,7 @@ func TestGetAction(t *testing.T) {
 			app := &cli.App{}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.String("id", "", "")
-			flagSet.Set("id", tt.projectID)
+			_ = flagSet.Set("id", tt.projectID)
 			
 			ctx := cli.NewContext(app, flagSet, nil)
 
@@ -235,9 +235,9 @@ func TestProjectCommandsIntegration(t *testing.T) {
 		flagSet.String("description", "", "")
 		flagSet.String("actor", "", "")
 		
-		flagSet.Set("title", "Integration Test Project")
-		flagSet.Set("description", "Created during integration test")
-		flagSet.Set("actor", "integration-test")
+		_ = flagSet.Set("title", "Integration Test Project")
+		_ = flagSet.Set("description", "Created during integration test")
+		_ = flagSet.Set("actor", "integration-test")
 		
 		ctx := cli.NewContext(app, flagSet, nil)
 

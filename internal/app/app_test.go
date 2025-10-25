@@ -138,8 +138,19 @@ func TestAppRunWithError(t *testing.T) {
 	app, err := New()
 	require.NoError(t, err)
 
-	// Test with invalid command to generate error
+	// Redirect stderr to capture and discard error output
+	oldStderr := os.Stderr
+	_, w, _ := os.Pipe()
+	os.Stderr = w
+
+	// Test with invalid command - CLI shows help message but doesn't return error
 	err = app.Run([]string{"knot", "invalid-command"})
+	
+	// Restore stderr
+	w.Close()
+	os.Stderr = oldStderr
+	
+	// CLI returns error for invalid commands
 	assert.Error(t, err)
 }
 
@@ -201,7 +212,7 @@ func TestAppRunWithValidArgs(t *testing.T) {
 	require.NoError(t, err)
 
 	// Test with version command
-	err = app.Run([]string{"knot", "--version"})
+	_ = app.Run([]string{"knot", "--version"})
 	// Version command should not return an error
 	// but since it calls os.Exit in real usage, we might need a different approach
 	// For now, just test that the app can be created without issues
