@@ -68,7 +68,7 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository {
 	require.NoError(t, err)
 	
 	t.Cleanup(func() {
-		os.Chdir(originalDir)
+		_ = os.Chdir(originalDir)
 	})
 
 	// Create SQLite repository

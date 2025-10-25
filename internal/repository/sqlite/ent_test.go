@@ -65,7 +65,7 @@ func TestEntRepositoryInterface(t *testing.T) {
 
 		// Clean up for subsequent tests
 		defer func() {
-			repo.DeleteProject(ctx, testProject.ID)
+			_ = repo.DeleteProject(ctx, testProject.ID)
 		}()
 	})
 
@@ -79,7 +79,7 @@ func TestEntRepositoryInterface(t *testing.T) {
 		}
 		err := repo.CreateProject(ctx, testProject)
 		require.NoError(t, err)
-		defer repo.DeleteProject(ctx, testProject.ID)
+		defer func() { _ = repo.DeleteProject(ctx, testProject.ID) }()
 
 		// Test CreateTask
 		testTask := &types.Task{
@@ -123,7 +123,7 @@ func TestEntRepositoryInterface(t *testing.T) {
 		}
 		err := repo.CreateProject(ctx, testProject)
 		require.NoError(t, err)
-		defer repo.DeleteProject(ctx, testProject.ID)
+		defer func() { _ = repo.DeleteProject(ctx, testProject.ID) }()
 
 		// Create parent task
 		parentTask := &types.Task{
@@ -180,7 +180,7 @@ func TestEntRepositoryInterface(t *testing.T) {
 		}
 		err := repo.CreateProject(ctx, testProject)
 		require.NoError(t, err)
-		defer repo.DeleteProject(ctx, testProject.ID)
+		defer func() { _ = repo.DeleteProject(ctx, testProject.ID) }()
 
 		// Create two tasks
 		task1 := &types.Task{
@@ -235,7 +235,7 @@ func TestEntRepositoryInterface(t *testing.T) {
 		}
 		err := repo.CreateProject(ctx, testProject)
 		require.NoError(t, err)
-		defer repo.DeleteProject(ctx, testProject.ID)
+		defer func() { _ = repo.DeleteProject(ctx, testProject.ID) }()
 
 		// Create tasks with different states
 		tasks := []*types.Task{
@@ -336,7 +336,7 @@ func BenchmarkEntRepository(b *testing.B) {
 	if err != nil {
 		b.Fatalf("Failed to create test project: %v", err)
 	}
-	defer repo.DeleteProject(ctx, testProject.ID)
+	defer func() { _ = repo.DeleteProject(ctx, testProject.ID) }()
 
 	b.Run("CreateTask", func(b *testing.B) {
 		b.ResetTimer()
@@ -348,7 +348,7 @@ func BenchmarkEntRepository(b *testing.B) {
 				State:      types.TaskStatePending,
 				Complexity: 1,
 			}
-			repo.CreateTask(ctx, task)
+			_ = repo.CreateTask(ctx, task)
 		}
 	})
 
@@ -361,11 +361,11 @@ func BenchmarkEntRepository(b *testing.B) {
 			State:      types.TaskStatePending,
 			Complexity: 1,
 		}
-		repo.CreateTask(ctx, testTask)
+		_ = repo.CreateTask(ctx, testTask)
 
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			repo.GetTask(ctx, testTask.ID)
+			_, _ = repo.GetTask(ctx, testTask.ID)
 		}
 	})
 }
