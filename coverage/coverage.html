@@ -57,13 +57,13 @@
 				
 				<option value="file0">github.com/denkhaus/knot/cmd/knot/main.go (0.0%)</option>
 				
-				<option value="file1">github.com/denkhaus/knot/internal/app/app.go (0.0%)</option>
+				<option value="file1">github.com/denkhaus/knot/internal/app/app.go (62.2%)</option>
 				
-				<option value="file2">github.com/denkhaus/knot/internal/app/flags.go (0.0%)</option>
+				<option value="file2">github.com/denkhaus/knot/internal/app/flags.go (100.0%)</option>
 				
 				<option value="file3">github.com/denkhaus/knot/internal/cli_test_helper.go (98.1%)</option>
 				
-				<option value="file4">github.com/denkhaus/knot/internal/commands/config/commands.go (0.0%)</option>
+				<option value="file4">github.com/denkhaus/knot/internal/commands/config/commands.go (96.1%)</option>
 				
 				<option value="file5">github.com/denkhaus/knot/internal/commands/dependency/analysis.go (0.0%)</option>
 				
@@ -79,7 +79,7 @@
 				
 				<option value="file11">github.com/denkhaus/knot/internal/commands/task/bulk.go (0.0%)</option>
 				
-				<option value="file12">github.com/denkhaus/knot/internal/commands/task/commands.go (49.4%)</option>
+				<option value="file12">github.com/denkhaus/knot/internal/commands/task/commands.go (50.4%)</option>
 				
 				<option value="file13">github.com/denkhaus/knot/internal/commands/task/deletion.go (0.0%)</option>
 				
@@ -97,7 +97,7 @@
 				
 				<option value="file20">github.com/denkhaus/knot/internal/config/config.go (0.0%)</option>
 				
-				<option value="file21">github.com/denkhaus/knot/internal/errors/enhanced_errors.go (0.0%)</option>
+				<option value="file21">github.com/denkhaus/knot/internal/errors/enhanced_errors.go (100.0%)</option>
 				
 				<option value="file22">github.com/denkhaus/knot/internal/errors/helpers.go (0.0%)</option>
 				
@@ -203,13 +203,13 @@
 				
 				<option value="file73">github.com/denkhaus/knot/internal/repository/sqlite/health.go (0.0%)</option>
 				
-				<option value="file74">github.com/denkhaus/knot/internal/repository/sqlite/mappers.go (52.9%)</option>
+				<option value="file74">github.com/denkhaus/knot/internal/repository/sqlite/mappers.go (69.2%)</option>
 				
 				<option value="file75">github.com/denkhaus/knot/internal/repository/sqlite/options.go (76.5%)</option>
 				
 				<option value="file76">github.com/denkhaus/knot/internal/repository/sqlite/pool_optimization.go (44.7%)</option>
 				
-				<option value="file77">github.com/denkhaus/knot/internal/repository/sqlite/project_operations.go (50.0%)</option>
+				<option value="file77">github.com/denkhaus/knot/internal/repository/sqlite/project_operations.go (63.6%)</option>
 				
 				<option value="file78">github.com/denkhaus/knot/internal/repository/sqlite/repository.go (67.2%)</option>
 				
@@ -233,7 +233,7 @@
 				
 				<option value="file88">github.com/denkhaus/knot/internal/testutil/testutil.go (0.0%)</option>
 				
-				<option value="file89">github.com/denkhaus/knot/internal/validation/input_validation.go (78.5%)</option>
+				<option value="file89">github.com/denkhaus/knot/internal/validation/input_validation.go (96.9%)</option>
 				
 				<option value="file90">github.com/denkhaus/knot/internal/validation/state_validation.go (89.8%)</option>
 				
@@ -322,12 +322,12 @@ import (
 // Version variables that will be set by ldflags during build
 var (
         version = "dev"
-        commit  = "unknown"
-        date    = "unknown"
+        commit  = "unknown" // nolint:unused // set by ldflags during build
+        date    = "unknown" // nolint:unused // set by ldflags during build
 )
 
 // SetVersionFromBuild allows setting version information from build time variables
-func SetVersionFromBuild(v, c, d string) <span class="cov0" title="0">{
+func SetVersionFromBuild(v, c, d string) <span class="cov8" title="1">{
         version = v
         commit = c
         date = d
@@ -341,17 +341,17 @@ type App struct {
 
 // isUserInputError checks if an error is due to user input (like missing required flags)
 // rather than an internal application error
-func isUserInputError(err error) bool <span class="cov0" title="0">{
-        if err == nil </span><span class="cov0" title="0">{
+func isUserInputError(err error) bool <span class="cov8" title="1">{
+        if err == nil </span><span class="cov8" title="1">{
                 return false
         }</span>
 
         // Check if it's an EnhancedError - these are user-facing validation errors
-        <span class="cov0" title="0">if _, ok := err.(*errors.EnhancedError); ok </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if _, ok := err.(*errors.EnhancedError); ok </span><span class="cov0" title="0">{
                 return true
         }</span>
 
-        <span class="cov0" title="0">errMsg := err.Error()
+        <span class="cov8" title="1">errMsg := err.Error()
 
         // Common user input errors from urfave/cli
         userErrorPatterns := []string{
@@ -364,17 +364,17 @@ func isUserInputError(err error) bool <span class="cov0" title="0">{
                 "No help topic for",
         }
 
-        for _, pattern := range userErrorPatterns </span><span class="cov0" title="0">{
-                if strings.Contains(errMsg, pattern) </span><span class="cov0" title="0">{
+        for _, pattern := range userErrorPatterns </span><span class="cov8" title="1">{
+                if strings.Contains(errMsg, pattern) </span><span class="cov8" title="1">{
                         return true
                 }</span>
         }
 
-        <span class="cov0" title="0">return false</span>
+        <span class="cov8" title="1">return false</span>
 }
 
 // New creates a new CLI application with all dependencies initialized
-func New() (*App, error) <span class="cov0" title="0">{
+func New() (*App, error) <span class="cov8" title="1">{
         // Initialize logger
         appLogger := logger.GetLogger()
 
@@ -389,19 +389,19 @@ func New() (*App, error) <span class="cov0" title="0">{
         if err != nil </span><span class="cov0" title="0">{
                 appLogger.Warn("Failed to initialize SQLite repository, falling back to in-memory", zap.Error(err))
                 repo = inmemory.NewMemoryRepository()
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov8" title="1"> {
                 appLogger.Info("SQLite repository initialized successfully")
                 
                 // Initialize templates automatically after successful database setup
                 if err := templates.CheckAndSeedIfNeeded(); err != nil </span><span class="cov0" title="0">{
                         appLogger.Warn("Failed to seed templates during initialization", zap.Error(err))
-                }</span> else<span class="cov0" title="0"> {
+                }</span> else<span class="cov8" title="1"> {
                         appLogger.Debug("Template seeding check completed successfully")
                 }</span>
         }
 
         // Initialize project manager
-        <span class="cov0" title="0">config := manager.DefaultConfig()
+        <span class="cov8" title="1">config := manager.DefaultConfig()
         projectManager := manager.NewManagerWithRepository(repo, config)
 
         // Create application context
@@ -532,14 +532,14 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
                 },
         }
 
-        <span class="cov0" title="0">return &amp;App{
+        <span class="cov8" title="1">return &amp;App{
                 App:     cliApp,
                 context: appCtx,
         }, nil</span>
 }
 
 // Run starts the CLI application
-func (a *App) Run(args []string) error <span class="cov0" title="0">{
+func (a *App) Run(args []string) error <span class="cov8" title="1">{
         defer logger.Sync()
 
         if err := a.App.Run(args); err != nil </span><span class="cov0" title="0">{
@@ -556,7 +556,7 @@ func (a *App) Run(args []string) error <span class="cov0" title="0">{
                 return err</span>
         }
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 </pre>
 		
@@ -567,7 +567,7 @@ import (
 )
 
 
-func NewTaskLimitFlag() cli.Flag <span class="cov0" title="0">{
+func NewTaskLimitFlag() cli.Flag <span class="cov8" title="1">{
         return &amp;cli.IntFlag{
                 Name:    "limit",
                 Aliases: []string{"l"},
@@ -577,7 +577,7 @@ func NewTaskLimitFlag() cli.Flag <span class="cov0" title="0">{
         }
 }</span>
 
-func NewJSONFlag() cli.Flag <span class="cov0" title="0">{
+func NewJSONFlag() cli.Flag <span class="cov8" title="1">{
         return &amp;cli.BoolFlag{
                 Name:    "json",
                 Aliases: []string{"j"},
@@ -585,7 +585,7 @@ func NewJSONFlag() cli.Flag <span class="cov0" title="0">{
         }
 }</span>
 
-func NewLogLevelFlag() cli.Flag <span class="cov0" title="0">{
+func NewLogLevelFlag() cli.Flag <span class="cov8" title="1">{
         return &amp;cli.StringFlag{
                 Name:  "log-level",
                 Usage: "Log level (off, error, warn, info, debug)",
@@ -674,8 +674,8 @@ func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) <span
         
         // Read captured output
         var stdout, stderr bytes.Buffer
-        io.Copy(&amp;stdout, rOut)
-        io.Copy(&amp;stderr, rErr)
+        _, _ = io.Copy(&amp;stdout, rOut)
+        _, _ = io.Copy(&amp;stderr, rErr)
         
         return stdout.String(), stderr.String(), err
 }</span>
@@ -717,8 +717,8 @@ func (h *CLITestHelper) ExtractTaskID(output string) string <span class="cov8" t
 
 // Cleanup cleans up the test environment
 func (h *CLITestHelper) Cleanup() <span class="cov8" title="1">{
-        os.Chdir(h.originalDir)
-        os.RemoveAll(h.tempDir)
+        _ = os.Chdir(h.originalDir)
+        _ = os.RemoveAll(h.tempDir)
 }</span>
 
 // CreateTestProject creates a test project and returns its ID
@@ -756,7 +756,7 @@ import (
 )
 
 // Commands returns the config management commands
-func Commands(appCtx *shared.AppContext) []*cli.Command <span class="cov0" title="0">{
+func Commands(appCtx *shared.AppContext) []*cli.Command <span class="cov8" title="1">{
         return []*cli.Command{
                 {
                         Name:   "show",
@@ -791,8 +791,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command <span class="cov0" title
 }</span>
 
 // ShowAction displays the current configuration
-func ShowAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" title="0">{
-        return func(c *cli.Context) error </span><span class="cov0" title="0">{
+func ShowAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 config := appCtx.ProjectManager.GetConfig()
 
                 fmt.Println("Current Knot Configuration:")
@@ -815,8 +815,8 @@ func ShowAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" tit
 }
 
 // SetAction sets a configuration value
-func SetAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" title="0">{
-        return func(c *cli.Context) error </span><span class="cov0" title="0">{
+func SetAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 key := c.String("key")
                 value := c.Int("value")
 
@@ -826,50 +826,50 @@ func SetAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" titl
 
                 // Update the specified key
                 switch key </span>{
-                case "complexity-threshold":<span class="cov0" title="0">
-                        if value &lt; 1 || value &gt; 10 </span><span class="cov0" title="0">{
+                case "complexity-threshold":<span class="cov8" title="1">
+                        if value &lt; 1 || value &gt; 10 </span><span class="cov8" title="1">{
                                 return fmt.Errorf("complexity-threshold must be between 1 and 10, got %d", value)
                         }</span>
-                        <span class="cov0" title="0">newConfig.ComplexityThreshold = value</span>
-                case "max-depth":<span class="cov0" title="0">
-                        if value &lt; 1 </span><span class="cov0" title="0">{
+                        <span class="cov8" title="1">newConfig.ComplexityThreshold = value</span>
+                case "max-depth":<span class="cov8" title="1">
+                        if value &lt; 1 </span><span class="cov8" title="1">{
                                 return fmt.Errorf("max-depth must be at least 1, got %d", value)
                         }</span>
-                        <span class="cov0" title="0">newConfig.MaxDepth = value</span>
-                case "max-tasks-per-depth":<span class="cov0" title="0">
-                        if value &lt; 1 </span><span class="cov0" title="0">{
+                        <span class="cov8" title="1">newConfig.MaxDepth = value</span>
+                case "max-tasks-per-depth":<span class="cov8" title="1">
+                        if value &lt; 1 </span><span class="cov8" title="1">{
                                 return fmt.Errorf("max-tasks-per-depth must be at least 1, got %d", value)
                         }</span>
-                        <span class="cov0" title="0">newConfig.MaxTasksPerDepth = value</span>
-                case "max-description-length":<span class="cov0" title="0">
-                        if value &lt; 1 </span><span class="cov0" title="0">{
+                        <span class="cov8" title="1">newConfig.MaxTasksPerDepth = value</span>
+                case "max-description-length":<span class="cov8" title="1">
+                        if value &lt; 1 </span><span class="cov8" title="1">{
                                 return fmt.Errorf("max-description-length must be at least 1, got %d", value)
                         }</span>
-                        <span class="cov0" title="0">newConfig.MaxDescriptionLength = value</span>
-                case "auto-reduce-complexity":<span class="cov0" title="0">
+                        <span class="cov8" title="1">newConfig.MaxDescriptionLength = value</span>
+                case "auto-reduce-complexity":<span class="cov8" title="1">
                         // Convert int to bool: 0 = false, 1 = true
-                        if value != 0 &amp;&amp; value != 1 </span><span class="cov0" title="0">{
+                        if value != 0 &amp;&amp; value != 1 </span><span class="cov8" title="1">{
                                 return fmt.Errorf("auto-reduce-complexity must be 0 (false) or 1 (true), got %d", value)
                         }</span>
-                        <span class="cov0" title="0">newConfig.AutoReduceComplexity = value == 1</span>
-                default:<span class="cov0" title="0">
+                        <span class="cov8" title="1">newConfig.AutoReduceComplexity = value == 1</span>
+                default:<span class="cov8" title="1">
                         return fmt.Errorf("unknown configuration key: %s. Valid keys: complexity-threshold, max-depth, max-tasks-per-depth, max-description-length, auto-reduce-complexity", key)</span>
                 }
 
                 // Update and save config
-                <span class="cov0" title="0">appCtx.ProjectManager.UpdateConfig(&amp;newConfig)
+                <span class="cov8" title="1">appCtx.ProjectManager.UpdateConfig(&amp;newConfig)
                 if err := appCtx.ProjectManager.SaveConfigToFile(); err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to save configuration: %w", err)
                 }</span>
 
-                <span class="cov0" title="0">fmt.Printf("Configuration updated: %s = %d\n", key, value)
+                <span class="cov8" title="1">fmt.Printf("Configuration updated: %s = %d\n", key, value)
                 return nil</span>
         }
 }
 
 // ResetAction resets configuration to defaults
-func ResetAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" title="0">{
-        return func(c *cli.Context) error </span><span class="cov0" title="0">{
+func ResetAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 // Reset to default config
                 defaultConfig := manager.DefaultConfig()
                 appCtx.ProjectManager.UpdateConfig(defaultConfig)
@@ -879,7 +879,7 @@ func ResetAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" ti
                         return fmt.Errorf("failed to save configuration: %w", err)
                 }</span>
 
-                <span class="cov0" title="0">fmt.Println("Configuration reset to defaults:")
+                <span class="cov8" title="1">fmt.Println("Configuration reset to defaults:")
                 fmt.Printf("  Complexity Threshold:    %d\n", defaultConfig.ComplexityThreshold)
                 fmt.Printf("  Max Depth:               %d\n", defaultConfig.MaxDepth)
                 fmt.Printf("  Max Tasks Per Depth:     %d\n", defaultConfig.MaxTasksPerDepth)
@@ -2995,7 +2995,7 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov
                 <span class="cov0" title="0">if !force </span><span class="cov0" title="0">{
                         fmt.Printf("\nAre you sure you want to delete these %d tasks? (y/N): ", len(tasksToDelete))
                         var response string
-                        fmt.Scanln(&amp;response)
+                        _, _ = fmt.Scanln(&amp;response)
                         if response != "y" &amp;&amp; response != "Y" &amp;&amp; response != "yes" &amp;&amp; response != "YES" </span><span class="cov0" title="0">{
                                 fmt.Println("Deletion cancelled.")
                                 return nil
@@ -3572,14 +3572,15 @@ func outputTasksAsJSON(tasks []*types.Task) error <span class="cov0" title="0">{
 }
 
 // outputSingleTaskAsJSON outputs a single task in JSON format
-func outputSingleTaskAsJSON(task *types.Task) error <span class="cov0" title="0">{
-        jsonData, err := json.MarshalIndent(task, "", "  ")
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("failed to marshal task to JSON: %w", err)
-        }</span>
-        <span class="cov0" title="0">fmt.Println(string(jsonData))
-        return nil</span>
-}
+// Currently unused but kept for potential future use
+// func outputSingleTaskAsJSON(task *types.Task) error {
+//         jsonData, err := json.MarshalIndent(task, "", "  ")
+//         if err != nil {
+//                 return fmt.Errorf("failed to marshal task to JSON: %w", err)
+//         }
+//         fmt.Println(string(jsonData))
+//         return nil
+// }
 
 func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
         return func(c *cli.Context) error </span><span class="cov8" title="1">{
@@ -4153,16 +4154,17 @@ func deleteSubtreeAction(appCtx *shared.AppContext) cli.ActionFunc <span class="
 }
 
 // confirmDeletion prompts user for confirmation
-func confirmDeletion(itemType, itemName string) bool <span class="cov0" title="0">{
-        fmt.Printf("\nAre you sure you want to delete this %s?\n", itemType)
-        fmt.Printf("   %s\n", itemName)
-        fmt.Printf("\nThis action cannot be undone. Type 'yes' to confirm: ")
-
-        var response string
-        fmt.Scanln(&amp;response)
-
-        return strings.ToLower(strings.TrimSpace(response)) == "yes"
-}</span>
+// Currently unused but kept for potential future use
+// func confirmDeletion(itemType, itemName string) bool {
+//         fmt.Printf("\nAre you sure you want to delete this %s?\n", itemType)
+//         fmt.Printf("   %s\n", itemName)
+//         fmt.Printf("\nThis action cannot be undone. Type 'yes' to confirm: ")
+//
+//         var response string
+//         _, _ = fmt.Scanln(&amp;response)
+//
+//         return strings.ToLower(strings.TrimSpace(response)) == "yes"
+// }
 
 // getTaskDescendants recursively gets all descendants of a task (renamed to avoid conflict)
 func getTaskDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) <span class="cov0" title="0">{
@@ -5205,7 +5207,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" t
                 <span class="cov0" title="0">if !force </span><span class="cov0" title="0">{
                         fmt.Printf("Are you sure you want to delete user template \"%s\"? (y/N): ", templateName)
                         var response string
-                        fmt.Scanln(&amp;response)
+                        _, _ = fmt.Scanln(&amp;response)
                         if response != "y" &amp;&amp; response != "Y" &amp;&amp; response != "yes" &amp;&amp; response != "YES" </span><span class="cov0" title="0">{
                                 fmt.Println("Deletion cancelled.")
                                 return nil
@@ -5928,42 +5930,42 @@ type EnhancedError struct {
         HelpCommand string
 }
 
-func (e *EnhancedError) Error() string <span class="cov0" title="0">{
+func (e *EnhancedError) Error() string <span class="cov8" title="1">{
         var parts []string
         
         // Main error message
-        if e.Cause != nil </span><span class="cov0" title="0">{
+        if e.Cause != nil </span><span class="cov8" title="1">{
                 parts = append(parts, e.Cause.Error())
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov8" title="1"> {
                 parts = append(parts, fmt.Sprintf("Error in %s", e.Operation))
         }</span>
         
         // Add suggestion if available
-        <span class="cov0" title="0">if e.Suggestion != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if e.Suggestion != "" </span><span class="cov8" title="1">{
                 parts = append(parts, fmt.Sprintf("Suggestion: %s", e.Suggestion))
         }</span>
         
         // Add example if available
-        <span class="cov0" title="0">if e.Example != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if e.Example != "" </span><span class="cov8" title="1">{
                 parts = append(parts, fmt.Sprintf("Example: %s", e.Example))
         }</span>
         
         // Add help command if available
-        <span class="cov0" title="0">if e.HelpCommand != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if e.HelpCommand != "" </span><span class="cov8" title="1">{
                 parts = append(parts, fmt.Sprintf("For more help: %s", e.HelpCommand))
         }</span>
         
-        <span class="cov0" title="0">return strings.Join(parts, "\n")</span>
+        <span class="cov8" title="1">return strings.Join(parts, "\n")</span>
 }
 
-func (e *EnhancedError) Unwrap() error <span class="cov0" title="0">{
+func (e *EnhancedError) Unwrap() error <span class="cov8" title="1">{
         return e.Cause
 }</span>
 
 // Common error enhancement functions
 
 // InvalidUUIDError creates an enhanced error for invalid UUID parsing
-func InvalidUUIDError(fieldName, value string) *EnhancedError <span class="cov0" title="0">{
+func InvalidUUIDError(fieldName, value string) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   fmt.Sprintf("parsing %s", fieldName),
                 Cause:       fmt.Errorf("invalid %s format: '%s'", fieldName, value),
@@ -5974,7 +5976,7 @@ func InvalidUUIDError(fieldName, value string) *EnhancedError <span class="cov0"
 }</span>
 
 // TaskNotFoundError creates an enhanced error for missing tasks
-func TaskNotFoundError(taskID uuid.UUID) *EnhancedError <span class="cov0" title="0">{
+func TaskNotFoundError(taskID uuid.UUID) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "finding task",
                 Cause:       fmt.Errorf("task not found: %s", taskID),
@@ -5985,7 +5987,7 @@ func TaskNotFoundError(taskID uuid.UUID) *EnhancedError <span class="cov0" title
 }</span>
 
 // ProjectNotFoundError creates an enhanced error for missing projects
-func ProjectNotFoundError(projectID uuid.UUID) *EnhancedError <span class="cov0" title="0">{
+func ProjectNotFoundError(projectID uuid.UUID) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "finding project",
                 Cause:       fmt.Errorf("project not found: %s", projectID),
@@ -5996,7 +5998,7 @@ func ProjectNotFoundError(projectID uuid.UUID) *EnhancedError <span class="cov0"
 }</span>
 
 // InvalidTaskStateError creates an enhanced error for invalid task states
-func InvalidTaskStateError(state string) *EnhancedError <span class="cov0" title="0">{
+func InvalidTaskStateError(state string) *EnhancedError <span class="cov8" title="1">{
         validStates := []string{"pending", "in-progress", "completed", "blocked", "cancelled"}
         return &amp;EnhancedError{
                 Operation:   "validating task state",
@@ -6008,7 +6010,7 @@ func InvalidTaskStateError(state string) *EnhancedError <span class="cov0" title
 }</span>
 
 // CircularDependencyError creates an enhanced error for circular dependencies
-func CircularDependencyError(taskID, dependsOnID uuid.UUID) *EnhancedError <span class="cov0" title="0">{
+func CircularDependencyError(taskID, dependsOnID uuid.UUID) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "adding task dependency",
                 Cause:       fmt.Errorf("circular dependency detected between %s and %s", taskID, dependsOnID),
@@ -6019,7 +6021,7 @@ func CircularDependencyError(taskID, dependsOnID uuid.UUID) *EnhancedError <span
 }</span>
 
 // DatabaseConnectionError creates an enhanced error for database issues
-func DatabaseConnectionError(operation string, cause error) *EnhancedError <span class="cov0" title="0">{
+func DatabaseConnectionError(operation string, cause error) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:  operation,
                 Cause:      cause,
@@ -6030,36 +6032,36 @@ func DatabaseConnectionError(operation string, cause error) *EnhancedError <span
 }</span>
 
 // MissingRequiredFlagError creates an enhanced error for missing CLI flags
-func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError <span class="cov0" title="0">{
+func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError <span class="cov8" title="1">{
         var example string
         var helpCommand string
         
-        if commandContext == "" </span><span class="cov0" title="0">{
+        if commandContext == "" </span><span class="cov8" title="1">{
                 commandContext = "command"
         }</span>
         
-        <span class="cov0" title="0">switch flagName </span>{
-        case "project-id":<span class="cov0" title="0">
+        <span class="cov8" title="1">switch flagName </span>{
+        case "project-id":<span class="cov8" title="1">
                 example = "knot " + commandContext + " (select a project first with: knot project select --id &lt;project-id&gt;)"
                 helpCommand = "knot project list  # to see available projects"</span>
-        case "task-id":<span class="cov0" title="0">
+        case "task-id":<span class="cov8" title="1">
                 example = "knot " + commandContext + " --task-id &lt;task-id&gt;"
                 helpCommand = "knot task list  # to see available tasks"</span>
-        default:<span class="cov0" title="0">
+        default:<span class="cov8" title="1">
                 example = "knot " + commandContext + " --" + flagName + " &lt;value&gt;"
                 helpCommand = "knot --help"</span>
         }
         
         // Safe help command generation
-        <span class="cov0" title="0">if commandContext != "" &amp;&amp; commandContext != "command" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if commandContext != "" &amp;&amp; commandContext != "command" </span><span class="cov8" title="1">{
                 fields := strings.Fields(commandContext)
-                if len(fields) &gt; 0 </span><span class="cov0" title="0">{
+                if len(fields) &gt; 0 </span><span class="cov8" title="1">{
                         helpCommand = "knot " + fields[0] + " --help"
                 }</span>
         }
         
-        <span class="cov0" title="0">var flagType string
-        if flagName == "project-id" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">var flagType string
+        if flagName == "project-id" </span><span class="cov8" title="1">{
                 // project-id is no longer a global flag, suggest using project selection instead
                 return &amp;EnhancedError{
                         Operation:   "project context resolution",
@@ -6068,11 +6070,11 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError <s
                         Example:     "knot project select --id &lt;project-id&gt;",
                         HelpCommand: "knot project list  # to see available projects",
                 }
-        }</span> else<span class="cov0" title="0"> {
+        }</span> else<span class="cov8" title="1"> {
                 flagType = "required flag"
         }</span>
         
-        <span class="cov0" title="0">return &amp;EnhancedError{
+        <span class="cov8" title="1">return &amp;EnhancedError{
                 Operation:   "parsing command flags",
                 Cause:       fmt.Errorf("%s --%s not provided", flagType, flagName),
                 Suggestion:  fmt.Sprintf("Add the --%s flag with a valid value", flagName),
@@ -6082,7 +6084,7 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError <s
 }
 
 // ComplexityOutOfRangeError creates an enhanced error for invalid complexity values
-func ComplexityOutOfRangeError(complexity int) *EnhancedError <span class="cov0" title="0">{
+func ComplexityOutOfRangeError(complexity int) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "validating task complexity",
                 Cause:       fmt.Errorf("complexity %d is out of range", complexity),
@@ -6093,7 +6095,7 @@ func ComplexityOutOfRangeError(complexity int) *EnhancedError <span class="cov0"
 }</span>
 
 // TooManyTasksError creates an enhanced error for task limits
-func TooManyTasksError(currentCount, maxAllowed int, depth int) *EnhancedError <span class="cov0" title="0">{
+func TooManyTasksError(currentCount, maxAllowed int, depth int) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "creating task",
                 Cause:       fmt.Errorf("maximum tasks per depth exceeded: %d/%d at depth %d", currentCount, maxAllowed, depth),
@@ -6104,7 +6106,7 @@ func TooManyTasksError(currentCount, maxAllowed int, depth int) *EnhancedError <
 }</span>
 
 // NewValidationError creates an enhanced error for validation failures
-func NewValidationError(message string, cause error) *EnhancedError <span class="cov0" title="0">{
+func NewValidationError(message string, cause error) *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "input validation",
                 Cause:       cause,
@@ -6115,25 +6117,25 @@ func NewValidationError(message string, cause error) *EnhancedError <span class=
 }</span>
 
 // EmptyResultError creates an enhanced error for empty query results
-func EmptyResultError(operation, context string) *EnhancedError <span class="cov0" title="0">{
+func EmptyResultError(operation, context string) *EnhancedError <span class="cov8" title="1">{
         var suggestion, example string
         
         switch operation </span>{
-        case "list tasks":<span class="cov0" title="0">
+        case "list tasks":<span class="cov8" title="1">
                 suggestion = "Create some tasks first, or check if you're using the correct project ID"
                 example = "knot task create --title \"First Task\""</span>
-        case "list projects":<span class="cov0" title="0">
+        case "list projects":<span class="cov8" title="1">
                 suggestion = "Create a project first to get started"
                 example = "knot project create --title \"My Project\" --description \"Project description\""</span>
-        case "find actionable tasks":<span class="cov0" title="0">
+        case "find actionable tasks":<span class="cov8" title="1">
                 suggestion = "Check if all tasks are completed, blocked, or have unmet dependencies"
                 example = "knot ready  # see tasks ready to work on"</span>
-        default:<span class="cov0" title="0">
+        default:<span class="cov8" title="1">
                 suggestion = "Check your query parameters or create the required resources first"
                 example = "knot --help  # see available commands"</span>
         }
         
-        <span class="cov0" title="0">return &amp;EnhancedError{
+        <span class="cov8" title="1">return &amp;EnhancedError{
                 Operation:   operation,
                 Cause:       fmt.Errorf("no results found for %s", context),
                 Suggestion:  suggestion,
@@ -6142,7 +6144,7 @@ func EmptyResultError(operation, context string) *EnhancedError <span class="cov
         }</span>
 }
 // NoProjectContextError creates an enhanced error when no project context is available
-func NoProjectContextError() *EnhancedError <span class="cov0" title="0">{
+func NoProjectContextError() *EnhancedError <span class="cov8" title="1">{
         return &amp;EnhancedError{
                 Operation:   "project context resolution",
                 Cause:       fmt.Errorf("no project is currently selected"),
@@ -6398,7 +6400,7 @@ func SetLogLevel(logLevel string) <span class="cov0" title="0">{
 // Sync flushes any buffered log entries
 func Sync() <span class="cov0" title="0">{
         if Log != nil </span><span class="cov0" title="0">{
-                Log.Sync()
+                _ = Log.Sync()
         }</span>
 }</pre>
 		
@@ -25841,49 +25843,51 @@ func entProjectsToProjects(entProjects []*ent.Project) []*types.Project <span cl
 }
 
 // entTasksToTasks converts slice of ent Tasks to domain Tasks
-func entTasksToTasks(entTasks []*ent.Task) []*types.Task <span class="cov0" title="0">{
-        tasks := make([]*types.Task, len(entTasks))
-        for i, et := range entTasks </span><span class="cov0" title="0">{
-                tasks[i] = entTaskToTask(et)
-        }</span>
-        <span class="cov0" title="0">return tasks</span>
-}
+// Currently unused but kept for potential future use
+// func entTasksToTasks(entTasks []*ent.Task) []*types.Task {
+//         tasks := make([]*types.Task, len(entTasks))
+//         for i, et := range entTasks {
+//                 tasks[i] = entTaskToTask(et)
+//         }
+//         return tasks
+// }
 
 // Helper functions for filtering
 
 // filterMatchesTaskFilter checks if an ent Task matches the given TaskFilter
-func filterMatchesTaskFilter(task *ent.Task, filter types.TaskFilter) bool <span class="cov0" title="0">{
-        if filter.ProjectID != nil &amp;&amp; task.ProjectID != *filter.ProjectID </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">if filter.ParentID != nil </span><span class="cov0" title="0">{
-                if task.ParentID == nil &amp;&amp; *filter.ParentID != uuid.Nil </span><span class="cov0" title="0">{
-                        return false
-                }</span>
-                <span class="cov0" title="0">if task.ParentID != nil &amp;&amp; *task.ParentID != *filter.ParentID </span><span class="cov0" title="0">{
-                        return false
-                }</span>
-        }
-        <span class="cov0" title="0">if filter.State != nil &amp;&amp; types.TaskState(task.State) != *filter.State </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">if filter.Priority != nil &amp;&amp; types.TaskPriority(task.Priority) != *filter.Priority </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">if filter.MinDepth != nil &amp;&amp; task.Depth &lt; *filter.MinDepth </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">if filter.MaxDepth != nil &amp;&amp; task.Depth &gt; *filter.MaxDepth </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">if filter.MinComplexity != nil &amp;&amp; task.Complexity &lt; *filter.MinComplexity </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">if filter.MaxComplexity != nil &amp;&amp; task.Complexity &gt; *filter.MaxComplexity </span><span class="cov0" title="0">{
-                return false
-        }</span>
-        <span class="cov0" title="0">return true</span>
-}
+// Currently unused but kept for potential future use
+// func filterMatchesTaskFilter(task *ent.Task, filter types.TaskFilter) bool {
+//         if filter.ProjectID != nil &amp;&amp; task.ProjectID != *filter.ProjectID {
+//                 return false
+//         }
+//         if filter.ParentID != nil {
+//                 if task.ParentID == nil &amp;&amp; *filter.ParentID != uuid.Nil {
+//                         return false
+//                 }
+//                 if task.ParentID != nil &amp;&amp; *task.ParentID != *filter.ParentID {
+//                         return false
+//                 }
+//         }
+//         if filter.State != nil &amp;&amp; types.TaskState(task.State) != *filter.State {
+//                 return false
+//         }
+//         if filter.Priority != nil &amp;&amp; types.TaskPriority(task.Priority) != *filter.Priority {
+//                 return false
+//         }
+//         if filter.MinDepth != nil &amp;&amp; task.Depth &lt; *filter.MinDepth {
+//                 return false
+//         }
+//         if filter.MaxDepth != nil &amp;&amp; task.Depth &gt; *filter.MaxDepth {
+//                 return false
+//         }
+//         if filter.MinComplexity != nil &amp;&amp; task.Complexity &lt; *filter.MinComplexity {
+//                 return false
+//         }
+//         if filter.MaxComplexity != nil &amp;&amp; task.Complexity &gt; *filter.MaxComplexity {
+//                 return false
+//         }
+//         return true
+// }
 
 // Project state conversion functions
 
@@ -26254,49 +26258,50 @@ func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, 
 }
 
 // updateProjectMetrics updates project metrics (total tasks, completed tasks, progress)
-func (r *sqliteRepository) updateProjectMetrics(ctx context.Context, projectID uuid.UUID) error <span class="cov0" title="0">{
-        // Get task counts by state using ent aggregation
-        var totalTasks int
-        var completedTasks int
-
-        // Count total tasks
-        totalTasks, err := r.client.Task.Query().
-                Where(task.ProjectID(projectID)).
-                Count(ctx)
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("failed to count total tasks: %w", err)
-        }</span>
-
-        // Count completed tasks
-        <span class="cov0" title="0">completedTasks, err = r.client.Task.Query().
-                Where(
-                        task.ProjectID(projectID),
-                        task.StateEQ(task.StateCompleted),
-                ).
-                Count(ctx)
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("failed to count completed tasks: %w", err)
-        }</span>
-
-        // Calculate progress
-        <span class="cov0" title="0">progress := 0.0
-        if totalTasks &gt; 0 </span><span class="cov0" title="0">{
-                progress = float64(completedTasks) / float64(totalTasks) * 100.0
-        }</span>
-
-        // Update project metrics
-        <span class="cov0" title="0">err = r.client.Project.UpdateOneID(projectID).
-                SetTotalTasks(totalTasks).
-                SetCompletedTasks(completedTasks).
-                SetProgress(progress).
-                Exec(ctx)
-
-        if err != nil </span><span class="cov0" title="0">{
-                return fmt.Errorf("failed to update project metrics: %w", err)
-        }</span>
-
-        <span class="cov0" title="0">return nil</span>
-}
+// Currently unused but kept for potential future use
+// func (r *sqliteRepository) updateProjectMetrics(ctx context.Context, projectID uuid.UUID) error {
+//         // Get task counts by state using ent aggregation
+//         var totalTasks int
+//         var completedTasks int
+//
+//         // Count total tasks
+//         totalTasks, err := r.client.Task.Query().
+//                 Where(task.ProjectID(projectID)).
+//                 Count(ctx)
+//         if err != nil {
+//                 return fmt.Errorf("failed to count total tasks: %w", err)
+//         }
+//
+//         // Count completed tasks
+//         completedTasks, err = r.client.Task.Query().
+//                 Where(
+//                         task.ProjectID(projectID),
+//                         task.StateEQ(task.StateCompleted),
+//                 ).
+//                 Count(ctx)
+//         if err != nil {
+//                 return fmt.Errorf("failed to count completed tasks: %w", err)
+//         }
+//
+//         // Calculate progress
+//         progress := 0.0
+//         if totalTasks &gt; 0 {
+//                 progress = float64(completedTasks) / float64(totalTasks) * 100.0
+//         }
+//
+//         // Update project metrics
+//         err = r.client.Project.UpdateOneID(projectID).
+//                 SetTotalTasks(totalTasks).
+//                 SetCompletedTasks(completedTasks).
+//                 SetProgress(progress).
+//                 Exec(ctx)
+//
+//         if err != nil {
+//                 return fmt.Errorf("failed to update project metrics: %w", err)
+//         }
+//
+//         return nil
+// }
 
 // updateProjectMetricsInTx updates project metrics within a transaction
 func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID) error <span class="cov8" title="1">{
@@ -27973,7 +27978,7 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository <span c
         require.NoError(t, err)
         
         t.Cleanup(func() </span><span class="cov0" title="0">{
-                os.Chdir(originalDir)
+                _ = os.Chdir(originalDir)
         }</span>)
 
         // Create SQLite repository
@@ -28200,24 +28205,24 @@ func (v *InputValidator) ValidateProjectTitle(title string) error <span class="c
 }
 
 // ValidateProjectDescription validates a project description
-func (v *InputValidator) ValidateProjectDescription(description string) error <span class="cov0" title="0">{
+func (v *InputValidator) ValidateProjectDescription(description string) error <span class="cov8" title="1">{
         // Empty description is allowed
-        if description == "" </span><span class="cov0" title="0">{
+        if description == "" </span><span class="cov8" title="1">{
                 return nil
         }</span>
 
         // Use same limits as task description
-        <span class="cov0" title="0">if utf8.RuneCountInString(description) &gt; v.MaxDescriptionLength </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if utf8.RuneCountInString(description) &gt; v.MaxDescriptionLength </span><span class="cov8" title="1">{
                 return fmt.Errorf("project description too long: %d characters (max: %d)", 
                         utf8.RuneCountInString(description), v.MaxDescriptionLength)
         }</span>
 
         // Check for dangerous content
-        <span class="cov0" title="0">if err := v.validateContent(description, "project description"); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := v.validateContent(description, "project description"); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov0" title="0">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // validateContent checks for potentially dangerous content
@@ -28291,14 +28296,14 @@ func (v *InputValidator) ValidateComplexity(complexity int) error <span class="c
 }
 
 // ValidateTaskPriority validates task priority value
-func (v *InputValidator) ValidateTaskPriority(priority string) error <span class="cov0" title="0">{
+func (v *InputValidator) ValidateTaskPriority(priority string) error <span class="cov8" title="1">{
         validPriorities := []string{"low", "medium", "high"}
-        for _, valid := range validPriorities </span><span class="cov0" title="0">{
-                if priority == valid </span><span class="cov0" title="0">{
+        for _, valid := range validPriorities </span><span class="cov8" title="1">{
+                if priority == valid </span><span class="cov8" title="1">{
                         return nil
                 }</span>
         }
-        <span class="cov0" title="0">return fmt.Errorf("priority must be one of: %s, got %q", strings.Join(validPriorities, ", "), priority)</span>
+        <span class="cov8" title="1">return fmt.Errorf("priority must be one of: %s, got %q", strings.Join(validPriorities, ", "), priority)</span>
 }
 
 // ValidateActor validates actor name
@@ -28314,7 +28319,7 @@ func (v *InputValidator) ValidateActor(actor string) error <span class="cov8" ti
         }</span>
 
         // Check for dangerous content
-        <span class="cov8" title="1">if err := v.validateContent(actor, "actor name"); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := v.validateContent(actor, "actor name"); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
 
@@ -28674,8 +28679,8 @@ func (Build) Clean() error <span class="cov0" title="0">{
         }
 
         // Clean Go cache
-        <span class="cov0" title="0">sh.Run("go", "clean", "-cache")
-        sh.Run("go", "clean", "-testcache")
+        <span class="cov0" title="0">_ = sh.Run("go", "clean", "-cache")
+        _ = sh.Run("go", "clean", "-testcache")
 
         fmt.Println("Clean completed!")
         return nil</span>

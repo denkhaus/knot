@@ -1,7 +1,7 @@
 # Knot
 
 [![CI](https://github.com/denkhaus/knot/workflows/CI/badge.svg)](https://github.com/denkhaus/knot/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/Coverage-7.2%25-red.svg)](./coverage/coverage.html)
+[![Coverage](https://img.shields.io/badge/Coverage-8.6%25-red.svg)](./coverage/coverage.html)
 [![Go Version](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Release](https://img.shields.io/github/release/denkhaus/knot.svg)](https://github.com/denkhaus/knot/releases/latest)
