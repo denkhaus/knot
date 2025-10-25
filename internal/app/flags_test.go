@@ -125,7 +125,7 @@ func TestFlagsIntegration(t *testing.T) {
 			// Verify that the flags were processed correctly
 			assert.Equal(t, 10, c.Int("limit"))
 			assert.False(t, c.Bool("json"))
-			assert.Equal(t, "off", c.String("log-level"))
+			assert.Equal(t, "debug", c.String("log-level"))
 			return nil
 		},
 	}

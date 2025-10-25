@@ -188,13 +188,17 @@ func TestSetAction(t *testing.T) {
 				updatedConfig := appCtx.ProjectManager.GetConfig()
 				switch tt.key {
 				case "complexity-threshold":
-					assert.Equal(t, int64(tt.value[0]-'0'), updatedConfig.ComplexityThreshold)
+					expected, _ := parseInt64(tt.value)
+					assert.Equal(t, int(expected), updatedConfig.ComplexityThreshold)
 				case "max-depth":
-					assert.Equal(t, int64(tt.value[0]-'0'), updatedConfig.MaxDepth)
+					expected, _ := parseInt64(tt.value)
+					assert.Equal(t, int(expected), updatedConfig.MaxDepth)
 				case "max-tasks-per-depth":
-					assert.Equal(t, int64(tt.value[0]-'0'), updatedConfig.MaxTasksPerDepth)
+					expected, _ := parseInt64(tt.value)
+					assert.Equal(t, int(expected), updatedConfig.MaxTasksPerDepth)
 				case "max-description-length":
-					assert.Equal(t, int64(tt.value[0]-'0'), updatedConfig.MaxDescriptionLength)
+					expected, _ := parseInt64(tt.value)
+					assert.Equal(t, int(expected), updatedConfig.MaxDescriptionLength)
 				case "auto-reduce-complexity":
 					expected := tt.value == "1"
 					assert.Equal(t, expected, updatedConfig.AutoReduceComplexity)
@@ -260,8 +264,8 @@ func TestResetAction(t *testing.T) {
 
 	// Verify initial modified values
 	config := appCtx.ProjectManager.GetConfig()
-	assert.Equal(t, int64(99), config.ComplexityThreshold)
-	assert.Equal(t, int64(99), config.MaxDepth)
+assert.Equal(t, 99, config.ComplexityThreshold)
+assert.Equal(t, 99, config.MaxDepth)
 	assert.Equal(t, true, config.AutoReduceComplexity)
 
 	actionFunc := ResetAction(appCtx)
@@ -310,8 +314,8 @@ func TestSetActionIntegration(t *testing.T) {
 	set.String("key", "", "config key")
 	set.String("value", "", "config value")
 
-	set.Set("key", "complexity-threshold")
-	set.Set("value", "8")
+	_ = set.Set("key", "complexity-threshold")
+	_ = set.Set("value", "9")
 
 	ctx := cli.NewContext(app, set, nil)
 
@@ -321,7 +325,7 @@ func TestSetActionIntegration(t *testing.T) {
 
 	// Verify value was updated
 	updatedConfig := appCtx.ProjectManager.GetConfig()
-	assert.Equal(t, int(8), updatedConfig.ComplexityThreshold)
+	assert.Equal(t, 9, updatedConfig.ComplexityThreshold)
 	assert.NotEqual(t, initialThreshold, updatedConfig.ComplexityThreshold)
 }
 
@@ -430,16 +434,16 @@ func TestSetActionWithDifferentValues(t *testing.T) {
 			switch key {
 			case "complexity-threshold":
 				expected, _ := parseInt64(value)
-				assert.Equal(t, expected, config.ComplexityThreshold)
+				assert.Equal(t, int(expected), config.ComplexityThreshold)
 			case "max-depth":
 				expected, _ := parseInt64(value)
-				assert.Equal(t, expected, config.MaxDepth)
+				assert.Equal(t, int(expected), config.MaxDepth)
 			case "max-tasks-per-depth":
 				expected, _ := parseInt64(value)
-				assert.Equal(t, expected, config.MaxTasksPerDepth)
+				assert.Equal(t, int(expected), config.MaxTasksPerDepth)
 			case "max-description-length":
 				expected, _ := parseInt64(value)
-				assert.Equal(t, expected, config.MaxDescriptionLength)
+				assert.Equal(t, int(expected), config.MaxDescriptionLength)
 			case "auto-reduce-complexity":
 				expected := value == "1"
 				assert.Equal(t, expected, config.AutoReduceComplexity)
