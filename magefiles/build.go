@@ -56,8 +56,10 @@ func (Build) Clean() error {
 		binaryName + ".exe",
 		"bin/",
 		"dist/",
-		coverageFile,
-		coverageHTML,
+		"coverage/coverage.out",
+		"coverage/coverage.html",
+		"coverage.out",  // Clean up any old files in root
+		"coverage.html", // Clean up any old files in root
 	}
 
 	for _, artifact := range artifacts {

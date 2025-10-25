@@ -1,5 +1,15 @@
 # Knot
 
+[![CI](https://github.com/denkhaus/knot/workflows/CI/badge.svg)](https://github.com/denkhaus/knot/actions/workflows/ci.yml)
+[![Go Report Card](https://goreportcard.com/badge/github.com/denkhaus/knot)](https://goreportcard.com/report/github.com/denkhaus/knot)
+[![codecov](https://codecov.io/gh/denkhaus/knot/branch/main/graph/badge.svg)](https://codecov.io/gh/denkhaus/knot)
+[![Coverage](https://img.shields.io/badge/Coverage-7.2%25-red.svg)](./coverage/coverage.html)
+[![Go Version](https://img.shields.io/badge/Go-1.25-blue.svg)](https://golang.org/dl/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Release](https://img.shields.io/github/release/denkhaus/knot.svg)](https://github.com/denkhaus/knot/releases/latest)
+[![GitHub issues](https://img.shields.io/github/issues/denkhaus/knot.svg)](https://github.com/denkhaus/knot/issues)
+[![GitHub stars](https://img.shields.io/github/stars/denkhaus/knot.svg)](https://github.com/denkhaus/knot/stargazers)
+
 A standalone CLI tool for hierarchical project and task management with dependencies. Specifically designed to be the best friend of every LLM agent - with structured, parsable outputs, comprehensive error handling, and a built-in `get-started` command that makes it easy for AI agents to understand and use all functionality. Perfect for organizing complex workflows and project hierarchies.
 
 ## Features

@@ -11,18 +11,18 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       matrix:
-        go-version: [1.21, 1.22, 1.23]
+        go-version: [1.23, 1.24, 1.25]
 
     steps:
     - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
         go-version: ${{ matrix.go-version }}
 
     - name: Cache Go modules
-      uses: actions/cache@v3
+      uses: actions/cache@v4
       with:
         path: ~/go/pkg/mod
         key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
@@ -38,15 +38,24 @@ jobs:
     - name: Build
       run: go build -v ./cmd/knot
 
-    - name: Run tests
-      run: go test -v -race -coverprofile=coverage.out ./...
+    - name: Install Mage
+      run: go install github.com/magefile/mage@latest
+
+    - name: Run tests with coverage
+      run: mage test:coverage
 
     - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
-        file: ./coverage.out
+        file: ./coverage/coverage.out
         flags: unittests
         name: codecov-umbrella
+
+    - name: Upload coverage artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: coverage-report-${{ matrix.go-version }}
+        path: coverage/
 
   lint:
     runs-on: ubuntu-latest
@@ -54,9 +63,9 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.23
+        go-version: 1.25
 
     - name: golangci-lint
       uses: golangci/golangci-lint-action@v3
@@ -70,14 +79,14 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.23
+        go-version: 1.25
 
     - name: Run Gosec Security Scanner
-      uses: securecodewarrior/github-action-gosec@master
-      with:
-        args: './...'
+      run: |
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
+        gosec ./...
 
   build-matrix:
     runs-on: ubuntu-latest
@@ -93,9 +102,9 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Set up Go
-      uses: actions/setup-go@v4
+      uses: actions/setup-go@v5
       with:
-        go-version: 1.23
+        go-version: 1.25
 
     - name: Build for ${{ matrix.goos }}/${{ matrix.goarch }}
       env:
@@ -110,7 +119,7 @@ jobs:
         fi
 
     - name: Upload artifacts
-      uses: actions/upload-artifact@v3
+      uses: actions/upload-artifact@v4
       with:
         name: knot-${{ matrix.goos }}-${{ matrix.goarch }}
         path: dist/

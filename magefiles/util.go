@@ -13,8 +13,8 @@ import (
 const (
 	binaryName   = "knot"
 	packagePath  = "./cmd/knot"
-	coverageFile = "coverage.out"
-	coverageHTML = "coverage.html"
+	coverageFile = "coverage/coverage.out"
+	coverageHTML = "coverage/coverage.html"
 )
 
 // Util namespace for utility targets
