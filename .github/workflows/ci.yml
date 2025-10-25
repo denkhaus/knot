@@ -85,7 +85,7 @@ jobs:
 
     - name: Run Gosec Security Scanner
       run: |
-        go install github.com/securecodewarrior/gosec/cmd/gosec@latest
+        go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest
         gosec ./...
 
   build-matrix:
