@@ -69,8 +69,8 @@ func (Build) Clean() error {
 	}
 
 	// Clean Go cache
-	sh.Run("go", "clean", "-cache")
-	sh.Run("go", "clean", "-testcache")
+	_ = sh.Run("go", "clean", "-cache")
+	_ = sh.Run("go", "clean", "-testcache")
 
 	fmt.Println("Clean completed!")
 	return nil

@@ -526,7 +526,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		if !force {
 			fmt.Printf("Are you sure you want to delete user template \"%s\"? (y/N): ", templateName)
 			var response string
-			fmt.Scanln(&response)
+			_, _ = fmt.Scanln(&response)
 			if response != "y" && response != "Y" && response != "yes" && response != "YES" {
 				fmt.Println("Deletion cancelled.")
 				return nil

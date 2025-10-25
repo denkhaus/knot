@@ -78,8 +78,8 @@ func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) {
 	
 	// Read captured output
 	var stdout, stderr bytes.Buffer
-	io.Copy(&stdout, rOut)
-	io.Copy(&stderr, rErr)
+	_, _ = io.Copy(&stdout, rOut)
+	_, _ = io.Copy(&stderr, rErr)
 	
 	return stdout.String(), stderr.String(), err
 }
@@ -121,8 +121,8 @@ func (h *CLITestHelper) ExtractTaskID(output string) string {
 
 // Cleanup cleans up the test environment
 func (h *CLITestHelper) Cleanup() {
-	os.Chdir(h.originalDir)
-	os.RemoveAll(h.tempDir)
+	_ = os.Chdir(h.originalDir)
+	_ = os.RemoveAll(h.tempDir)
 }
 
 // CreateTestProject creates a test project and returns its ID

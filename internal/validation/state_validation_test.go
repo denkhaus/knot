@@ -188,7 +188,7 @@ func TestLenientValidation(t *testing.T) {
 	}
 
 	// Test lenient validation for pending -> completed (should warn, not error)
-	err, warnings := validator.ValidateTransitionLenient(types.TaskStatePending, types.TaskStateCompleted, task)
+	err, _ := validator.ValidateTransitionLenient(types.TaskStatePending, types.TaskStateCompleted, task)
 	
 	// Should not error in lenient mode (transition is not allowed, so it should error)
 	assert.Error(t, err, "Lenient validation should error for invalid transition pending -> completed")
@@ -202,7 +202,7 @@ func TestLenientValidation(t *testing.T) {
 		Complexity:  9, // High complexity
 	}
 	
-	err, warnings = validator.ValidateTransitionLenient(types.TaskStateInProgress, types.TaskStateCompleted, highComplexityTask)
+	err, warnings := validator.ValidateTransitionLenient(types.TaskStateInProgress, types.TaskStateCompleted, highComplexityTask)
 	
 	// Should not error but provide warnings
 	assert.NoError(t, err, "Lenient validation should not error for valid transition")

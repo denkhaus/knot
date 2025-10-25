@@ -1,0 +1,7 @@
+{
+  "MaxTasksPerDepth": 75,
+  "ComplexityThreshold": 7,
+  "MaxDepth": 15,
+  "MaxDescriptionLength": 2500,
+  "AutoReduceComplexity": false
+}

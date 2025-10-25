@@ -80,9 +80,9 @@ func TestCreateAction(t *testing.T) {
 			flagSet.String("description", "", "")
 			flagSet.String("actor", "", "")
 			
-			flagSet.Set("title", tt.title)
-			flagSet.Set("description", tt.description)
-			flagSet.Set("actor", tt.actor)
+			_ = flagSet.Set("title", tt.title)
+			_ = flagSet.Set("description", tt.description)
+			_ = flagSet.Set("actor", tt.actor)
 			
 			ctx := cli.NewContext(app, flagSet, nil)
 
@@ -260,7 +260,7 @@ func TestProjectCommandsIntegration(t *testing.T) {
 
 		getFlagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		getFlagSet.String("id", "", "")
-		getFlagSet.Set("id", projects[0].ID.String())
+		_ = getFlagSet.Set("id", projects[0].ID.String())
 		
 		getCtx := cli.NewContext(app, getFlagSet, nil)
 

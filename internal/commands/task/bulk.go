@@ -344,7 +344,7 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		if !force {
 			fmt.Printf("\nAre you sure you want to delete these %d tasks? (y/N): ", len(tasksToDelete))
 			var response string
-			fmt.Scanln(&response)
+			_, _ = fmt.Scanln(&response)
 			if response != "y" && response != "Y" && response != "yes" && response != "YES" {
 				fmt.Println("Deletion cancelled.")
 				return nil
