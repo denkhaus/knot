@@ -63,7 +63,7 @@ func (Util) Security() error {
 	// Check if gosec is installed
 	if _, err := exec.LookPath("gosec"); err != nil {
 		fmt.Println("Installing gosec...")
-		if err := sh.Run("go", "install", "github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"); err != nil {
+		if err := sh.Run("go", "install", "github.com/securecodewarrior/gosec/cmd/gosec@latest"); err != nil {
 			return err
 		}
 	}
@@ -89,7 +89,7 @@ func (Util) Setup() error {
 	tools := []string{
 		"github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
 		"github.com/goreleaser/goreleaser@latest",
-		"github.com/securecodewarrior/gosec/v2/cmd/gosec@latest",
+		"github.com/securecodewarrior/gosec/cmd/gosec@latest",
 	}
 
 	for _, tool := range tools {

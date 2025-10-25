@@ -1,8 +1,6 @@
 # Knot
 
 [![CI](https://github.com/denkhaus/knot/workflows/CI/badge.svg)](https://github.com/denkhaus/knot/actions/workflows/ci.yml)
-[![Go Report Card](https://goreportcard.com/badge/github.com/denkhaus/knot)](https://goreportcard.com/report/github.com/denkhaus/knot)
-[![codecov](https://codecov.io/gh/denkhaus/knot/branch/main/graph/badge.svg)](https://codecov.io/gh/denkhaus/knot)
 [![Coverage](https://img.shields.io/badge/Coverage-7.2%25-red.svg)](./coverage/coverage.html)
 [![Go Version](https://img.shields.io/badge/Go-1.25-blue.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
@@ -272,18 +270,21 @@ tasks:                                     # List of tasks to be created
 ```
 
 **Key Features:**
-- **Variable Substitution**: Use `{{variable_name}}` in titles and descriptions
+
+- __Variable Substitution__: Use `{{variable_name}}` in titles and descriptions
 - **Task Dependencies**: Define dependency relationships between tasks
 - **Conditional Tasks**: Include tasks based on variable values using metadata
 - **Nested Tasks**: Define parent-child relationships within the template
 - **Time Estimates**: Plan work with time estimates for each task
 
 **Built-in Templates:**
+
 - `bug-fix`: Complete bug fix workflow with investigation, implementation, and testing
-- `feature-development`: Full feature development lifecycle from design to deployment  
+- `feature-development`: Full feature development lifecycle from design to deployment
 - `code-review`: Systematic code review process
 
 **Template Commands:**
+
 ```bash
 # List all available templates
 knot template list
@@ -318,11 +319,13 @@ knot template edit --name "my-template"
 ```
 
 **Creating Custom Templates:**
+
 1. Create a YAML file with the template definition
 2. Save it in `.knot/templates/` directory to make it available as a user template
 3. Use the template with the `apply` command
 
 **Variable Types:**
+
 - `string`: Free-form text input
 - `int`: Integer numbers
 - `bool`: Boolean values (true/false)
@@ -460,14 +463,14 @@ tasks:
     description: "Gather and document detailed requirements for: {{feature_description}}"
     complexity: 4
     estimate: 240  # 4 hours
-    
+
   - id: "design"
     title: "Design {{feature_name}}"
     description: "Create technical design and architecture for: {{feature_description}}"
     complexity: 5
     dependencies: ["requirements"]
     estimate: 360  # 6 hours
-    
+
   - id: "api_design"
     title: "API Design for {{feature_name}}"
     description: "Design API endpoints and data models for: {{feature_description}}"
@@ -476,7 +479,7 @@ tasks:
     estimate: 180  # 3 hours
     metadata:
       conditional: "{{include_api}}"
-    
+
   - id: "ui_mockups"
     title: "UI Mockups for {{feature_name}}"
     description: "Create UI mockups and user flow for: {{feature_description}}"
@@ -485,14 +488,14 @@ tasks:
     estimate: 240  # 4 hours
     metadata:
       conditional: "{{include_ui}}"
-    
+
   - id: "backend_implementation"
     title: "Backend Implementation for {{feature_name}}"
     description: "Implement backend logic and data layer for: {{feature_description}}"
     complexity: 6
     dependencies: ["api_design"]
     estimate: 480  # 8 hours
-    
+
   - id: "frontend_implementation"
     title: "Frontend Implementation for {{feature_name}}"
     description: "Implement user interface for: {{feature_description}}"
@@ -501,35 +504,35 @@ tasks:
     estimate: 360  # 6 hours
     metadata:
       conditional: "{{include_ui}}"
-    
+
   - id: "unit_tests"
     title: "Unit Tests for {{feature_name}}"
     description: "Write comprehensive unit tests for: {{feature_description}}"
     complexity: 4
     dependencies: ["backend_implementation"]
     estimate: 240  # 4 hours
-    
+
   - id: "integration_tests"
     title: "Integration Tests for {{feature_name}}"
     description: "Write integration tests for: {{feature_description}}"
     complexity: 5
     dependencies: ["frontend_implementation", "unit_tests"]
     estimate: 300  # 5 hours
-    
+
   - id: "documentation"
     title: "Documentation for {{feature_name}}"
     description: "Write user and technical documentation for: {{feature_description}}"
     complexity: 3
     dependencies: ["integration_tests"]
     estimate: 180  # 3 hours
-    
+
   - id: "code_review"
     title: "Code Review for {{feature_name}}"
     description: "Comprehensive code review for: {{feature_description}}"
     complexity: 3
     dependencies: ["documentation"]
     estimate: 120  # 2 hours
-    
+
   - id: "deployment"
     title: "Deploy {{feature_name}}"
     description: "Deploy feature to production: {{feature_description}}"

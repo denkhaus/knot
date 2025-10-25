@@ -252,17 +252,8 @@
 			<div id="legend">
 				<span>not tracked</span>
 			
-				<span class="cov0">no coverage</span>
-				<span class="cov1">low coverage</span>
-				<span class="cov2">*</span>
-				<span class="cov3">*</span>
-				<span class="cov4">*</span>
-				<span class="cov5">*</span>
-				<span class="cov6">*</span>
-				<span class="cov7">*</span>
-				<span class="cov8">*</span>
-				<span class="cov9">*</span>
-				<span class="cov10">high coverage</span>
+				<span class="cov0">not covered</span>
+				<span class="cov8">covered</span>
 			
 			</div>
 		</div>
@@ -627,7 +618,7 @@ type CLITestHelper struct {
 }
 
 // NewCLITestHelper creates a new CLI test helper with isolated environment
-func NewCLITestHelper(t *testing.T) *CLITestHelper <span class="cov6" title="8">{
+func NewCLITestHelper(t *testing.T) *CLITestHelper <span class="cov8" title="1">{
         // Create temporary directory for test database
         tempDir, err := os.MkdirTemp("", "knot_cli_test_*")
         require.NoError(t, err)
@@ -658,7 +649,7 @@ func NewCLITestHelper(t *testing.T) *CLITestHelper <span class="cov6" title="8">
 }</span>
 
 // RunCommand executes a CLI command and returns output and error
-func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) <span class="cov10" title="27">{
+func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) <span class="cov8" title="1">{
         // Prepare full args with program name
         fullArgs := append([]string{"knot"}, args...)
         
@@ -690,27 +681,27 @@ func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) <span
 }</span>
 
 // RunCommandExpectSuccess runs a command and expects it to succeed
-func (h *CLITestHelper) RunCommandExpectSuccess(args ...string) (string, string) <span class="cov9" title="22">{
+func (h *CLITestHelper) RunCommandExpectSuccess(args ...string) (string, string) <span class="cov8" title="1">{
         stdout, stderr, err := h.RunCommand(args...)
         require.NoError(h.t, err, "Command should succeed: %v", args)
         return stdout, stderr
 }</span>
 
 // RunCommandExpectError runs a command and expects it to fail
-func (h *CLITestHelper) RunCommandExpectError(args ...string) (string, string, error) <span class="cov5" title="5">{
+func (h *CLITestHelper) RunCommandExpectError(args ...string) (string, string, error) <span class="cov8" title="1">{
         stdout, stderr, err := h.RunCommand(args...)
         require.Error(h.t, err, "Command should fail: %v", args)
         return stdout, stderr, err
 }</span>
 
 // ExtractProjectID extracts project ID from create project output
-func (h *CLITestHelper) ExtractProjectID(output string) string <span class="cov5" title="6">{
+func (h *CLITestHelper) ExtractProjectID(output string) string <span class="cov8" title="1">{
         // Look for pattern like "ID: uuid"
         lines := strings.Split(output, "\n")
-        for _, line := range lines </span><span class="cov5" title="6">{
-                if strings.Contains(line, "ID:") </span><span class="cov5" title="6">{
+        for _, line := range lines </span><span class="cov8" title="1">{
+                if strings.Contains(line, "ID:") </span><span class="cov8" title="1">{
                         parts := strings.Split(line, "ID:")
-                        if len(parts) &gt; 1 </span><span class="cov5" title="6">{
+                        if len(parts) &gt; 1 </span><span class="cov8" title="1">{
                                 id := strings.TrimSpace(strings.Split(parts[1], ")")[0])
                                 return strings.Trim(id, "()")
                         }</span>
@@ -720,18 +711,18 @@ func (h *CLITestHelper) ExtractProjectID(output string) string <span class="cov5
 }
 
 // ExtractTaskID extracts task ID from create task output
-func (h *CLITestHelper) ExtractTaskID(output string) string <span class="cov1" title="1">{
+func (h *CLITestHelper) ExtractTaskID(output string) string <span class="cov8" title="1">{
         return h.ExtractProjectID(output) // Same pattern
 }</span>
 
 // Cleanup cleans up the test environment
-func (h *CLITestHelper) Cleanup() <span class="cov6" title="7">{
+func (h *CLITestHelper) Cleanup() <span class="cov8" title="1">{
         os.Chdir(h.originalDir)
         os.RemoveAll(h.tempDir)
 }</span>
 
 // CreateTestProject creates a test project and returns its ID
-func (h *CLITestHelper) CreateTestProject(title, description string) string <span class="cov4" title="4">{
+func (h *CLITestHelper) CreateTestProject(title, description string) string <span class="cov8" title="1">{
         stdout, _ := h.RunCommandExpectSuccess("project", "create", "--title", title, "--description", description)
         projectID := h.ExtractProjectID(stdout)
         require.NotEmpty(h.t, projectID, "Should extract project ID from output")
@@ -739,7 +730,7 @@ func (h *CLITestHelper) CreateTestProject(title, description string) string <spa
 }</span>
 
 // CreateTestTask creates a test task and returns its ID
-func (h *CLITestHelper) CreateTestTask(projectID, title, description string, complexity int) string <span class="cov1" title="1">{
+func (h *CLITestHelper) CreateTestTask(projectID, title, description string, complexity int) string <span class="cov8" title="1">{
         // First select the project
         h.RunCommandExpectSuccess("project", "select", "--id", projectID)
         
@@ -1965,8 +1956,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command <span class="cov0" title
         }
 }</span>
 
-func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" title="7">{
-        return func(c *cli.Context) error </span><span class="cov10" title="7">{
+func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 title := c.String("title")
                 description := c.String("description")
                 actor := c.String("actor")
@@ -1975,23 +1966,23 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                 validator := validation.NewInputValidator()
 
                 // Validate inputs
-                if err := validator.ValidateProjectTitle(title); err != nil </span><span class="cov6" title="3">{
+                if err := validator.ValidateProjectTitle(title); err != nil </span><span class="cov8" title="1">{
                         return errors.NewValidationError("invalid project title", err)
                 }</span>
 
-                <span class="cov7" title="4">if err := validator.ValidateProjectDescription(description); err != nil </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if err := validator.ValidateProjectDescription(description); err != nil </span><span class="cov8" title="1">{
                         return errors.NewValidationError("invalid project description", err)
                 }</span>
 
                 // Default to $USER if actor is not provided
-                <span class="cov6" title="3">if actor == "" </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if actor == "" </span><span class="cov8" title="1">{
                         actor = os.Getenv("USER")
                         if actor == "" </span><span class="cov0" title="0">{
                                 actor = "unknown"
                         }</span>
                 }
 
-                <span class="cov6" title="3">appCtx.Logger.Info("Creating project", zap.String("title", title), zap.String("description", description), zap.String("actor", actor))
+                <span class="cov8" title="1">appCtx.Logger.Info("Creating project", zap.String("title", title), zap.String("description", description), zap.String("actor", actor))
 
                 project, err := appCtx.ProjectManager.CreateProject(context.Background(), title, description, actor)
                 if err != nil </span><span class="cov0" title="0">{
@@ -1999,18 +1990,18 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                         return errors.WrapWithSuggestion(err, "creating project")
                 }</span>
 
-                <span class="cov6" title="3">appCtx.Logger.Info("Project created successfully", zap.String("projectID", project.ID.String()), zap.String("title", project.Title), zap.String("actor", actor))
+                <span class="cov8" title="1">appCtx.Logger.Info("Project created successfully", zap.String("projectID", project.ID.String()), zap.String("title", project.Title), zap.String("actor", actor))
                 fmt.Printf("Created project: %s (ID: %s)\n", project.Title, project.ID)
                 fmt.Printf("  Created by: %s\n", actor)
-                if project.Description != "" </span><span class="cov6" title="3">{
+                if project.Description != "" </span><span class="cov8" title="1">{
                         fmt.Printf("  Description: %s\n", project.Description)
                 }</span>
-                <span class="cov6" title="3">return nil</span>
+                <span class="cov8" title="1">return nil</span>
         }
 }
 
-func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov6" title="3">{
-        return func(c *cli.Context) error </span><span class="cov6" title="3">{
+func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 appCtx.Logger.Info("Listing projects")
 
                 projects, err := appCtx.ProjectManager.ListProjects(context.Background())
@@ -2019,48 +2010,48 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov6" tit
                         return errors.WrapWithSuggestion(err, "listing projects")
                 }</span>
 
-                <span class="cov6" title="3">appCtx.Logger.Info("Projects retrieved", zap.Int("count", len(projects)))
+                <span class="cov8" title="1">appCtx.Logger.Info("Projects retrieved", zap.Int("count", len(projects)))
 
-                if len(projects) == 0 </span><span class="cov1" title="1">{
+                if len(projects) == 0 </span><span class="cov8" title="1">{
                         return errors.EmptyResultError("list projects", "current workspace")
                 }</span>
 
-                <span class="cov4" title="2">fmt.Printf("Found %d project(s):\n\n", len(projects))
-                for _, project := range projects </span><span class="cov6" title="3">{
+                <span class="cov8" title="1">fmt.Printf("Found %d project(s):\n\n", len(projects))
+                for _, project := range projects </span><span class="cov8" title="1">{
                         fmt.Printf("• %s (ID: %s)\n", project.Title, project.ID)
-                        if project.Description != "" </span><span class="cov6" title="3">{
+                        if project.Description != "" </span><span class="cov8" title="1">{
                                 fmt.Printf("  %s\n", project.Description)
                         }</span>
-                        <span class="cov6" title="3">fmt.Printf("  Progress: %.1f%% (%d/%d tasks completed)\n",
+                        <span class="cov8" title="1">fmt.Printf("  Progress: %.1f%% (%d/%d tasks completed)\n",
                                 project.Progress, project.CompletedTasks, project.TotalTasks)
                         fmt.Println()</span>
                 }
-                <span class="cov4" title="2">return nil</span>
+                <span class="cov8" title="1">return nil</span>
         }
 }
 
-func getAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov7" title="4">{
-        return func(c *cli.Context) error </span><span class="cov7" title="4">{
+func getAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 idStr := c.String("id")
                 projectID, err := uuid.Parse(idStr)
-                if err != nil </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
                         return fmt.Errorf("invalid project ID: %w", err)
                 }</span>
 
-                <span class="cov6" title="3">appCtx.Logger.Info("Getting project", zap.String("projectID", projectID.String()))
+                <span class="cov8" title="1">appCtx.Logger.Info("Getting project", zap.String("projectID", projectID.String()))
 
                 project, err := appCtx.ProjectManager.GetProject(context.Background(), projectID)
-                if err != nil </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
                         appCtx.Logger.Error("Failed to get project", zap.Error(err))
                         return fmt.Errorf("failed to get project: %w", err)
                 }</span>
 
-                <span class="cov4" title="2">fmt.Printf("Project: %s\n", project.Title)
+                <span class="cov8" title="1">fmt.Printf("Project: %s\n", project.Title)
                 fmt.Printf("ID: %s\n", project.ID)
-                if project.Description != "" </span><span class="cov4" title="2">{
+                if project.Description != "" </span><span class="cov8" title="1">{
                         fmt.Printf("Description: %s\n", project.Description)
                 }</span>
-                <span class="cov4" title="2">fmt.Printf("Progress: %.1f%% (%d/%d tasks completed)\n",
+                <span class="cov8" title="1">fmt.Printf("Progress: %.1f%% (%d/%d tasks completed)\n",
                         project.Progress, project.CompletedTasks, project.TotalTasks)
                 fmt.Printf("Created: %s\n", project.CreatedAt.Format("2006-01-02 15:04:05"))
                 fmt.Printf("Updated: %s\n", project.UpdatedAt.Format("2006-01-02 15:04:05"))
@@ -2190,57 +2181,57 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" t
 }
 
 // selectAction selects a project as the current context
-func selectAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov6" title="3">{
-        return func(c *cli.Context) error </span><span class="cov6" title="3">{
+func selectAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 projectIDStr := c.String("id")
                 projectID, err := uuid.Parse(projectIDStr)
-                if err != nil </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
                         return errors.InvalidUUIDError("project-id", projectIDStr)
                 }</span>
 
                 // Verify project exists
-                <span class="cov4" title="2">project, err := appCtx.ProjectManager.GetProject(context.Background(), projectID)
-                if err != nil </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">project, err := appCtx.ProjectManager.GetProject(context.Background(), projectID)
+                if err != nil </span><span class="cov8" title="1">{
                         return fmt.Errorf("project not found: %w", err)
                 }</span>
 
                 // Set as selected project
-                <span class="cov1" title="1">actor := appCtx.GetActor()
+                <span class="cov8" title="1">actor := appCtx.GetActor()
                 err = appCtx.ProjectManager.SetSelectedProject(context.Background(), projectID, actor)
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to select project: %w", err)
                 }</span>
 
-                <span class="cov1" title="1">fmt.Printf("Selected project: %s (ID: %s)\n", project.Title, project.ID)
+                <span class="cov8" title="1">fmt.Printf("Selected project: %s (ID: %s)\n", project.Title, project.ID)
                 return nil</span>
         }
 }
 
 // getSelectedAction shows the currently selected project
-func getSelectedAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov4" title="2">{
-        return func(c *cli.Context) error </span><span class="cov4" title="2">{
+func getSelectedAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 selectedProjectID, err := appCtx.ProjectManager.GetSelectedProject(context.Background())
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to get selected project: %w", err)
                 }</span>
 
-                <span class="cov4" title="2">if selectedProjectID == nil </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if selectedProjectID == nil </span><span class="cov8" title="1">{
                         if c.Bool("json") </span><span class="cov0" title="0">{
                                 fmt.Println("null")
                                 return nil
                         }</span>
-                        <span class="cov1" title="1">fmt.Println("No project currently selected")
+                        <span class="cov8" title="1">fmt.Println("No project currently selected")
                         fmt.Println("Use 'knot project select --id &lt;project-id&gt;' to select a project")
                         return nil</span>
                 }
 
                 // Get project details
-                <span class="cov1" title="1">project, err := appCtx.ProjectManager.GetProject(context.Background(), *selectedProjectID)
+                <span class="cov8" title="1">project, err := appCtx.ProjectManager.GetProject(context.Background(), *selectedProjectID)
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("selected project not found: %w", err)
                 }</span>
 
-                <span class="cov1" title="1">if c.Bool("json") </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if c.Bool("json") </span><span class="cov0" title="0">{
                         projectJSON, err := json.Marshal(project)
                         if err != nil </span><span class="cov0" title="0">{
                                 return fmt.Errorf("failed to marshal project: %w", err)
@@ -2249,38 +2240,38 @@ func getSelectedAction(appCtx *shared.AppContext) cli.ActionFunc <span class="co
                         return nil</span>
                 }
 
-                <span class="cov1" title="1">fmt.Printf("Currently selected project:\n\n")
+                <span class="cov8" title="1">fmt.Printf("Currently selected project:\n\n")
                 fmt.Printf("* %s (ID: %s)\n", project.Title, project.ID)
-                if project.Description != "" </span><span class="cov1" title="1">{
+                if project.Description != "" </span><span class="cov8" title="1">{
                         fmt.Printf("  %s\n", project.Description)
                 }</span>
-                <span class="cov1" title="1">fmt.Printf("  State: %s | Progress: %.1f%%\n", project.State, project.Progress)
+                <span class="cov8" title="1">fmt.Printf("  State: %s | Progress: %.1f%%\n", project.State, project.Progress)
                 fmt.Printf("  Tasks: %d total, %d completed\n", project.TotalTasks, project.CompletedTasks)
                 return nil</span>
         }
 }
 
 // clearSelectionAction clears the currently selected project
-func clearSelectionAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov4" title="2">{
-        return func(c *cli.Context) error </span><span class="cov4" title="2">{
+func clearSelectionAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 // Check if there's a selection to clear
                 hasSelected, err := appCtx.ProjectManager.HasSelectedProject(context.Background())
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to check selected project: %w", err)
                 }</span>
 
-                <span class="cov4" title="2">if !hasSelected </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if !hasSelected </span><span class="cov8" title="1">{
                         fmt.Println("No project currently selected")
                         return nil
                 }</span>
 
                 // Clear the selection
-                <span class="cov1" title="1">err = appCtx.ProjectManager.ClearSelectedProject(context.Background())
+                <span class="cov8" title="1">err = appCtx.ProjectManager.ClearSelectedProject(context.Background())
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to clear selected project: %w", err)
                 }</span>
 
-                <span class="cov1" title="1">fmt.Println("Project selection cleared")
+                <span class="cov8" title="1">fmt.Println("Project selection cleared")
                 fmt.Println("Use 'knot project select --id &lt;project-id&gt;' to select a project")
                 return nil</span>
         }
@@ -2307,21 +2298,21 @@ import (
 // - blocked: show blocked tasks (moved from commands.go)
 
 // isTaskReady checks if a task has all its dependencies completed
-func isTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool <span class="cov10" title="18">{
+func isTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool <span class="cov8" title="1">{
         // If task has no dependencies, it's ready
-        if len(task.Dependencies) == 0 </span><span class="cov5" title="4">{
+        if len(task.Dependencies) == 0 </span><span class="cov8" title="1">{
                 return true
         }</span>
 
         // Check if all dependencies are completed
-        <span class="cov9" title="14">for _, depID := range task.Dependencies </span><span class="cov9" title="16">{
+        <span class="cov8" title="1">for _, depID := range task.Dependencies </span><span class="cov8" title="1">{
                 depTask, exists := taskMap[depID]
-                if !exists || depTask.State != types.TaskStateCompleted </span><span class="cov7" title="9">{
+                if !exists || depTask.State != types.TaskStateCompleted </span><span class="cov8" title="1">{
                         return false
                 }</span>
         }
 
-        <span class="cov6" title="5">return true</span>
+        <span class="cov8" title="1">return true</span>
 }
 
 // ActionableAction finds the next actionable task in a project
@@ -3347,14 +3338,14 @@ func Commands(appCtx *shared.AppContext) []*cli.Command <span class="cov0" title
         return allCommands
 }</span>
 
-func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" title="12">{
-        return func(c *cli.Context) error </span><span class="cov10" title="12">{
+func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 projectID, err := shared.ResolveProjectID(c, appCtx)
                 if err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
 
-                <span class="cov10" title="12">title := c.String("title")
+                <span class="cov8" title="1">title := c.String("title")
                 description := c.String("description")
                 complexity := c.Int("complexity")
                 priority := c.String("priority")
@@ -3364,25 +3355,25 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                 validator := validation.NewInputValidator()
 
                 // Validate inputs
-                if err := validator.ValidateTaskTitle(title); err != nil </span><span class="cov6" title="5">{
+                if err := validator.ValidateTaskTitle(title); err != nil </span><span class="cov8" title="1">{
                         return errors.NewValidationError("invalid task title", err)
                 }</span>
 
-                <span class="cov8" title="7">if err := validator.ValidateTaskDescription(description); err != nil </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if err := validator.ValidateTaskDescription(description); err != nil </span><span class="cov8" title="1">{
                         return errors.NewValidationError("invalid task description", err)
                 }</span>
 
-                <span class="cov7" title="6">if err := validator.ValidateComplexity(complexity); err != nil </span><span class="cov3" title="2">{
+                <span class="cov8" title="1">if err := validator.ValidateComplexity(complexity); err != nil </span><span class="cov8" title="1">{
                         return errors.NewValidationError("invalid complexity", err)
                 }</span>
 
                 // Validate priority
-                <span class="cov6" title="4">if err := validator.ValidateTaskPriority(priority); err != nil </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if err := validator.ValidateTaskPriority(priority); err != nil </span><span class="cov0" title="0">{
                         return errors.NewValidationError("invalid priority", err)
                 }</span>
 
                 // Default to $USER if actor is not provided
-                <span class="cov6" title="4">if actor == "" </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if actor == "" </span><span class="cov0" title="0">{
                         actor = os.Getenv("USER")
                         if actor == "" </span><span class="cov0" title="0">{
                                 actor = "unknown"
@@ -3390,11 +3381,11 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                 }
 
                 // Validate complexity
-                <span class="cov6" title="4">if err := errors.ValidateComplexity(complexity); err != nil </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if err := errors.ValidateComplexity(complexity); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
 
-                <span class="cov6" title="4">var parentID *uuid.UUID
+                <span class="cov8" title="1">var parentID *uuid.UUID
                 if parentIDStr := c.String("parent-id"); parentIDStr != "" </span><span class="cov0" title="0">{
                         parsed, err := uuid.Parse(parentIDStr)
                         if err != nil </span><span class="cov0" title="0">{
@@ -3403,7 +3394,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                         <span class="cov0" title="0">parentID = &amp;parsed</span>
                 }
 
-                <span class="cov6" title="4">appCtx.Logger.Info("Creating task",
+                <span class="cov8" title="1">appCtx.Logger.Info("Creating task",
                         zap.String("title", title),
                         zap.String("projectID", projectID.String()),
                         zap.Int("complexity", complexity),
@@ -3416,14 +3407,14 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                         return errors.WrapWithSuggestion(err, "creating task")
                 }</span>
 
-                <span class="cov6" title="4">appCtx.Logger.Info("Task created successfully", zap.String("taskID", task.ID.String()), zap.String("actor", actor))
+                <span class="cov8" title="1">appCtx.Logger.Info("Task created successfully", zap.String("taskID", task.ID.String()), zap.String("actor", actor))
 
                 fmt.Printf("Created task: %s (ID: %s)\n", task.Title, task.ID)
                 fmt.Printf("  Created by: %s\n", actor)
-                if task.Description != "" </span><span class="cov6" title="4">{
+                if task.Description != "" </span><span class="cov8" title="1">{
                         fmt.Printf("  Description: %s\n", task.Description)
                 }</span>
-                <span class="cov6" title="4">fmt.Printf("  Complexity: %d\n", task.Complexity)
+                <span class="cov8" title="1">fmt.Printf("  Complexity: %d\n", task.Complexity)
                 fmt.Printf("  Priority: %s\n", task.Priority)
                 fmt.Printf("  State: %s\n", task.State)
                 if parentID != nil </span><span class="cov0" title="0">{
@@ -3431,7 +3422,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                 }</span>
 
                 // Show workflow reminder for task state management
-                <span class="cov6" title="4">fmt.Printf("\nReminder: Set this task to 'in-progress' before starting work:\n")
+                <span class="cov8" title="1">fmt.Printf("\nReminder: Set this task to 'in-progress' before starting work:\n")
                 fmt.Printf("  knot task update-state --id %s --state in-progress\n", task.ID)
 
                 // Show breakdown suggestion for high complexity tasks
@@ -3442,18 +3433,18 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov10" 
                         fmt.Printf("  knot breakdown  # to see all tasks needing breakdown\n")
                 }</span>
 
-                <span class="cov6" title="4">return nil</span>
+                <span class="cov8" title="1">return nil</span>
         }
 }
 
-func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov4" title="3">{
-        return func(c *cli.Context) error </span><span class="cov4" title="3">{
+func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 projectID, err := shared.ResolveProjectID(c, appCtx)
                 if err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
 
-                <span class="cov4" title="3">appCtx.Logger.Info("Listing tasks", zap.String("projectID", projectID.String()))
+                <span class="cov8" title="1">appCtx.Logger.Info("Listing tasks", zap.String("projectID", projectID.String()))
 
                 tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
                 if err != nil </span><span class="cov0" title="0">{
@@ -3462,7 +3453,7 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov4" tit
                 }</span>
 
                 // Apply filters
-                <span class="cov4" title="3">filteredTasks := applyTaskFilters(tasks, c)
+                <span class="cov8" title="1">filteredTasks := applyTaskFilters(tasks, c)
 
                 // Apply sorting
                 sortedTasks := applyTaskSorting(filteredTasks, c)
@@ -3474,51 +3465,51 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov4" tit
                         zap.Int("originalCount", len(tasks)),
                         zap.Int("filteredCount", len(finalTasks)))
 
-                if len(finalTasks) == 0 </span><span class="cov1" title="1">{
+                if len(finalTasks) == 0 </span><span class="cov8" title="1">{
                         fmt.Printf("No tasks found matching the specified criteria.\n")
                         return nil
                 }</span>
 
                 // Check if JSON output is requested
-                <span class="cov3" title="2">if c.Bool("json") </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if c.Bool("json") </span><span class="cov0" title="0">{
                         return outputTasksAsJSON(finalTasks)
                 }</span>
 
                 // Show project context indicator
-                <span class="cov3" title="2">shared.ShowProjectContextWithSeparator(c, appCtx)
+                <span class="cov8" title="1">shared.ShowProjectContextWithSeparator(c, appCtx)
 
                 // Show filter summary if filters were applied
-                if hasFiltersApplied(c) </span><span class="cov3" title="2">{
+                if hasFiltersApplied(c) </span><span class="cov8" title="1">{
                         fmt.Printf("Found %d task(s) matching criteria (out of %d total):\n\n", len(finalTasks), len(tasks))
                 }</span> else<span class="cov0" title="0"> {
                         fmt.Printf("Found %d task(s):\n\n", len(finalTasks))
                 }</span>
 
-                <span class="cov3" title="2">for _, task := range finalTasks </span><span class="cov4" title="3">{
+                <span class="cov8" title="1">for _, task := range finalTasks </span><span class="cov8" title="1">{
                         indent := ""
                         for i := 0; i &lt; task.Depth; i++ </span><span class="cov0" title="0">{
                                 indent += "  "
                         }</span>
-                        <span class="cov4" title="3">fmt.Printf("%s* %s (ID: %s)\n", indent, task.Title, task.ID)
-                        if task.Description != "" </span><span class="cov4" title="3">{
+                        <span class="cov8" title="1">fmt.Printf("%s* %s (ID: %s)\n", indent, task.Title, task.ID)
+                        if task.Description != "" </span><span class="cov8" title="1">{
                                 fmt.Printf("%s  %s\n", indent, task.Description)
                         }</span>
-                        <span class="cov4" title="3">fmt.Printf("%s  State: %s | Priority: %s | Complexity: %d | Depth: %d\n", indent, task.State, task.Priority, task.Complexity, task.Depth)
+                        <span class="cov8" title="1">fmt.Printf("%s  State: %s | Priority: %s | Complexity: %d | Depth: %d\n", indent, task.State, task.Priority, task.Complexity, task.Depth)
                         fmt.Println()</span>
                 }
-                <span class="cov3" title="2">return nil</span>
+                <span class="cov8" title="1">return nil</span>
         }
 }
 
-func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov6" title="5">{
-        return func(c *cli.Context) error </span><span class="cov6" title="5">{
+func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 taskIDStr := c.String("id")
                 taskID, err := uuid.Parse(taskIDStr)
-                if err != nil </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
                         return errors.InvalidUUIDError("task-id", taskIDStr)
                 }</span>
 
-                <span class="cov6" title="4">stateStr := c.String("state")
+                <span class="cov8" title="1">stateStr := c.String("state")
                 actor := c.String("actor")
 
                 // Default to $USER if actor is not provided
@@ -3530,11 +3521,11 @@ func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc <span class="co
                 }
 
                 // Basic state validation
-                <span class="cov6" title="4">if err := errors.ValidateTaskState(stateStr); err != nil </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if err := errors.ValidateTaskState(stateStr); err != nil </span><span class="cov8" title="1">{
                         return err
                 }</span>
 
-                <span class="cov4" title="3">newState := types.TaskState(stateStr)
+                <span class="cov8" title="1">newState := types.TaskState(stateStr)
 
                 appCtx.Logger.Info("Updating task state",
                         zap.String("taskID", taskID.String()),
@@ -3543,13 +3534,13 @@ func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc <span class="co
 
                 // Get current task to preserve other fields
                 task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
-                if err != nil </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
                         appCtx.Logger.Error("Failed to get task", zap.Error(err))
                         return errors.TaskNotFoundError(taskID)
                 }</span>
 
                 // Validate state transition
-                <span class="cov3" title="2">validator := validation.NewStateValidator()
+                <span class="cov8" title="1">validator := validation.NewStateValidator()
                 if err := validator.ValidateTransition(task.State, newState, task); err != nil </span><span class="cov0" title="0">{
                         // EnhancedError already contains user-friendly formatting
                         // No need to log this as it's a user input validation error
@@ -3557,13 +3548,13 @@ func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc <span class="co
                 }</span>
 
                 // Update task state
-                <span class="cov3" title="2">updatedTask, err := appCtx.ProjectManager.UpdateTaskState(context.Background(), taskID, newState, actor)
+                <span class="cov8" title="1">updatedTask, err := appCtx.ProjectManager.UpdateTaskState(context.Background(), taskID, newState, actor)
                 if err != nil </span><span class="cov0" title="0">{
                         appCtx.Logger.Error("Failed to update task state", zap.Error(err))
                         return errors.WrapWithSuggestion(err, "updating task state")
                 }</span>
 
-                <span class="cov3" title="2">appCtx.Logger.Info("Task state updated successfully", zap.String("actor", actor))
+                <span class="cov8" title="1">appCtx.Logger.Info("Task state updated successfully", zap.String("actor", actor))
                 fmt.Printf("Updated task state: %s -&gt; %s\n", task.State, updatedTask.State)
                 fmt.Printf("  Updated by: %s\n", actor)
                 return nil</span>
@@ -3590,29 +3581,29 @@ func outputSingleTaskAsJSON(task *types.Task) error <span class="cov0" title="0"
         return nil</span>
 }
 
-func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov4" title="3">{
-        return func(c *cli.Context) error </span><span class="cov4" title="3">{
+func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" title="1">{
+        return func(c *cli.Context) error </span><span class="cov8" title="1">{
                 taskIDStr := c.String("id")
                 taskID, err := uuid.Parse(taskIDStr)
-                if err != nil </span><span class="cov1" title="1">{
+                if err != nil </span><span class="cov8" title="1">{
                         return errors.InvalidUUIDError("task-id", taskIDStr)
                 }</span>
 
-                <span class="cov3" title="2">newTitle := c.String("title")
+                <span class="cov8" title="1">newTitle := c.String("title")
                 actor := c.String("actor")
-                if newTitle == "" </span><span class="cov1" title="1">{
+                if newTitle == "" </span><span class="cov8" title="1">{
                         return fmt.Errorf("title cannot be empty")
                 }</span>
 
                 // Default to $USER if actor is not provided
-                <span class="cov1" title="1">if actor == "" </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if actor == "" </span><span class="cov0" title="0">{
                         actor = os.Getenv("USER")
                         if actor == "" </span><span class="cov0" title="0">{
                                 actor = "unknown"
                         }</span>
                 }
 
-                <span class="cov1" title="1">appCtx.Logger.Info("Updating task title",
+                <span class="cov8" title="1">appCtx.Logger.Info("Updating task title",
                         zap.String("taskID", taskID.String()),
                         zap.String("newTitle", newTitle),
                         zap.String("actor", actor))
@@ -3624,7 +3615,7 @@ func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc <span class="co
                         return errors.TaskNotFoundError(taskID)
                 }</span>
 
-                <span class="cov1" title="1">oldTitle := task.Title
+                <span class="cov8" title="1">oldTitle := task.Title
 
                 // Update task title
                 updatedTask, err := appCtx.ProjectManager.UpdateTaskTitle(context.Background(), taskID, newTitle, actor)
@@ -3633,7 +3624,7 @@ func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc <span class="co
                         return errors.WrapWithSuggestion(err, "updating task title")
                 }</span>
 
-                <span class="cov1" title="1">appCtx.Logger.Info("Task title updated successfully", zap.String("actor", actor))
+                <span class="cov8" title="1">appCtx.Logger.Info("Task title updated successfully", zap.String("actor", actor))
                 fmt.Printf("Updated task title: \"%s\" -&gt; \"%s\"\n", oldTitle, updatedTask.Title)
                 fmt.Printf("  Updated by: %s\n", actor)
                 return nil</span>
@@ -3747,10 +3738,10 @@ func updatePriorityAction(appCtx *shared.AppContext) cli.ActionFunc <span class=
 // Helper functions for task filtering, sorting, and limiting
 
 // applyTaskFilters applies all specified filters to the task list
-func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task <span class="cov4" title="3">{
+func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task <span class="cov8" title="1">{
         var filtered []*types.Task
 
-        for _, task := range tasks </span><span class="cov4" title="3">{
+        for _, task := range tasks </span><span class="cov8" title="1">{
                 // State filter
                 if state := c.String("state"); state != "" </span><span class="cov0" title="0">{
                         if string(task.State) != state </span><span class="cov0" title="0">{
@@ -3759,38 +3750,38 @@ func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task <span c
                 }
 
                 // Priority filter
-                <span class="cov4" title="3">if priority := c.String("priority"); priority != "" </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if priority := c.String("priority"); priority != "" </span><span class="cov0" title="0">{
                         if string(task.Priority) != priority </span><span class="cov0" title="0">{
                                 continue</span>
                         }
                 }
 
                 // Complexity filters
-                <span class="cov4" title="3">if complexity := c.Int("complexity"); complexity &gt; 0 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if complexity := c.Int("complexity"); complexity &gt; 0 </span><span class="cov0" title="0">{
                         if task.Complexity != complexity </span><span class="cov0" title="0">{
                                 continue</span>
                         }
                 }
-                <span class="cov4" title="3">if complexityMin := c.Int("complexity-min"); complexityMin &gt; 0 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if complexityMin := c.Int("complexity-min"); complexityMin &gt; 0 </span><span class="cov0" title="0">{
                         if task.Complexity &lt; complexityMin </span><span class="cov0" title="0">{
                                 continue</span>
                         }
                 }
-                <span class="cov4" title="3">if complexityMax := c.Int("complexity-max"); complexityMax &gt; 0 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if complexityMax := c.Int("complexity-max"); complexityMax &gt; 0 </span><span class="cov0" title="0">{
                         if task.Complexity &gt; complexityMax </span><span class="cov0" title="0">{
                                 continue</span>
                         }
                 }
 
                 // Depth filter
-                <span class="cov4" title="3">if depthMax := c.Int("depth-max"); depthMax &gt;= 0 </span><span class="cov4" title="3">{
+                <span class="cov8" title="1">if depthMax := c.Int("depth-max"); depthMax &gt;= 0 </span><span class="cov8" title="1">{
                         if task.Depth &gt; depthMax </span><span class="cov0" title="0">{
                                 continue</span>
                         }
                 }
 
                 // Search filter (case-insensitive search in title and description)
-                <span class="cov4" title="3">if search := c.String("search"); search != "" </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if search := c.String("search"); search != "" </span><span class="cov0" title="0">{
                         searchLower := strings.ToLower(search)
                         titleMatch := strings.Contains(strings.ToLower(task.Title), searchLower)
                         descMatch := strings.Contains(strings.ToLower(task.Description), searchLower)
@@ -3800,14 +3791,14 @@ func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task <span c
                 }
 
                 // If we get here, the task passed all filters
-                <span class="cov4" title="3">filtered = append(filtered, task)</span>
+                <span class="cov8" title="1">filtered = append(filtered, task)</span>
         }
 
-        <span class="cov4" title="3">return filtered</span>
+        <span class="cov8" title="1">return filtered</span>
 }
 
 // applyTaskSorting sorts the task list based on the specified criteria
-func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task <span class="cov4" title="3">{
+func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task <span class="cov8" title="1">{
         sortField := c.String("sort")
         reverse := c.Bool("reverse")
 
@@ -3815,7 +3806,7 @@ func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task <span c
         sorted := make([]*types.Task, len(tasks))
         copy(sorted, tasks)
 
-        sort.Slice(sorted, func(i, j int) bool </span><span class="cov1" title="1">{
+        sort.Slice(sorted, func(i, j int) bool </span><span class="cov8" title="1">{
                 var less bool
 
                 switch sortField </span>{
@@ -3833,31 +3824,31 @@ func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task <span c
                         less = sorted[i].Depth &lt; sorted[j].Depth</span>
                 case "created":<span class="cov0" title="0">
                         fallthrough</span>
-                default:<span class="cov1" title="1">
+                default:<span class="cov8" title="1">
                         // Default sort by creation time (using ID as proxy since tasks are created sequentially)
                         less = sorted[i].ID.String() &lt; sorted[j].ID.String()</span>
                 }
 
-                <span class="cov1" title="1">if reverse </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if reverse </span><span class="cov0" title="0">{
                         return !less
                 }</span>
-                <span class="cov1" title="1">return less</span>
+                <span class="cov8" title="1">return less</span>
         })
 
-        <span class="cov4" title="3">return sorted</span>
+        <span class="cov8" title="1">return sorted</span>
 }
 
 // applyTaskLimit applies the limit to the task list
-func applyTaskLimit(tasks []*types.Task, c *cli.Context) []*types.Task <span class="cov4" title="3">{
+func applyTaskLimit(tasks []*types.Task, c *cli.Context) []*types.Task <span class="cov8" title="1">{
         limit := c.Int("limit")
-        if limit &lt;= 0 || limit &gt;= len(tasks) </span><span class="cov4" title="3">{
+        if limit &lt;= 0 || limit &gt;= len(tasks) </span><span class="cov8" title="1">{
                 return tasks
         }</span>
         <span class="cov0" title="0">return tasks[:limit]</span>
 }
 
 // hasFiltersApplied checks if any filters were applied
-func hasFiltersApplied(c *cli.Context) bool <span class="cov3" title="2">{
+func hasFiltersApplied(c *cli.Context) bool <span class="cov8" title="1">{
         return c.String("state") != "" ||
                 c.String("priority") != "" ||
                 c.Int("complexity") &gt; 0 ||
@@ -6499,7 +6490,7 @@ type Config struct {
 }
 
 // DefaultConfig returns a sensible default configuration
-func DefaultConfig() *Config <span class="cov10" title="10">{
+func DefaultConfig() *Config <span class="cov8" title="1">{
         return &amp;Config{
                 MaxTasksPerDepth:     100,  // Increased from 20 to 100 for better scalability
                 ComplexityThreshold:  8,
@@ -6525,7 +6516,7 @@ func NewManager(config *Config) ProjectManager <span class="cov0" title="0">{
 }</span>
 
 // NewManagerWithRepository creates a new project task manager with custom repository
-func NewManagerWithRepository(repo types.Repository, config *Config) ProjectManager <span class="cov10" title="10">{
+func NewManagerWithRepository(repo types.Repository, config *Config) ProjectManager <span class="cov8" title="1">{
         svc := newService(repo, config)
         return svc
 }</span>
@@ -6554,11 +6545,11 @@ type service struct {
 }
 
 // newService creates a new task management service
-func newService(repo types.Repository, config *Config) *service <span class="cov6" title="10">{
+func newService(repo types.Repository, config *Config) *service <span class="cov8" title="1">{
         if config == nil </span><span class="cov0" title="0">{
                 config = DefaultConfig()
         }</span>
-        <span class="cov6" title="10">return &amp;service{
+        <span class="cov8" title="1">return &amp;service{
                 repo:   repo,
                 config: config,
         }</span>
@@ -6569,12 +6560,12 @@ var _ ProjectManager = (*service)(nil)
 
 // Project operations
 
-func (s *service) CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error) <span class="cov7" title="14">{
+func (s *service) CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error) <span class="cov8" title="1">{
         if err := s.validateProjectInput(title, description); err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov7" title="14">project := &amp;types.Project{
+        <span class="cov8" title="1">project := &amp;types.Project{
                 ID:          uuid.New(),
                 Title:       title,
                 Description: description,
@@ -6589,24 +6580,24 @@ func (s *service) CreateProject(ctx context.Context, title, description, actor s
                 return nil, fmt.Errorf("failed to create project: %w", err)
         }</span>
 
-        <span class="cov7" title="14">return s.repo.GetProject(ctx, project.ID)</span>
+        <span class="cov8" title="1">return s.repo.GetProject(ctx, project.ID)</span>
 }
 
-func (s *service) GetProject(ctx context.Context, projectID uuid.UUID) (*types.Project, error) <span class="cov3" title="3">{
+func (s *service) GetProject(ctx context.Context, projectID uuid.UUID) (*types.Project, error) <span class="cov8" title="1">{
         return s.repo.GetProject(ctx, projectID)
 }</span>
 
-func (s *service) UpdateProject(ctx context.Context, projectID uuid.UUID, title, description string, actor string) (*types.Project, error) <span class="cov1" title="1">{
+func (s *service) UpdateProject(ctx context.Context, projectID uuid.UUID, title, description string, actor string) (*types.Project, error) <span class="cov8" title="1">{
         if err := s.validateProjectInput(title, description); err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov1" title="1">project, err := s.repo.GetProject(ctx, projectID)
+        <span class="cov8" title="1">project, err := s.repo.GetProject(ctx, projectID)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov1" title="1">project.Title = title
+        <span class="cov8" title="1">project.Title = title
         project.Description = description
         project.UpdatedBy = actor
 
@@ -6614,7 +6605,7 @@ func (s *service) UpdateProject(ctx context.Context, projectID uuid.UUID, title,
                 return nil, fmt.Errorf("failed to update project: %w", err)
         }</span>
 
-        <span class="cov1" title="1">return s.repo.GetProject(ctx, projectID)</span>
+        <span class="cov8" title="1">return s.repo.GetProject(ctx, projectID)</span>
 }
 
 func (s *service) UpdateProjectDescription(ctx context.Context, projectID uuid.UUID, description string, actor string) (*types.Project, error) <span class="cov0" title="0">{
@@ -6660,54 +6651,54 @@ func (s *service) UpdateProjectState(ctx context.Context, projectID uuid.UUID, s
         <span class="cov0" title="0">return s.repo.GetProject(ctx, projectID)</span>
 }
 
-func (s *service) DeleteProject(ctx context.Context, projectID uuid.UUID) error <span class="cov2" title="2">{
+func (s *service) DeleteProject(ctx context.Context, projectID uuid.UUID) error <span class="cov8" title="1">{
         return s.repo.DeleteProject(ctx, projectID)
 }</span>
 
-func (s *service) ListProjects(ctx context.Context) ([]*types.Project, error) <span class="cov1" title="1">{
+func (s *service) ListProjects(ctx context.Context) ([]*types.Project, error) <span class="cov8" title="1">{
         return s.repo.ListProjects(ctx)
 }</span>
 
 // Task operations
 
-func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error) <span class="cov10" title="33">{
-        if err := s.validateTaskInput(title, description, complexity); err != nil </span><span class="cov5" title="5">{
+func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error) <span class="cov8" title="1">{
+        if err := s.validateTaskInput(title, description, complexity); err != nil </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
 
         // Validate project exists
-        <span class="cov9" title="28">if _, err := s.repo.GetProject(ctx, projectID); err != nil </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if _, err := s.repo.GetProject(ctx, projectID); err != nil </span><span class="cov8" title="1">{
                 return nil, fmt.Errorf("project not found: %w", err)
         }</span>
 
         // Calculate depth and validate constraints
-        <span class="cov9" title="27">depth := 0
-        if parentID != nil </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">depth := 0
+        if parentID != nil </span><span class="cov8" title="1">{
                 parentTask, err := s.repo.GetTask(ctx, *parentID)
                 if err != nil </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("parent task not found: %w", err)
                 }</span>
-                <span class="cov1" title="1">if parentTask.ProjectID != projectID </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if parentTask.ProjectID != projectID </span><span class="cov0" title="0">{
                         return nil, fmt.Errorf("parent task must be in the same project")
                 }</span>
-                <span class="cov1" title="1">depth = parentTask.Depth + 1</span>
+                <span class="cov8" title="1">depth = parentTask.Depth + 1</span>
         }
 
         // Check depth constraints
-        <span class="cov9" title="27">if depth &gt; s.config.MaxDepth </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if depth &gt; s.config.MaxDepth </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("maximum depth of %d exceeded", s.config.MaxDepth)
         }</span>
 
         // Check task count constraints for this depth
-        <span class="cov9" title="27">counts, err := s.repo.GetTaskCountByDepth(ctx, projectID, depth)
+        <span class="cov8" title="1">counts, err := s.repo.GetTaskCountByDepth(ctx, projectID, depth)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to check task count constraints: %w", err)
         }</span>
-        <span class="cov9" title="27">if counts[depth] &gt;= s.config.MaxTasksPerDepth </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if counts[depth] &gt;= s.config.MaxTasksPerDepth </span><span class="cov0" title="0">{
                 return nil, knoterrors.TooManyTasksError(counts[depth], s.config.MaxTasksPerDepth, depth)
         }</span>
 
-        <span class="cov9" title="27">task := &amp;types.Task{
+        <span class="cov8" title="1">task := &amp;types.Task{
                 ID:          uuid.New(),
                 ProjectID:   projectID,
                 ParentID:    parentID,
@@ -6728,7 +6719,7 @@ func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID 
         }</span>
 
         // Auto-reduce parent complexity if enabled and this is a subtask
-        <span class="cov9" title="27">if s.config.AutoReduceComplexity &amp;&amp; parentID != nil </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if s.config.AutoReduceComplexity &amp;&amp; parentID != nil </span><span class="cov8" title="1">{
                 if err := s.autoReduceParentComplexity(ctx, *parentID); err != nil </span><span class="cov0" title="0">{
                         // Log error but don't fail the task creation
                         // The task was successfully created, complexity reduction is a bonus feature
@@ -6736,42 +6727,42 @@ func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID 
                 }</span>
         }
 
-        <span class="cov9" title="27">return s.repo.GetTask(ctx, task.ID)</span>
+        <span class="cov8" title="1">return s.repo.GetTask(ctx, task.ID)</span>
 }
 
-func (s *service) GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) <span class="cov5" title="5">{
+func (s *service) GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) <span class="cov8" title="1">{
         return s.repo.GetTask(ctx, taskID)
 }</span>
 
-func (s *service) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state types.TaskState, actor string) (*types.Task, error) <span class="cov3" title="3">{
+func (s *service) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state types.TaskState, actor string) (*types.Task, error) <span class="cov8" title="1">{
         task, err := s.repo.GetTask(ctx, taskID)
-        if err != nil </span><span class="cov1" title="1">{
+        if err != nil </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
 
         // Validate state transition
-        <span class="cov2" title="2">if !isValidTaskStateTransition(task.State, state) </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if !isValidTaskStateTransition(task.State, state) </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("invalid state transition from '%s' to '%s'", task.State, state)
         }</span>
 
-        <span class="cov2" title="2">task.State = state
+        <span class="cov8" title="1">task.State = state
         task.UpdatedBy = actor
         task.UpdatedAt = time.Now()
 
         // Set completion timestamp if transitioning to completed
-        if state == types.TaskStateCompleted &amp;&amp; task.CompletedAt == nil </span><span class="cov1" title="1">{
+        if state == types.TaskStateCompleted &amp;&amp; task.CompletedAt == nil </span><span class="cov8" title="1">{
                 now := time.Now()
                 task.CompletedAt = &amp;now
-        }</span> else<span class="cov1" title="1"> if state != types.TaskStateCompleted &amp;&amp; task.CompletedAt != nil </span><span class="cov0" title="0">{
+        }</span> else<span class="cov8" title="1"> if state != types.TaskStateCompleted &amp;&amp; task.CompletedAt != nil </span><span class="cov0" title="0">{
                 // Clear completion timestamp if moving away from completed
                 task.CompletedAt = nil
         }</span>
 
-        <span class="cov2" title="2">if err := s.repo.UpdateTask(ctx, task); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := s.repo.UpdateTask(ctx, task); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to update task state: %w", err)
         }</span>
 
-        <span class="cov2" title="2">return s.repo.GetTask(ctx, taskID)</span>
+        <span class="cov8" title="1">return s.repo.GetTask(ctx, taskID)</span>
 }
 
 func (s *service) UpdateTask(ctx context.Context, taskID uuid.UUID, title, description string, complexity int, state types.TaskState, actor string) (*types.Task, error) <span class="cov0" title="0">{
@@ -6798,49 +6789,49 @@ func (s *service) UpdateTask(ctx context.Context, taskID uuid.UUID, title, descr
         <span class="cov0" title="0">return s.repo.GetTask(ctx, taskID)</span>
 }
 
-func (s *service) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error) <span class="cov1" title="1">{
+func (s *service) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error) <span class="cov8" title="1">{
         // Validate description length
         if len(description) &gt; s.config.MaxDescriptionLength </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("description cannot exceed %d characters", s.config.MaxDescriptionLength)
         }</span>
 
-        <span class="cov1" title="1">task, err := s.repo.GetTask(ctx, taskID)
+        <span class="cov8" title="1">task, err := s.repo.GetTask(ctx, taskID)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov1" title="1">task.Description = description
+        <span class="cov8" title="1">task.Description = description
         task.UpdatedBy = actor
 
         if err := s.repo.UpdateTask(ctx, task); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to update task description: %w", err)
         }</span>
 
-        <span class="cov1" title="1">return s.repo.GetTask(ctx, taskID)</span>
+        <span class="cov8" title="1">return s.repo.GetTask(ctx, taskID)</span>
 }
 
-func (s *service) UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error) <span class="cov1" title="1">{
+func (s *service) UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error) <span class="cov8" title="1">{
         // Validate title
         if title == "" </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("title cannot be empty")
         }</span>
-        <span class="cov1" title="1">if len(title) &gt; 200 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if len(title) &gt; 200 </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("title cannot exceed 200 characters")
         }</span>
 
-        <span class="cov1" title="1">task, err := s.repo.GetTask(ctx, taskID)
+        <span class="cov8" title="1">task, err := s.repo.GetTask(ctx, taskID)
         if err != nil </span><span class="cov0" title="0">{
                 return nil, err
         }</span>
 
-        <span class="cov1" title="1">task.Title = title
+        <span class="cov8" title="1">task.Title = title
         task.UpdatedBy = actor
 
         if err := s.repo.UpdateTask(ctx, task); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to update task title: %w", err)
         }</span>
 
-        <span class="cov1" title="1">return s.repo.GetTask(ctx, taskID)</span>
+        <span class="cov8" title="1">return s.repo.GetTask(ctx, taskID)</span>
 }
 
 func (s *service) UpdateTaskPriority(ctx context.Context, taskID uuid.UUID, priority types.TaskPriority, actor string) (*types.Task, error) <span class="cov0" title="0">{
@@ -6860,7 +6851,7 @@ func (s *service) UpdateTaskPriority(ctx context.Context, taskID uuid.UUID, prio
         <span class="cov0" title="0">return s.repo.GetTask(ctx, taskID)</span>
 }
 
-func (s *service) DeleteTask(ctx context.Context, taskID uuid.UUID, actor string) error <span class="cov1" title="1">{
+func (s *service) DeleteTask(ctx context.Context, taskID uuid.UUID, actor string) error <span class="cov8" title="1">{
         return s.repo.DeleteTask(ctx, taskID)
 }</span>
 
@@ -6894,13 +6885,13 @@ func (s *service) GetRootTasks(ctx context.Context, projectID uuid.UUID) ([]*typ
 }</span>
 
 // ListTasksForProject returns all tasks in a project regardless of hierarchy level
-func (s *service) ListTasksForProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) <span class="cov2" title="2">{
+func (s *service) ListTasksForProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) <span class="cov8" title="1">{
         // Validate project exists
         if _, err := s.repo.GetProject(ctx, projectID); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("project not found: %w", err)
         }</span>
 
-        <span class="cov2" title="2">return s.repo.GetTasksByProject(ctx, projectID)</span>
+        <span class="cov8" title="1">return s.repo.GetTasksByProject(ctx, projectID)</span>
 }
 
 // BulkUpdateTasks updates multiple tasks with the same updates
@@ -7218,33 +7209,33 @@ func (s *service) ListTasksByState(ctx context.Context, projectID uuid.UUID, sta
 
 // Validation helpers
 
-func (s *service) validateProjectInput(title, description string) error <span class="cov7" title="15">{
+func (s *service) validateProjectInput(title, description string) error <span class="cov8" title="1">{
         if title == "" </span><span class="cov0" title="0">{
                 return errors.New("title cannot be empty")
         }</span>
-        <span class="cov7" title="15">if len(title) &gt; 200 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if len(title) &gt; 200 </span><span class="cov0" title="0">{
                 return errors.New("title cannot exceed 200 characters")
         }</span>
-        <span class="cov7" title="15">if len(description) &gt; s.config.MaxDescriptionLength </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if len(description) &gt; s.config.MaxDescriptionLength </span><span class="cov0" title="0">{
                 return fmt.Errorf("description cannot exceed %d characters", s.config.MaxDescriptionLength)
         }</span>
-        <span class="cov7" title="15">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
-func (s *service) validateTaskInput(title, description string, complexity int) error <span class="cov10" title="33">{
-        if title == "" </span><span class="cov1" title="1">{
+func (s *service) validateTaskInput(title, description string, complexity int) error <span class="cov8" title="1">{
+        if title == "" </span><span class="cov8" title="1">{
                 return errors.New("title cannot be empty")
         }</span>
-        <span class="cov9" title="32">if len(title) &gt; 200 </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if len(title) &gt; 200 </span><span class="cov8" title="1">{
                 return errors.New("title cannot exceed 200 characters")
         }</span>
-        <span class="cov9" title="31">if len(description) &gt; s.config.MaxDescriptionLength </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if len(description) &gt; s.config.MaxDescriptionLength </span><span class="cov8" title="1">{
                 return fmt.Errorf("description cannot exceed %d characters", s.config.MaxDescriptionLength)
         }</span>
-        <span class="cov9" title="30">if complexity &lt; 1 || complexity &gt; 10 </span><span class="cov2" title="2">{
+        <span class="cov8" title="1">if complexity &lt; 1 || complexity &gt; 10 </span><span class="cov8" title="1">{
                 return errors.New("complexity must be between 1 and 10")
         }</span>
-        <span class="cov9" title="28">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // Config management
@@ -7324,12 +7315,12 @@ func (s *service) SaveConfigToFile() error <span class="cov0" title="0">{
 }
 
 // AddTaskDependency adds a dependency between tasks
-func (s *service) AddTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) <span class="cov5" title="5">{
+func (s *service) AddTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) <span class="cov8" title="1">{
         return s.repo.AddTaskDependency(ctx, taskID, dependsOnTaskID)
 }</span>
 
 // RemoveTaskDependency removes a dependency between tasks
-func (s *service) RemoveTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) <span class="cov1" title="1">{
+func (s *service) RemoveTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) <span class="cov8" title="1">{
         return s.repo.RemoveTaskDependency(ctx, taskID, dependsOnTaskID)
 }</span>
 
@@ -7376,7 +7367,7 @@ func validateConfig(c *Config) error <span class="cov0" title="0">{
 }
 
 // autoReduceParentComplexity reduces parent task complexity when subtasks are added
-func (s *service) autoReduceParentComplexity(ctx context.Context, parentID uuid.UUID) error <span class="cov1" title="1">{
+func (s *service) autoReduceParentComplexity(ctx context.Context, parentID uuid.UUID) error <span class="cov8" title="1">{
         // Get parent task
         parentTask, err := s.repo.GetTask(ctx, parentID)
         if err != nil </span><span class="cov0" title="0">{
@@ -7384,7 +7375,7 @@ func (s *service) autoReduceParentComplexity(ctx context.Context, parentID uuid.
         }</span>
 
         // Only reduce if parent complexity is above threshold
-        <span class="cov1" title="1">if parentTask.Complexity &lt; s.config.ComplexityThreshold </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if parentTask.Complexity &lt; s.config.ComplexityThreshold </span><span class="cov8" title="1">{
                 return nil // No need to reduce
         }</span>
 
@@ -7436,7 +7427,7 @@ func (s *service) autoReduceParentComplexity(ctx context.Context, parentID uuid.
 // State validation functions
 
 // isValidTaskStateTransition checks if a task state transition is valid
-func isValidTaskStateTransition(from, to types.TaskState) bool <span class="cov2" title="2">{
+func isValidTaskStateTransition(from, to types.TaskState) bool <span class="cov8" title="1">{
         // Define valid transitions
         validTransitions := map[types.TaskState][]types.TaskState{
                 types.TaskStatePending: {
@@ -7476,13 +7467,13 @@ func isValidTaskStateTransition(from, to types.TaskState) bool <span class="cov2
         }</span>
 
         // Check if transition is in the valid list
-        <span class="cov2" title="2">allowedStates, exists := validTransitions[from]
+        <span class="cov8" title="1">allowedStates, exists := validTransitions[from]
         if !exists </span><span class="cov0" title="0">{
                 return false
         }</span>
 
-        <span class="cov2" title="2">for _, allowedState := range allowedStates </span><span class="cov2" title="2">{
-                if to == allowedState </span><span class="cov2" title="2">{
+        <span class="cov8" title="1">for _, allowedState := range allowedStates </span><span class="cov8" title="1">{
+                if to == allowedState </span><span class="cov8" title="1">{
                         return true
                 }</span>
         }
@@ -7541,22 +7532,22 @@ func isValidProjectStateTransition(from, to types.ProjectState) bool <span class
 // Project context management methods
 
 // GetSelectedProject retrieves the currently selected project ID
-func (s *service) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) <span class="cov6" title="8">{
+func (s *service) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) <span class="cov8" title="1">{
         return s.repo.GetSelectedProject(ctx)
 }</span>
 
 // SetSelectedProject sets the currently selected project ID
-func (s *service) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error <span class="cov5" title="5">{
+func (s *service) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error <span class="cov8" title="1">{
         return s.repo.SetSelectedProject(ctx, projectID, actor)
 }</span>
 
 // ClearSelectedProject removes the currently selected project
-func (s *service) ClearSelectedProject(ctx context.Context) error <span class="cov1" title="1">{
+func (s *service) ClearSelectedProject(ctx context.Context) error <span class="cov8" title="1">{
         return s.repo.ClearSelectedProject(ctx)
 }</span>
 
 // HasSelectedProject checks if there is a currently selected project
-func (s *service) HasSelectedProject(ctx context.Context) (bool, error) <span class="cov3" title="3">{
+func (s *service) HasSelectedProject(ctx context.Context) (bool, error) <span class="cov8" title="1">{
         return s.repo.HasSelectedProject(ctx)
 }</span>
 
@@ -8085,40 +8076,40 @@ const (
 )
 
 // GetProjectDir returns the .knot directory path in the current working directory
-func GetProjectDir() (string, error) <span class="cov10" title="6">{
+func GetProjectDir() (string, error) <span class="cov8" title="1">{
         cwd, err := os.Getwd()
         if err != nil </span><span class="cov0" title="0">{
                 return "", fmt.Errorf("failed to get current working directory: %w", err)
         }</span>
         
-        <span class="cov10" title="6">projectDir := filepath.Join(cwd, ProjectDirName)
+        <span class="cov8" title="1">projectDir := filepath.Join(cwd, ProjectDirName)
         return projectDir, nil</span>
 }
 
 // EnsureProjectDir creates the .knot directory if it doesn't exist
-func EnsureProjectDir() (string, error) <span class="cov10" title="6">{
+func EnsureProjectDir() (string, error) <span class="cov8" title="1">{
         projectDir, err := GetProjectDir()
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
         }</span>
         
         // Create directory if it doesn't exist
-        <span class="cov10" title="6">if err := os.MkdirAll(projectDir, 0755); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := os.MkdirAll(projectDir, 0755); err != nil </span><span class="cov0" title="0">{
                 return "", fmt.Errorf("failed to create project directory: %w", err)
         }</span>
         
-        <span class="cov10" title="6">return projectDir, nil</span>
+        <span class="cov8" title="1">return projectDir, nil</span>
 }
 
 // GetDatabasePath returns the full path to the SQLite database file
 // Automatically migrates legacy projects.db to knot.db if found
-func GetDatabasePath() (string, error) <span class="cov10" title="6">{
+func GetDatabasePath() (string, error) <span class="cov8" title="1">{
         projectDir, err := EnsureProjectDir()
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
         }</span>
         
-        <span class="cov10" title="6">dbPath := filepath.Join(projectDir, DatabaseName)
+        <span class="cov8" title="1">dbPath := filepath.Join(projectDir, DatabaseName)
         legacyDbPath := filepath.Join(projectDir, LegacyDatabaseName)
         
         // Check if legacy database exists and current doesn't
@@ -8132,18 +8123,18 @@ func GetDatabasePath() (string, error) <span class="cov10" title="6">{
                 }
         }
         
-        <span class="cov10" title="6">return dbPath, nil</span>
+        <span class="cov8" title="1">return dbPath, nil</span>
 }
 
 // GetSQLiteConnectionString returns the SQLite connection string
-func GetSQLiteConnectionString() (string, error) <span class="cov10" title="6">{
+func GetSQLiteConnectionString() (string, error) <span class="cov8" title="1">{
         dbPath, err := GetDatabasePath()
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
         }</span>
         
         // SQLite connection string - simple path format
-        <span class="cov10" title="6">return dbPath, nil</span>
+        <span class="cov8" title="1">return dbPath, nil</span>
 }</pre>
 		
 		<pre class="file" id="file29" style="display: none">package sqlite
@@ -25322,7 +25313,7 @@ func (e *RepositoryError) Is(target error) bool <span class="cov0" title="0">{
 // Helper functions for creating specific errors
 
 // NewNotFoundError creates a new not found error
-func NewNotFoundError(entity string, id string) *RepositoryError <span class="cov10" title="5">{
+func NewNotFoundError(entity string, id string) *RepositoryError <span class="cov8" title="1">{
         return &amp;RepositoryError{
                 Type:    ErrorTypeNotFound,
                 Message: fmt.Sprintf("%s with ID %s not found", entity, id),
@@ -25670,7 +25661,7 @@ import (
 // Project entity mapping functions
 
 // entProjectToProject converts ent Project entity to domain Project model
-func entProjectToProject(ep *ent.Project) *types.Project <span class="cov10" title="135">{
+func entProjectToProject(ep *ent.Project) *types.Project <span class="cov8" title="1">{
         return &amp;types.Project{
                 ID:             ep.ID,
                 Title:          ep.Title,
@@ -25685,38 +25676,38 @@ func entProjectToProject(ep *ent.Project) *types.Project <span class="cov10" tit
 }</span>
 
 // projectToEntProjectCreate converts domain Project model to ent ProjectCreate
-func projectToEntProjectCreate(p *types.Project, client *ent.Client) *ent.ProjectCreate <span class="cov4" title="8">{
+func projectToEntProjectCreate(p *types.Project, client *ent.Client) *ent.ProjectCreate <span class="cov8" title="1">{
         create := client.Project.Create().
                 SetTitle(p.Title).
                 SetDescription(p.Description).
                 SetState(projectStateToEntState(p.State))
 
-        if p.ID != uuid.Nil </span><span class="cov4" title="8">{
+        if p.ID != uuid.Nil </span><span class="cov8" title="1">{
                 create.SetID(p.ID)
         }</span>
-        <span class="cov4" title="8">if !p.CreatedAt.IsZero() </span><span class="cov4" title="8">{
+        <span class="cov8" title="1">if !p.CreatedAt.IsZero() </span><span class="cov8" title="1">{
                 create.SetCreatedAt(p.CreatedAt)
         }</span>
-        <span class="cov4" title="8">if !p.UpdatedAt.IsZero() </span><span class="cov4" title="8">{
+        <span class="cov8" title="1">if !p.UpdatedAt.IsZero() </span><span class="cov8" title="1">{
                 create.SetUpdatedAt(p.UpdatedAt)
         }</span>
-        <span class="cov4" title="8">if p.TotalTasks &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if p.TotalTasks &gt; 0 </span><span class="cov0" title="0">{
                 create.SetTotalTasks(p.TotalTasks)
         }</span>
-        <span class="cov4" title="8">if p.CompletedTasks &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if p.CompletedTasks &gt; 0 </span><span class="cov0" title="0">{
                 create.SetCompletedTasks(p.CompletedTasks)
         }</span>
-        <span class="cov4" title="8">if p.Progress &gt; 0 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if p.Progress &gt; 0 </span><span class="cov0" title="0">{
                 create.SetProgress(p.Progress)
         }</span>
 
-        <span class="cov4" title="8">return create</span>
+        <span class="cov8" title="1">return create</span>
 }
 
 // Task entity mapping functions
 
 // entTaskToTask converts ent Task entity to domain Task model
-func entTaskToTask(et *ent.Task) *types.Task <span class="cov4" title="8">{
+func entTaskToTask(et *ent.Task) *types.Task <span class="cov8" title="1">{
         domainTask := &amp;types.Task{
                 ID:          et.ID,
                 ProjectID:   et.ProjectID,
@@ -25734,25 +25725,25 @@ func entTaskToTask(et *ent.Task) *types.Task <span class="cov4" title="8">{
         if et.ParentID != nil </span><span class="cov0" title="0">{
                 domainTask.ParentID = et.ParentID
         }</span>
-        <span class="cov4" title="8">if et.Estimate != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if et.Estimate != nil </span><span class="cov0" title="0">{
                 domainTask.Estimate = et.Estimate
         }</span>
-        <span class="cov4" title="8">if et.AssignedAgent != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if et.AssignedAgent != nil </span><span class="cov0" title="0">{
                 domainTask.AssignedAgent = et.AssignedAgent
         }</span>
-        <span class="cov4" title="8">if et.CompletedAt != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if et.CompletedAt != nil </span><span class="cov0" title="0">{
                 domainTask.CompletedAt = et.CompletedAt
         }</span>
 
         // Initialize slices to avoid nil pointer issues
-        <span class="cov4" title="8">domainTask.Dependencies = make([]uuid.UUID, 0)
+        <span class="cov8" title="1">domainTask.Dependencies = make([]uuid.UUID, 0)
         domainTask.Dependents = make([]uuid.UUID, 0)
 
         return domainTask</span>
 }
 
 // taskToEntTaskCreate converts domain Task model to ent TaskCreate
-func taskToEntTaskCreate(t *types.Task, client *ent.Client) *ent.TaskCreate <span class="cov5" title="11">{
+func taskToEntTaskCreate(t *types.Task, client *ent.Client) *ent.TaskCreate <span class="cov8" title="1">{
         create := client.Task.Create().
                 SetProjectID(t.ProjectID).
                 SetTitle(t.Title).
@@ -25762,33 +25753,33 @@ func taskToEntTaskCreate(t *types.Task, client *ent.Client) *ent.TaskCreate <spa
                 SetComplexity(t.Complexity).
                 SetDepth(t.Depth)
 
-        if t.ID != uuid.Nil </span><span class="cov5" title="11">{
+        if t.ID != uuid.Nil </span><span class="cov8" title="1">{
                 create.SetID(t.ID)
         }</span>
-        <span class="cov5" title="11">if t.ParentID != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if t.ParentID != nil </span><span class="cov0" title="0">{
                 create.SetParentID(*t.ParentID)
         }</span>
-        <span class="cov5" title="11">if t.Estimate != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if t.Estimate != nil </span><span class="cov0" title="0">{
                 create.SetEstimate(*t.Estimate)
         }</span>
-        <span class="cov5" title="11">if t.AssignedAgent != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if t.AssignedAgent != nil </span><span class="cov0" title="0">{
                 create.SetAssignedAgent(*t.AssignedAgent)
         }</span>
-        <span class="cov5" title="11">if !t.CreatedAt.IsZero() </span><span class="cov5" title="11">{
+        <span class="cov8" title="1">if !t.CreatedAt.IsZero() </span><span class="cov8" title="1">{
                 create.SetCreatedAt(t.CreatedAt)
         }</span>
-        <span class="cov5" title="11">if !t.UpdatedAt.IsZero() </span><span class="cov5" title="11">{
+        <span class="cov8" title="1">if !t.UpdatedAt.IsZero() </span><span class="cov8" title="1">{
                 create.SetUpdatedAt(t.UpdatedAt)
         }</span>
-        <span class="cov5" title="11">if t.CompletedAt != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if t.CompletedAt != nil </span><span class="cov0" title="0">{
                 create.SetCompletedAt(*t.CompletedAt)
         }</span>
 
-        <span class="cov5" title="11">return create</span>
+        <span class="cov8" title="1">return create</span>
 }
 
 // taskToEntTaskUpdate converts domain Task model to ent TaskUpdateOne
-func taskToEntTaskUpdate(t *types.Task, update *ent.TaskUpdateOne) *ent.TaskUpdateOne <span class="cov1" title="1">{
+func taskToEntTaskUpdate(t *types.Task, update *ent.TaskUpdateOne) *ent.TaskUpdateOne <span class="cov8" title="1">{
         update = update.
                 SetTitle(t.Title).
                 SetDescription(t.Description).
@@ -25799,54 +25790,54 @@ func taskToEntTaskUpdate(t *types.Task, update *ent.TaskUpdateOne) *ent.TaskUpda
 
         if t.Estimate != nil </span><span class="cov0" title="0">{
                 update.SetEstimate(*t.Estimate)
-        }</span> else<span class="cov1" title="1"> {
+        }</span> else<span class="cov8" title="1"> {
                 update.ClearEstimate()
         }</span>
 
-        <span class="cov1" title="1">if t.AssignedAgent != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if t.AssignedAgent != nil </span><span class="cov0" title="0">{
                 update.SetAssignedAgent(*t.AssignedAgent)
-        }</span> else<span class="cov1" title="1"> {
+        }</span> else<span class="cov8" title="1"> {
                 update.ClearAssignedAgent()
         }</span>
 
-        <span class="cov1" title="1">if t.CompletedAt != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if t.CompletedAt != nil </span><span class="cov0" title="0">{
                 update.SetCompletedAt(*t.CompletedAt)
-        }</span> else<span class="cov1" title="1"> {
+        }</span> else<span class="cov8" title="1"> {
                 update.ClearCompletedAt()
         }</span>
 
-        <span class="cov1" title="1">return update</span>
+        <span class="cov8" title="1">return update</span>
 }
 
 // TaskDependency entity mapping functions
 
 // entTaskDependenciesToTaskIDs extracts task IDs from ent TaskDependency entities
-func entTaskDependenciesToTaskIDs(dependencies []*ent.TaskDependency) []uuid.UUID <span class="cov2" title="2">{
+func entTaskDependenciesToTaskIDs(dependencies []*ent.TaskDependency) []uuid.UUID <span class="cov8" title="1">{
         ids := make([]uuid.UUID, len(dependencies))
         for i, dep := range dependencies </span><span class="cov0" title="0">{
                 ids[i] = dep.DependsOnTaskID
         }</span>
-        <span class="cov2" title="2">return ids</span>
+        <span class="cov8" title="1">return ids</span>
 }
 
 // entTaskDependentsToTaskIDs extracts dependent task IDs from ent TaskDependency entities
-func entTaskDependentsToTaskIDs(dependents []*ent.TaskDependency) []uuid.UUID <span class="cov2" title="2">{
+func entTaskDependentsToTaskIDs(dependents []*ent.TaskDependency) []uuid.UUID <span class="cov8" title="1">{
         ids := make([]uuid.UUID, len(dependents))
         for i, dep := range dependents </span><span class="cov0" title="0">{
                 ids[i] = dep.TaskID
         }</span>
-        <span class="cov2" title="2">return ids</span>
+        <span class="cov8" title="1">return ids</span>
 }
 
 // Helper functions for slice conversions
 
 // entProjectsToProjects converts slice of ent Projects to domain Projects
-func entProjectsToProjects(entProjects []*ent.Project) []*types.Project <span class="cov1" title="1">{
+func entProjectsToProjects(entProjects []*ent.Project) []*types.Project <span class="cov8" title="1">{
         projects := make([]*types.Project, len(entProjects))
-        for i, ep := range entProjects </span><span class="cov9" title="133">{
+        for i, ep := range entProjects </span><span class="cov8" title="1">{
                 projects[i] = entProjectToProject(ep)
         }</span>
-        <span class="cov1" title="1">return projects</span>
+        <span class="cov8" title="1">return projects</span>
 }
 
 // entTasksToTasks converts slice of ent Tasks to domain Tasks
@@ -25897,7 +25888,7 @@ func filterMatchesTaskFilter(task *ent.Task, filter types.TaskFilter) bool <span
 // Project state conversion functions
 
 // projectStateToEntState converts domain ProjectState to ent project state
-func projectStateToEntState(state types.ProjectState) project.State <span class="cov5" title="9">{
+func projectStateToEntState(state types.ProjectState) project.State <span class="cov8" title="1">{
         switch state </span>{
         case types.ProjectStateActive:<span class="cov0" title="0">
                 return project.StateActive</span>
@@ -25907,15 +25898,15 @@ func projectStateToEntState(state types.ProjectState) project.State <span class=
                 return project.StateArchived</span>
         case types.ProjectStateDeletionPending:<span class="cov0" title="0">
                 return project.StateDeletionPending</span>
-        default:<span class="cov5" title="9">
+        default:<span class="cov8" title="1">
                 return project.StateActive</span> // Default to active for empty/unknown states
         }
 }
 
 // entStateToProjectState converts ent project state to domain ProjectState
-func entStateToProjectState(state string) types.ProjectState <span class="cov10" title="135">{
+func entStateToProjectState(state string) types.ProjectState <span class="cov8" title="1">{
         switch state </span>{
-        case "active":<span class="cov10" title="135">
+        case "active":<span class="cov8" title="1">
                 return types.ProjectStateActive</span>
         case "completed":<span class="cov0" title="0">
                 return types.ProjectStateCompleted</span>
@@ -25953,7 +25944,7 @@ type Config struct {
 }
 
 // DefaultConfig returns a default configuration optimized for SQLite
-func DefaultConfig() *Config <span class="cov10" title="6">{
+func DefaultConfig() *Config <span class="cov8" title="1">{
         return &amp;Config{
                 DatabasePath:     "",
                 // SQLite optimized connection pool settings:
@@ -25979,37 +25970,37 @@ func WithConfig(config *Config) Option <span class="cov0" title="0">{
 }
 
 // WithDatabasePath sets the database file path
-func WithDatabasePath(path string) Option <span class="cov10" title="6">{
-        return func(r *sqliteRepository) </span><span class="cov10" title="6">{
+func WithDatabasePath(path string) Option <span class="cov8" title="1">{
+        return func(r *sqliteRepository) </span><span class="cov8" title="1">{
                 r.config.DatabasePath = path
         }</span>
 }
 
 // WithLogger sets a logger for debugging reasons
-func WithLogger(logger *zap.Logger) Option <span class="cov9" title="5">{
-        return func(r *sqliteRepository) </span><span class="cov9" title="5">{
+func WithLogger(logger *zap.Logger) Option <span class="cov8" title="1">{
+        return func(r *sqliteRepository) </span><span class="cov8" title="1">{
                 r.config.Logger = logger
         }</span>
 }
 
 // WithAutoMigrate enables or disables auto-migration
-func WithAutoMigrate(enable bool) Option <span class="cov10" title="6">{
-        return func(r *sqliteRepository) </span><span class="cov10" title="6">{
+func WithAutoMigrate(enable bool) Option <span class="cov8" title="1">{
+        return func(r *sqliteRepository) </span><span class="cov8" title="1">{
                 r.config.AutoMigrate = enable
         }</span>
 }
 
 // WithConnectionPool configures the connection pool
-func WithConnectionPool(maxOpen, maxIdle int) Option <span class="cov1" title="1">{
-        return func(r *sqliteRepository) </span><span class="cov1" title="1">{
+func WithConnectionPool(maxOpen, maxIdle int) Option <span class="cov8" title="1">{
+        return func(r *sqliteRepository) </span><span class="cov8" title="1">{
                 r.config.MaxOpenConns = maxOpen
                 r.config.MaxIdleConns = maxIdle
         }</span>
 }
 
 // WithConnectionLifetime configures connection lifetimes
-func WithConnectionLifetime(maxLifetime, maxIdleTime time.Duration) Option <span class="cov1" title="1">{
-        return func(r *sqliteRepository) </span><span class="cov1" title="1">{
+func WithConnectionLifetime(maxLifetime, maxIdleTime time.Duration) Option <span class="cov8" title="1">{
+        return func(r *sqliteRepository) </span><span class="cov8" title="1">{
                 r.config.ConnMaxLifetime = maxLifetime
                 r.config.ConnMaxIdleTime = maxIdleTime
         }</span>
@@ -26033,7 +26024,7 @@ import (
 )
 
 // OptimizedConfig returns SQLite-optimized configuration based on environment and workload
-func OptimizedConfig() *Config <span class="cov7" title="6">{
+func OptimizedConfig() *Config <span class="cov8" title="1">{
         config := DefaultConfig()
         
         // Check for environment variable overrides
@@ -26043,20 +26034,20 @@ func OptimizedConfig() *Config <span class="cov7" title="6">{
                 }</span>
         }
         
-        <span class="cov7" title="6">if maxIdleStr := os.Getenv("KNOT_SQLITE_MAX_IDLE_CONNS"); maxIdleStr != "" </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if maxIdleStr := os.Getenv("KNOT_SQLITE_MAX_IDLE_CONNS"); maxIdleStr != "" </span><span class="cov0" title="0">{
                 if maxIdle, err := strconv.Atoi(maxIdleStr); err == nil &amp;&amp; maxIdle &gt; 0 </span><span class="cov0" title="0">{
                         config.MaxIdleConns = maxIdle
                 }</span>
         }
         
         // Auto-tune based on system resources and workload patterns
-        <span class="cov7" title="6">config = autoTuneForSQLite(config)
+        <span class="cov8" title="1">config = autoTuneForSQLite(config)
         
         return config</span>
 }
 
 // autoTuneForSQLite optimizes connection pool settings for SQLite workloads
-func autoTuneForSQLite(config *Config) *Config <span class="cov7" title="6">{
+func autoTuneForSQLite(config *Config) *Config <span class="cov8" title="1">{
         numCPU := runtime.NumCPU()
         
         // SQLite connection pool optimization rules:
@@ -26066,7 +26057,7 @@ func autoTuneForSQLite(config *Config) *Config <span class="cov7" title="6">{
         
         // For read-heavy workloads, allow more connections
         // For write-heavy workloads, keep it minimal
-        if config.MaxOpenConns == 1 </span><span class="cov7" title="6">{ // Only auto-tune if using default
+        if config.MaxOpenConns == 1 </span><span class="cov8" title="1">{ // Only auto-tune if using default
                 // Conservative approach: limit to CPU count but cap at reasonable maximum
                 readConnections := min(numCPU, 4)
                 config.MaxOpenConns = readConnections
@@ -26074,17 +26065,17 @@ func autoTuneForSQLite(config *Config) *Config <span class="cov7" title="6">{
         }</span>
         
         // Optimize connection lifetimes for SQLite
-        <span class="cov7" title="6">if config.ConnMaxLifetime == 0 </span><span class="cov7" title="6">{
+        <span class="cov8" title="1">if config.ConnMaxLifetime == 0 </span><span class="cov8" title="1">{
                 // SQLite doesn't need connection rotation like network databases
                 config.ConnMaxLifetime = 0 // Unlimited lifetime
         }</span>
         
         // Longer idle time for file-based databases
-        <span class="cov7" title="6">if config.ConnMaxIdleTime == time.Minute*30 </span><span class="cov7" title="6">{
+        <span class="cov8" title="1">if config.ConnMaxIdleTime == time.Minute*30 </span><span class="cov8" title="1">{
                 config.ConnMaxIdleTime = time.Hour // Keep connections longer
         }</span>
         
-        <span class="cov7" title="6">return config</span>
+        <span class="cov8" title="1">return config</span>
 }
 
 // GetWorkloadOptimizedConfig returns configuration optimized for specific workload patterns
@@ -26132,11 +26123,11 @@ const (
 )
 
 // min returns the minimum of two integers
-func min(a, b int) int <span class="cov10" title="12">{
+func min(a, b int) int <span class="cov8" title="1">{
         if a &lt; b </span><span class="cov0" title="0">{
                 return a
         }</span>
-        <span class="cov10" title="12">return b</span>
+        <span class="cov8" title="1">return b</span>
 }</pre>
 		
 		<pre class="file" id="file77" style="display: none">package sqlite
@@ -26156,28 +26147,28 @@ import (
 
 // Project CRUD Operations
 
-func (r *sqliteRepository) CreateProject(ctx context.Context, project *types.Project) error <span class="cov9" title="8">{
+func (r *sqliteRepository) CreateProject(ctx context.Context, project *types.Project) error <span class="cov8" title="1">{
         _, err := projectToEntProjectCreate(project, r.client).Save(ctx)
         if err != nil </span><span class="cov0" title="0">{
                 return r.mapError("create project", err)
         }</span>
-        <span class="cov9" title="8">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // GetProject retrieves a project by ID using ent
-func (r *sqliteRepository) GetProject(ctx context.Context, id uuid.UUID) (*types.Project, error) <span class="cov6" title="4">{
+func (r *sqliteRepository) GetProject(ctx context.Context, id uuid.UUID) (*types.Project, error) <span class="cov8" title="1">{
         entProject, err := r.client.Project.Get(ctx, id)
-        if err != nil </span><span class="cov3" title="2">{
-                if ent.IsNotFound(err) </span><span class="cov3" title="2">{
+        if err != nil </span><span class="cov8" title="1">{
+                if ent.IsNotFound(err) </span><span class="cov8" title="1">{
                         return nil, NewNotFoundError("project", id.String())
                 }</span>
                 <span class="cov0" title="0">return nil, r.mapError("get project", err)</span>
         }
-        <span class="cov3" title="2">return entProjectToProject(entProject), nil</span>
+        <span class="cov8" title="1">return entProjectToProject(entProject), nil</span>
 }
 
 // UpdateProject updates an existing project using ent
-func (r *sqliteRepository) UpdateProject(ctx context.Context, project *types.Project) error <span class="cov1" title="1">{
+func (r *sqliteRepository) UpdateProject(ctx context.Context, project *types.Project) error <span class="cov8" title="1">{
         err := r.client.Project.UpdateOneID(project.ID).
                 SetTitle(project.Title).
                 SetDescription(project.Description).
@@ -26194,12 +26185,12 @@ func (r *sqliteRepository) UpdateProject(ctx context.Context, project *types.Pro
                 }</span>
                 <span class="cov0" title="0">return r.mapError("update project", err)</span>
         }
-        <span class="cov1" title="1">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // DeleteProject deletes a project and all its tasks using ent transaction
-func (r *sqliteRepository) DeleteProject(ctx context.Context, id uuid.UUID) error <span class="cov1" title="1">{
-        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov1" title="1">{
+func (r *sqliteRepository) DeleteProject(ctx context.Context, id uuid.UUID) error <span class="cov8" title="1">{
+        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov8" title="1">{
                 // First, clear any project context that references this project
                 _, err := tx.ProjectContext.Delete().
                         Where(projectcontext.SelectedProjectIDEQ(id)).
@@ -26209,14 +26200,14 @@ func (r *sqliteRepository) DeleteProject(ctx context.Context, id uuid.UUID) erro
                 }</span>
 
                 // Delete all task dependencies for tasks in this project
-                <span class="cov1" title="1">taskIDs, err := tx.Task.Query().
+                <span class="cov8" title="1">taskIDs, err := tx.Task.Query().
                         Where(task.ProjectID(id)).
                         IDs(ctx)
                 if err != nil &amp;&amp; !ent.IsNotFound(err) </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to get task IDs for project: %w", err)
                 }</span>
 
-                <span class="cov1" title="1">if len(taskIDs) &gt; 0 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if len(taskIDs) &gt; 0 </span><span class="cov0" title="0">{
                         // Delete all task dependencies
                         _, err = tx.TaskDependency.Delete().
                                 Where(taskdependency.Or(
@@ -26238,7 +26229,7 @@ func (r *sqliteRepository) DeleteProject(ctx context.Context, id uuid.UUID) erro
                 }
 
                 // Delete the project
-                <span class="cov1" title="1">err = tx.Project.DeleteOneID(id).Exec(ctx)
+                <span class="cov8" title="1">err = tx.Project.DeleteOneID(id).Exec(ctx)
                 if err != nil </span><span class="cov0" title="0">{
                         if ent.IsNotFound(err) </span><span class="cov0" title="0">{
                                 return NewNotFoundError("project", id.String())
@@ -26246,12 +26237,12 @@ func (r *sqliteRepository) DeleteProject(ctx context.Context, id uuid.UUID) erro
                         <span class="cov0" title="0">return fmt.Errorf("failed to delete project: %w", err)</span>
                 }
 
-                <span class="cov1" title="1">return nil</span>
+                <span class="cov8" title="1">return nil</span>
         })
 }
 
 // ListProjects retrieves all projects using ent
-func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, error) <span class="cov1" title="1">{
+func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, error) <span class="cov8" title="1">{
         entProjects, err := r.client.Project.Query().
                 Order(ent.Asc(project.FieldCreatedAt)).
                 All(ctx)
@@ -26259,7 +26250,7 @@ func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, 
                 return nil, r.mapError("list projects", err)
         }</span>
 
-        <span class="cov1" title="1">return entProjectsToProjects(entProjects), nil</span>
+        <span class="cov8" title="1">return entProjectsToProjects(entProjects), nil</span>
 }
 
 // updateProjectMetrics updates project metrics (total tasks, completed tasks, progress)
@@ -26308,7 +26299,7 @@ func (r *sqliteRepository) updateProjectMetrics(ctx context.Context, projectID u
 }
 
 // updateProjectMetricsInTx updates project metrics within a transaction
-func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID) error <span class="cov10" title="10">{
+func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent.Tx, projectID uuid.UUID) error <span class="cov8" title="1">{
         // Get task counts by state using ent aggregation within transaction
         var totalTasks int
         var completedTasks int
@@ -26322,7 +26313,7 @@ func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent
         }</span>
 
         // Count completed tasks
-        <span class="cov10" title="10">completedTasks, err = tx.Task.Query().
+        <span class="cov8" title="1">completedTasks, err = tx.Task.Query().
                 Where(
                         task.ProjectID(projectID),
                         task.StateEQ(task.StateCompleted),
@@ -26333,13 +26324,13 @@ func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent
         }</span>
 
         // Calculate progress
-        <span class="cov10" title="10">progress := 0.0
-        if totalTasks &gt; 0 </span><span class="cov10" title="10">{
+        <span class="cov8" title="1">progress := 0.0
+        if totalTasks &gt; 0 </span><span class="cov8" title="1">{
                 progress = float64(completedTasks) / float64(totalTasks) * 100.0
         }</span>
 
         // Update project metrics within transaction
-        <span class="cov10" title="10">err = tx.Project.UpdateOneID(projectID).
+        <span class="cov8" title="1">err = tx.Project.UpdateOneID(projectID).
                 SetTotalTasks(totalTasks).
                 SetCompletedTasks(completedTasks).
                 SetProgress(progress).
@@ -26349,7 +26340,7 @@ func (r *sqliteRepository) updateProjectMetricsInTx(ctx context.Context, tx *ent
                 return fmt.Errorf("failed to update project metrics: %w", err)
         }</span>
 
-        <span class="cov10" title="10">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 </pre>
 		
@@ -26377,7 +26368,7 @@ type sqliteRepository struct {
 }
 
 // NewRepository creates a new SQLite repository using ent ORM
-func NewRepository(opts ...Option) (types.Repository, error) <span class="cov5" title="6">{
+func NewRepository(opts ...Option) (types.Repository, error) <span class="cov8" title="1">{
         config := OptimizedConfig() // Use optimized config by default
 
         repo := &amp;sqliteRepository{
@@ -26386,26 +26377,26 @@ func NewRepository(opts ...Option) (types.Repository, error) <span class="cov5" 
         }
 
         // Apply options
-        for _, opt := range opts </span><span class="cov8" title="19">{
+        for _, opt := range opts </span><span class="cov8" title="1">{
                 opt(repo)
         }</span>
 
-        <span class="cov5" title="6">if err := repo.initialize(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := repo.initialize(); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to initialize repository: %w", err)
         }</span>
 
-        <span class="cov5" title="6">return repo, nil</span>
+        <span class="cov8" title="1">return repo, nil</span>
 }
 
 // initialize sets up the ent client and performs migrations
-func (r *sqliteRepository) initialize() error <span class="cov5" title="6">{
+func (r *sqliteRepository) initialize() error <span class="cov8" title="1">{
         // Get SQLite connection string
         connStr, err := GetSQLiteConnectionString()
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to get SQLite connection string: %w", err)
         }</span>
 
-        <span class="cov5" title="6">r.config.Logger.Info("initialize database", zap.String("database_path", connStr))
+        <span class="cov8" title="1">r.config.Logger.Info("initialize database", zap.String("database_path", connStr))
 
         db, err := sql.Open("sqlite", connStr)
         if err != nil </span><span class="cov0" title="0">{
@@ -26413,12 +26404,12 @@ func (r *sqliteRepository) initialize() error <span class="cov5" title="6">{
         }</span>
         
         // Configure SQLite for optimal performance
-        <span class="cov5" title="6">if err := r.configureSQLiteOptimizations(db); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := r.configureSQLiteOptimizations(db); err != nil </span><span class="cov0" title="0">{
                 return NewConnectionError("failed to configure SQLite optimizations", err)
         }</span>
 
         // Configure connection pool
-        <span class="cov5" title="6">db.SetMaxOpenConns(r.config.MaxOpenConns)
+        <span class="cov8" title="1">db.SetMaxOpenConns(r.config.MaxOpenConns)
         db.SetMaxIdleConns(r.config.MaxIdleConns)
         db.SetConnMaxLifetime(r.config.ConnMaxLifetime)
         db.SetConnMaxIdleTime(r.config.ConnMaxIdleTime)
@@ -26429,11 +26420,11 @@ func (r *sqliteRepository) initialize() error <span class="cov5" title="6">{
         }</span>
 
         // Create ent client with SQLite driver
-        <span class="cov5" title="6">drv := entsql.OpenDB(dialect.SQLite, db)
+        <span class="cov8" title="1">drv := entsql.OpenDB(dialect.SQLite, db)
         r.client = ent.NewClient(ent.Driver(drv))
 
         // Run auto-migration if enabled
-        if r.config.AutoMigrate </span><span class="cov5" title="6">{
+        if r.config.AutoMigrate </span><span class="cov8" title="1">{
                 ctx, cancel := context.WithTimeout(context.Background(), r.config.MigrationTimeout)
                 defer cancel()
 
@@ -26445,15 +26436,15 @@ func (r *sqliteRepository) initialize() error <span class="cov5" title="6">{
                         return NewMigrationError("auto-migration failed", err)
                 }</span>
                 
-                <span class="cov5" title="6">r.logger.Info("Database schema migration completed successfully")</span>
+                <span class="cov8" title="1">r.logger.Info("Database schema migration completed successfully")</span>
         }
 
-        <span class="cov5" title="6">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // Close closes the ent client and database connection
-func (r *sqliteRepository) Close() error <span class="cov5" title="6">{
-        if r.client != nil </span><span class="cov5" title="6">{
+func (r *sqliteRepository) Close() error <span class="cov8" title="1">{
+        if r.client != nil </span><span class="cov8" title="1">{
                 return r.client.Close()
         }</span>
         <span class="cov0" title="0">return nil</span>
@@ -26478,7 +26469,7 @@ func (r *sqliteRepository) mapError(operation string, err error) error <span cla
 }
 
 // configureSQLiteOptimizations applies SQLite-specific performance optimizations
-func (r *sqliteRepository) configureSQLiteOptimizations(db *sql.DB) error <span class="cov5" title="6">{
+func (r *sqliteRepository) configureSQLiteOptimizations(db *sql.DB) error <span class="cov8" title="1">{
         optimizations := []struct {
                 name   string
                 pragma string
@@ -26492,41 +26483,41 @@ func (r *sqliteRepository) configureSQLiteOptimizations(db *sql.DB) error <span 
                 {"optimize", "PRAGMA optimize"},                     // Analyze and optimize query planner
         }
 
-        for _, opt := range optimizations </span><span class="cov10" title="42">{
+        for _, opt := range optimizations </span><span class="cov8" title="1">{
                 if _, err := db.Exec(opt.pragma); err != nil </span><span class="cov0" title="0">{
                         r.config.Logger.Warn("Failed to apply SQLite optimization", 
                                 zap.String("optimization", opt.name),
                                 zap.String("pragma", opt.pragma),
                                 zap.Error(err))
                         // Continue with other optimizations even if one fails
-                }</span> else<span class="cov10" title="42"> {
+                }</span> else<span class="cov8" title="1"> {
                         r.config.Logger.Debug("Applied SQLite optimization", 
                                 zap.String("optimization", opt.name))
                 }</span>
         }
 
-        <span class="cov5" title="6">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // validateInitialConnection performs initial connection validation during setup
-func (r *sqliteRepository) validateInitialConnection(db *sql.DB) error <span class="cov5" title="6">{
+func (r *sqliteRepository) validateInitialConnection(db *sql.DB) error <span class="cov8" title="1">{
         // Basic ping test
         if err := db.Ping(); err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("ping failed: %w", err)
         }</span>
 
         // Test basic query execution
-        <span class="cov5" title="6">var result int
+        <span class="cov8" title="1">var result int
         if err := db.QueryRow("SELECT 1").Scan(&amp;result); err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("basic query test failed: %w", err)
         }</span>
 
-        <span class="cov5" title="6">if result != 1 </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if result != 1 </span><span class="cov0" title="0">{
                 return fmt.Errorf("unexpected query result: got %d, expected 1", result)
         }</span>
 
         // Verify database file is writable by creating a test table
-        <span class="cov5" title="6">testTableSQL := `
+        <span class="cov8" title="1">testTableSQL := `
                 CREATE TABLE IF NOT EXISTS _knot_connection_test (
                         id INTEGER PRIMARY KEY,
                         test_value TEXT
@@ -26537,12 +26528,12 @@ func (r *sqliteRepository) validateInitialConnection(db *sql.DB) error <span cla
         }</span>
 
         // Clean up test table
-        <span class="cov5" title="6">if _, err := db.Exec("DROP TABLE IF EXISTS _knot_connection_test"); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if _, err := db.Exec("DROP TABLE IF EXISTS _knot_connection_test"); err != nil </span><span class="cov0" title="0">{
                 r.config.Logger.Warn("Failed to clean up test table", zap.Error(err))
                 // Don not fail initialization for cleanup failure
         }</span>
 
-        <span class="cov5" title="6">r.config.Logger.Info("Database connection validation successful")
+        <span class="cov8" title="1">r.config.Logger.Info("Database connection validation successful")
         return nil</span>
 }
 </pre>
@@ -26565,19 +26556,19 @@ import (
 // Task CRUD Operations
 
 // CreateTask creates a new task using ent with dependency handling
-func (r *sqliteRepository) CreateTask(ctx context.Context, task *types.Task) error <span class="cov10" title="12">{
-        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov10" title="12">{
+func (r *sqliteRepository) CreateTask(ctx context.Context, task *types.Task) error <span class="cov8" title="1">{
+        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov8" title="1">{
                 // Validate project exists
                 exists, err := tx.Project.Query().Where(project.ID(task.ProjectID)).Exist(ctx)
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to check project existence: %w", err)
                 }</span>
-                <span class="cov10" title="12">if !exists </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if !exists </span><span class="cov8" title="1">{
                         return NewNotFoundError("project", task.ProjectID.String())
                 }</span>
 
                 // Validate parent task if specified
-                <span class="cov9" title="11">if task.ParentID != nil </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if task.ParentID != nil </span><span class="cov0" title="0">{
                         parentTask, err := tx.Task.Get(ctx, *task.ParentID)
                         if err != nil </span><span class="cov0" title="0">{
                                 if ent.IsNotFound(err) </span><span class="cov0" title="0">{
@@ -26590,26 +26581,26 @@ func (r *sqliteRepository) CreateTask(ctx context.Context, task *types.Task) err
                         }</span>
                         // Set correct depth
                         <span class="cov0" title="0">task.Depth = parentTask.Depth + 1</span>
-                } else<span class="cov9" title="11"> {
+                } else<span class="cov8" title="1"> {
                         task.Depth = 0
                 }</span>
 
                 // Set timestamps if not already set
-                <span class="cov9" title="11">if task.CreatedAt.IsZero() </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if task.CreatedAt.IsZero() </span><span class="cov0" title="0">{
                         task.CreatedAt = time.Now()
                 }</span>
-                <span class="cov9" title="11">if task.UpdatedAt.IsZero() </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if task.UpdatedAt.IsZero() </span><span class="cov0" title="0">{
                         task.UpdatedAt = task.CreatedAt
                 }</span>
 
                 // Create the task
-                <span class="cov9" title="11">_, err = taskToEntTaskCreate(task, tx.Client()).Save(ctx)
-                if err != nil </span><span class="cov4" title="3">{
+                <span class="cov8" title="1">_, err = taskToEntTaskCreate(task, tx.Client()).Save(ctx)
+                if err != nil </span><span class="cov8" title="1">{
                         return fmt.Errorf("failed to create task: %w", err)
                 }</span>
 
                 // Create task dependencies if any
-                <span class="cov8" title="8">if len(task.Dependencies) &gt; 0 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if len(task.Dependencies) &gt; 0 </span><span class="cov0" title="0">{
                         dependencies := make([]TaskDependencyPair, len(task.Dependencies))
                         for i, depID := range task.Dependencies </span><span class="cov0" title="0">{
                                 // Validate dependency exists and is in the same project
@@ -26650,23 +26641,23 @@ func (r *sqliteRepository) CreateTask(ctx context.Context, task *types.Task) err
                 }
 
                 // Update project metrics
-                <span class="cov8" title="8">return r.updateProjectMetricsInTx(ctx, tx, task.ProjectID)</span>
+                <span class="cov8" title="1">return r.updateProjectMetricsInTx(ctx, tx, task.ProjectID)</span>
         })
 }
 
 // GetTask retrieves a task by ID with dependencies using ent
-func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Task, error) <span class="cov6" title="4">{
+func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Task, error) <span class="cov8" title="1">{
         entTask, err := r.client.Task.Query().
                 Where(taskpred.ID(id)).
                 Only(ctx)
-        if err != nil </span><span class="cov3" title="2">{
-                if ent.IsNotFound(err) </span><span class="cov3" title="2">{
+        if err != nil </span><span class="cov8" title="1">{
+                if ent.IsNotFound(err) </span><span class="cov8" title="1">{
                         return nil, NewNotFoundError("task", id.String())
                 }</span>
                 <span class="cov0" title="0">return nil, r.mapError("get task", err)</span>
         }
 
-        <span class="cov3" title="2">domainTask := entTaskToTask(entTask)
+        <span class="cov8" title="1">domainTask := entTaskToTask(entTask)
 
         // Load dependencies
         dependencies, err := r.client.TaskDependency.Query().
@@ -26675,7 +26666,7 @@ func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Ta
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to load dependencies: %w", err)
         }</span>
-        <span class="cov3" title="2">domainTask.Dependencies = entTaskDependenciesToTaskIDs(dependencies)
+        <span class="cov8" title="1">domainTask.Dependencies = entTaskDependenciesToTaskIDs(dependencies)
 
         // Load dependents (tasks that depend on this task)
         dependents, err := r.client.TaskDependency.Query().
@@ -26685,14 +26676,14 @@ func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Ta
         if err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to load dependents: %w", err)
         }</span>
-        <span class="cov3" title="2">domainTask.Dependents = entTaskDependentsToTaskIDs(dependents)
+        <span class="cov8" title="1">domainTask.Dependents = entTaskDependentsToTaskIDs(dependents)
 
         return domainTask, nil</span>
 }
 
 // UpdateTask updates an existing task using ent
-func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) error <span class="cov1" title="1">{
-        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov1" title="1">{
+func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) error <span class="cov8" title="1">{
+        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov8" title="1">{
                 // Get existing task to preserve certain fields
                 existingTask, err := tx.Task.Get(ctx, task.ID)
                 if err != nil </span><span class="cov0" title="0">{
@@ -26703,7 +26694,7 @@ func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) err
                 }
 
                 // Preserve immutable fields
-                <span class="cov1" title="1">task.CreatedAt = existingTask.CreatedAt
+                <span class="cov8" title="1">task.CreatedAt = existingTask.CreatedAt
                 task.ProjectID = existingTask.ProjectID
                 task.ParentID = existingTask.ParentID
                 task.Depth = existingTask.Depth
@@ -26713,12 +26704,12 @@ func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) err
                 if task.State == types.TaskStateCompleted &amp;&amp; string(existingTask.State) != string(types.TaskStateCompleted) </span><span class="cov0" title="0">{
                         now := time.Now()
                         task.CompletedAt = &amp;now
-                }</span> else<span class="cov1" title="1"> if task.State != types.TaskStateCompleted </span><span class="cov1" title="1">{
+                }</span> else<span class="cov8" title="1"> if task.State != types.TaskStateCompleted </span><span class="cov8" title="1">{
                         task.CompletedAt = nil
                 }</span>
 
                 // Update the task
-                <span class="cov1" title="1">update := tx.Task.UpdateOneID(task.ID)
+                <span class="cov8" title="1">update := tx.Task.UpdateOneID(task.ID)
                 taskToEntTaskUpdate(task, update)
                 err = update.Exec(ctx)
                 if err != nil </span><span class="cov0" title="0">{
@@ -26726,7 +26717,7 @@ func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) err
                 }</span>
 
                 // Update project metrics if state changed
-                <span class="cov1" title="1">if string(existingTask.State) != string(task.State) </span><span class="cov1" title="1">{
+                <span class="cov8" title="1">if string(existingTask.State) != string(task.State) </span><span class="cov8" title="1">{
                         return r.updateProjectMetricsInTx(ctx, tx, task.ProjectID)
                 }</span>
 
@@ -26735,8 +26726,8 @@ func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) err
 }
 
 // DeleteTask deletes a task if it has no children using ent
-func (r *sqliteRepository) DeleteTask(ctx context.Context, id uuid.UUID) error <span class="cov1" title="1">{
-        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov1" title="1">{
+func (r *sqliteRepository) DeleteTask(ctx context.Context, id uuid.UUID) error <span class="cov8" title="1">{
+        return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error </span><span class="cov8" title="1">{
                 // Get task info
                 task, err := tx.Task.Get(ctx, id)
                 if err != nil </span><span class="cov0" title="0">{
@@ -26747,18 +26738,18 @@ func (r *sqliteRepository) DeleteTask(ctx context.Context, id uuid.UUID) error <
                 }
 
                 // Check if task has children
-                <span class="cov1" title="1">childrenCount, err := tx.Task.Query().
+                <span class="cov8" title="1">childrenCount, err := tx.Task.Query().
                         Where(taskpred.ParentIDEQ(id)).
                         Count(ctx)
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to count children: %w", err)
                 }</span>
-                <span class="cov1" title="1">if childrenCount &gt; 0 </span><span class="cov0" title="0">{
+                <span class="cov8" title="1">if childrenCount &gt; 0 </span><span class="cov0" title="0">{
                         return NewConstraintViolationError("cannot delete task with children", nil)
                 }</span>
 
                 // Delete all task dependencies (both incoming and outgoing)
-                <span class="cov1" title="1">_, err = tx.TaskDependency.Delete().
+                <span class="cov8" title="1">_, err = tx.TaskDependency.Delete().
                         Where(taskdependency.Or(
                                 taskdependency.TaskID(id),
                                 taskdependency.DependsOnTaskID(id),
@@ -26769,13 +26760,13 @@ func (r *sqliteRepository) DeleteTask(ctx context.Context, id uuid.UUID) error <
                 }</span>
 
                 // Delete the task
-                <span class="cov1" title="1">err = tx.Task.DeleteOneID(id).Exec(ctx)
+                <span class="cov8" title="1">err = tx.Task.DeleteOneID(id).Exec(ctx)
                 if err != nil </span><span class="cov0" title="0">{
                         return fmt.Errorf("failed to delete task: %w", err)
                 }</span>
 
                 // Update project metrics
-                <span class="cov1" title="1">return r.updateProjectMetricsInTx(ctx, tx, task.ProjectID)</span>
+                <span class="cov8" title="1">return r.updateProjectMetricsInTx(ctx, tx, task.ProjectID)</span>
         })
 }
 
@@ -26923,7 +26914,7 @@ func (r *sqliteRepository) ListTasks(ctx context.Context, filter types.TaskFilte
 }
 
 // GetTasksByProject retrieves all tasks for a specific project using ent
-func (r *sqliteRepository) GetTasksByProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) <span class="cov4" title="2">{
+func (r *sqliteRepository) GetTasksByProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) <span class="cov8" title="1">{
         entTasks, err := r.client.Task.Query().
                 Where(task.ProjectID(projectID)).
                 Order(ent.Asc(task.FieldCreatedAt)).
@@ -26933,12 +26924,12 @@ func (r *sqliteRepository) GetTasksByProject(ctx context.Context, projectID uuid
         }</span>
 
         // Convert to domain models
-        <span class="cov4" title="2">tasks := make([]*types.Task, len(entTasks))
-        for i, entTask := range entTasks </span><span class="cov10" title="6">{
+        <span class="cov8" title="1">tasks := make([]*types.Task, len(entTasks))
+        for i, entTask := range entTasks </span><span class="cov8" title="1">{
                 tasks[i] = entTaskToTask(entTask)
         }</span>
 
-        <span class="cov4" title="2">return tasks, nil</span>
+        <span class="cov8" title="1">return tasks, nil</span>
 }
 
 // GetTasksByParent retrieves all direct children of a parent task using ent
@@ -27121,25 +27112,25 @@ import (
 type TxFunc func(ctx context.Context, tx *ent.Tx) error
 
 // withTx executes a function within an ent transaction
-func (r *sqliteRepository) withTx(ctx context.Context, fn TxFunc) error <span class="cov10" title="15">{
+func (r *sqliteRepository) withTx(ctx context.Context, fn TxFunc) error <span class="cov8" title="1">{
         tx, err := r.client.Tx(ctx)
         if err != nil </span><span class="cov0" title="0">{
                 return NewTransactionError("failed to begin transaction", err)
         }</span>
 
-        <span class="cov10" title="15">defer func() </span><span class="cov10" title="15">{
+        <span class="cov8" title="1">defer func() </span><span class="cov8" title="1">{
                 if p := recover(); p != nil </span><span class="cov0" title="0">{
                         // Rollback on panic and re-panic
                         if rollbackErr := tx.Rollback(); rollbackErr != nil </span><span class="cov0" title="0">{
                                 err = fmt.Errorf("rollback failed after panic: %v (original panic: %v)", rollbackErr, p)
                         }</span>
                         <span class="cov0" title="0">panic(p)</span>
-                } else<span class="cov10" title="15"> if err != nil </span><span class="cov5" title="4">{
+                } else<span class="cov8" title="1"> if err != nil </span><span class="cov8" title="1">{
                         // Rollback on error
                         if rollbackErr := tx.Rollback(); rollbackErr != nil </span><span class="cov0" title="0">{
                                 err = fmt.Errorf("rollback failed: %v (original error: %w)", rollbackErr, err)
                         }</span>
-                } else<span class="cov8" title="11"> {
+                } else<span class="cov8" title="1"> {
                         // Commit on success
                         err = tx.Commit()
                         if err != nil </span><span class="cov0" title="0">{
@@ -27148,7 +27139,7 @@ func (r *sqliteRepository) withTx(ctx context.Context, fn TxFunc) error <span cl
                 }
         }()
 
-        <span class="cov10" title="15">err = fn(ctx, tx)
+        <span class="cov8" title="1">err = fn(ctx, tx)
         return err</span>
 }
 
@@ -27250,14 +27241,14 @@ import (
 )
 
 // ResolveProjectID resolves the project ID from stored context
-func ResolveProjectID(c *cli.Context, appCtx *AppContext) (uuid.UUID, error) <span class="cov10" title="2">{
+func ResolveProjectID(c *cli.Context, appCtx *AppContext) (uuid.UUID, error) <span class="cov8" title="1">{
         // Get project from database stored context
-        if contextProjectID, err := appCtx.ProjectManager.GetSelectedProject(c.Context); err == nil &amp;&amp; contextProjectID != nil </span><span class="cov1" title="1">{
+        if contextProjectID, err := appCtx.ProjectManager.GetSelectedProject(c.Context); err == nil &amp;&amp; contextProjectID != nil </span><span class="cov8" title="1">{
                 return *contextProjectID, nil
         }</span>
         
         // No project available
-        <span class="cov1" title="1">return uuid.Nil, errors.NoProjectContextError()</span>
+        <span class="cov8" title="1">return uuid.Nil, errors.NoProjectContextError()</span>
 }
 
 // ShowProjectContext displays the current project context if one is selected
@@ -28139,7 +28130,7 @@ type InputValidator struct {
 }
 
 // NewInputValidator creates a new input validator with default limits
-func NewInputValidator() *InputValidator <span class="cov3" title="9">{
+func NewInputValidator() *InputValidator <span class="cov8" title="1">{
         return &amp;InputValidator{
                 MaxTitleLength:       200,  // Reasonable limit for task titles
                 MaxDescriptionLength: 2000, // Reasonable limit for descriptions
@@ -28148,64 +28139,64 @@ func NewInputValidator() *InputValidator <span class="cov3" title="9">{
 }</span>
 
 // ValidateTaskTitle validates a task title
-func (v *InputValidator) ValidateTaskTitle(title string) error <span class="cov3" title="12">{
-        if title == "" </span><span class="cov1" title="1">{
+func (v *InputValidator) ValidateTaskTitle(title string) error <span class="cov8" title="1">{
+        if title == "" </span><span class="cov8" title="1">{
                 return fmt.Errorf("title cannot be empty")
         }</span>
 
         // Check length
-        <span class="cov3" title="11">if utf8.RuneCountInString(title) &gt; v.MaxTitleLength </span><span class="cov1" title="2">{
+        <span class="cov8" title="1">if utf8.RuneCountInString(title) &gt; v.MaxTitleLength </span><span class="cov8" title="1">{
                 return fmt.Errorf("title too long: %d characters (max: %d)", 
                         utf8.RuneCountInString(title), v.MaxTitleLength)
         }</span>
 
         // Check for dangerous content
-        <span class="cov3" title="9">if err := v.validateContent(title, "title"); err != nil </span><span class="cov2" title="4">{
+        <span class="cov8" title="1">if err := v.validateContent(title, "title"); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
 
-        <span class="cov2" title="5">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // ValidateTaskDescription validates a task description
-func (v *InputValidator) ValidateTaskDescription(description string) error <span class="cov3" title="7">{
+func (v *InputValidator) ValidateTaskDescription(description string) error <span class="cov8" title="1">{
         // Empty description is allowed
-        if description == "" </span><span class="cov1" title="1">{
+        if description == "" </span><span class="cov8" title="1">{
                 return nil
         }</span>
 
         // Check length
-        <span class="cov3" title="6">if utf8.RuneCountInString(description) &gt; v.MaxDescriptionLength </span><span class="cov1" title="2">{
+        <span class="cov8" title="1">if utf8.RuneCountInString(description) &gt; v.MaxDescriptionLength </span><span class="cov8" title="1">{
                 return fmt.Errorf("description too long: %d characters (max: %d)", 
                         utf8.RuneCountInString(description), v.MaxDescriptionLength)
         }</span>
 
         // Check for dangerous content
-        <span class="cov2" title="4">if err := v.validateContent(description, "description"); err != nil </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if err := v.validateContent(description, "description"); err != nil </span><span class="cov8" title="1">{
                 return err
         }</span>
 
-        <span class="cov2" title="3">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // ValidateProjectTitle validates a project title
-func (v *InputValidator) ValidateProjectTitle(title string) error <span class="cov2" title="3">{
-        if title == "" </span><span class="cov1" title="1">{
+func (v *InputValidator) ValidateProjectTitle(title string) error <span class="cov8" title="1">{
+        if title == "" </span><span class="cov8" title="1">{
                 return fmt.Errorf("project title cannot be empty")
         }</span>
 
         // Use same limits as task title
-        <span class="cov1" title="2">if utf8.RuneCountInString(title) &gt; v.MaxTitleLength </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if utf8.RuneCountInString(title) &gt; v.MaxTitleLength </span><span class="cov8" title="1">{
                 return fmt.Errorf("project title too long: %d characters (max: %d)", 
                         utf8.RuneCountInString(title), v.MaxTitleLength)
         }</span>
 
         // Check for dangerous content
-        <span class="cov1" title="1">if err := v.validateContent(title, "project title"); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := v.validateContent(title, "project title"); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov1" title="1">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // ValidateProjectDescription validates a project description
@@ -28230,39 +28221,39 @@ func (v *InputValidator) ValidateProjectDescription(description string) error <s
 }
 
 // validateContent checks for potentially dangerous content
-func (v *InputValidator) validateContent(content, fieldName string) error <span class="cov4" title="17">{
+func (v *InputValidator) validateContent(content, fieldName string) error <span class="cov8" title="1">{
         // Check for null bytes (can cause issues in some contexts)
-        if strings.Contains(content, "\x00") </span><span class="cov1" title="1">{
+        if strings.Contains(content, "\x00") </span><span class="cov8" title="1">{
                 return fmt.Errorf("%s contains null bytes", fieldName)
         }</span>
 
         // Check for control characters (except common whitespace)
-        <span class="cov4" title="16">for _, r := range content </span><span class="cov10" title="2609">{
-                if r &lt; 32 &amp;&amp; r != '\t' &amp;&amp; r != '\n' &amp;&amp; r != '\r' </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">for _, r := range content </span><span class="cov8" title="1">{
+                if r &lt; 32 &amp;&amp; r != '\t' &amp;&amp; r != '\n' &amp;&amp; r != '\r' </span><span class="cov8" title="1">{
                         return fmt.Errorf("%s contains invalid control characters", fieldName)
                 }</span>
         }
 
         // If HTML is not allowed, check for HTML-like content
-        <span class="cov4" title="15">if !v.AllowHTML </span><span class="cov4" title="14">{
-                if err := v.checkForHTML(content, fieldName); err != nil </span><span class="cov2" title="3">{
+        <span class="cov8" title="1">if !v.AllowHTML </span><span class="cov8" title="1">{
+                if err := v.checkForHTML(content, fieldName); err != nil </span><span class="cov8" title="1">{
                         return err
                 }</span>
         }
 
-        <span class="cov3" title="12">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // checkForHTML detects and blocks HTML-like content
-func (v *InputValidator) checkForHTML(content, fieldName string) error <span class="cov4" title="14">{
+func (v *InputValidator) checkForHTML(content, fieldName string) error <span class="cov8" title="1">{
         // Simple HTML tag detection
         htmlTagPattern := regexp.MustCompile(`&lt;[^&gt;]*&gt;`)
-        if htmlTagPattern.MatchString(content) </span><span class="cov1" title="2">{
+        if htmlTagPattern.MatchString(content) </span><span class="cov8" title="1">{
                 return fmt.Errorf("%s contains HTML tags which are not allowed", fieldName)
         }</span>
 
         // Check for script-like patterns
-        <span class="cov3" title="12">scriptPatterns := []string{
+        <span class="cov8" title="1">scriptPatterns := []string{
                 "javascript:",
                 "data:",
                 "vbscript:",
@@ -28272,31 +28263,31 @@ func (v *InputValidator) checkForHTML(content, fieldName string) error <span cla
         }
 
         lowerContent := strings.ToLower(content)
-        for _, pattern := range scriptPatterns </span><span class="cov5" title="67">{
-                if strings.Contains(lowerContent, pattern) </span><span class="cov1" title="1">{
+        for _, pattern := range scriptPatterns </span><span class="cov8" title="1">{
+                if strings.Contains(lowerContent, pattern) </span><span class="cov8" title="1">{
                         return fmt.Errorf("%s contains potentially dangerous script content", fieldName)
                 }</span>
         }
 
-        <span class="cov3" title="11">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // SanitizeContent sanitizes content by escaping HTML if needed
-func (v *InputValidator) SanitizeContent(content string) string <span class="cov2" title="4">{
-        if v.AllowHTML </span><span class="cov1" title="1">{
+func (v *InputValidator) SanitizeContent(content string) string <span class="cov8" title="1">{
+        if v.AllowHTML </span><span class="cov8" title="1">{
                 return content
         }</span>
         
         // Escape HTML entities
-        <span class="cov2" title="3">return html.EscapeString(content)</span>
+        <span class="cov8" title="1">return html.EscapeString(content)</span>
 }
 
 // ValidateComplexity validates task complexity value
-func (v *InputValidator) ValidateComplexity(complexity int) error <span class="cov3" title="6">{
-        if complexity &lt; 1 || complexity &gt; 10 </span><span class="cov2" title="3">{
+func (v *InputValidator) ValidateComplexity(complexity int) error <span class="cov8" title="1">{
+        if complexity &lt; 1 || complexity &gt; 10 </span><span class="cov8" title="1">{
                 return fmt.Errorf("complexity must be between 1 and 10, got %d", complexity)
         }</span>
-        <span class="cov2" title="3">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // ValidateTaskPriority validates task priority value
@@ -28311,23 +28302,23 @@ func (v *InputValidator) ValidateTaskPriority(priority string) error <span class
 }
 
 // ValidateActor validates actor name
-func (v *InputValidator) ValidateActor(actor string) error <span class="cov2" title="5">{
-        if actor == "" </span><span class="cov1" title="1">{
+func (v *InputValidator) ValidateActor(actor string) error <span class="cov8" title="1">{
+        if actor == "" </span><span class="cov8" title="1">{
                 return fmt.Errorf("actor cannot be empty")
         }</span>
 
         // Reasonable limit for actor names
-        <span class="cov2" title="4">if utf8.RuneCountInString(actor) &gt; 100 </span><span class="cov1" title="1">{
+        <span class="cov8" title="1">if utf8.RuneCountInString(actor) &gt; 100 </span><span class="cov8" title="1">{
                 return fmt.Errorf("actor name too long: %d characters (max: 100)", 
                         utf8.RuneCountInString(actor))
         }</span>
 
         // Check for dangerous content
-        <span class="cov2" title="3">if err := v.validateContent(actor, "actor name"); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := v.validateContent(actor, "actor name"); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
-        <span class="cov2" title="3">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }</pre>
 		
 		<pre class="file" id="file90" style="display: none">package validation
@@ -28359,7 +28350,7 @@ type StateValidator struct {
 }
 
 // NewStateValidator creates a new state validator with default rules
-func NewStateValidator() *StateValidator <span class="cov4" title="10">{
+func NewStateValidator() *StateValidator <span class="cov8" title="1">{
         validator := &amp;StateValidator{
                 allowedTransitions: make(map[StateTransition]bool),
                 validationRules:    make([]StateValidationRule, 0),
@@ -28375,7 +28366,7 @@ func NewStateValidator() *StateValidator <span class="cov4" title="10">{
 }</span>
 
 // defineAllowedTransitions sets up the allowed state transition matrix
-func (sv *StateValidator) defineAllowedTransitions() <span class="cov4" title="10">{
+func (sv *StateValidator) defineAllowedTransitions() <span class="cov8" title="1">{
         // Valid transitions from each state
         transitions := []StateTransition{
                 // From pending
@@ -28419,18 +28410,18 @@ func (sv *StateValidator) defineAllowedTransitions() <span class="cov4" title="1
                 {types.TaskStateDeletionPending, types.TaskStateDeletionPending},
         }
 
-        for _, transition := range transitions </span><span class="cov8" title="250">{
+        for _, transition := range transitions </span><span class="cov8" title="1">{
                 sv.allowedTransitions[transition] = true
         }</span>
 }
 
 // addValidationRules adds business logic validation rules
-func (sv *StateValidator) addValidationRules() <span class="cov4" title="10">{
+func (sv *StateValidator) addValidationRules() <span class="cov8" title="1">{
         sv.validationRules = []StateValidationRule{
                 {
                         Name:        "completed_requires_progress",
                         Description: "Tasks should generally go through in-progress before completion",
-                        Validate: func(from, to types.TaskState, task *types.Task) error </span><span class="cov4" title="14">{
+                        Validate: func(from, to types.TaskState, task *types.Task) error </span><span class="cov8" title="1">{
                                 if from == types.TaskStatePending &amp;&amp; to == types.TaskStateCompleted </span><span class="cov0" title="0">{
                                         return &amp;errors.EnhancedError{
                                                 Operation:   "validating state transition",
@@ -28440,13 +28431,13 @@ func (sv *StateValidator) addValidationRules() <span class="cov4" title="10">{
                                                 HelpCommand: "knot task update-state --help",
                                         }
                                 }</span>
-                                <span class="cov4" title="14">return nil</span>
+                                <span class="cov8" title="1">return nil</span>
                         },
                 },
                 {
                         Name:        "blocked_requires_dependencies",
                         Description: "Tasks should only be blocked if they have unmet dependencies",
-                        Validate: func(from, to types.TaskState, task *types.Task) error <span class="cov4" title="14">{
+                        Validate: func(from, to types.TaskState, task *types.Task) error <span class="cov8" title="1">{
                                 if to == types.TaskStateBlocked &amp;&amp; len(task.Dependencies) == 0 </span><span class="cov0" title="0">{
                                         return &amp;errors.EnhancedError{
                                                 Operation:   "validating state transition",
@@ -28456,14 +28447,14 @@ func (sv *StateValidator) addValidationRules() <span class="cov4" title="10">{
                                                 HelpCommand: "knot dependency --help",
                                         }
                                 }</span>
-                                <span class="cov4" title="14">return nil</span>
+                                <span class="cov8" title="1">return nil</span>
                         },
                 },
                 {
                         Name:        "high_complexity_warning",
                         Description: "High complexity tasks should be broken down before completion",
-                        Validate: func(from, to types.TaskState, task *types.Task) error <span class="cov4" title="14">{
-                                if to == types.TaskStateCompleted &amp;&amp; task.Complexity &gt;= 8 </span><span class="cov1" title="1">{
+                        Validate: func(from, to types.TaskState, task *types.Task) error <span class="cov8" title="1">{
+                                if to == types.TaskStateCompleted &amp;&amp; task.Complexity &gt;= 8 </span><span class="cov8" title="1">{
                                         // This is a warning, not an error - return nil but could log
                                         return &amp;errors.EnhancedError{
                                                 Operation:   "validating state transition",
@@ -28473,13 +28464,13 @@ func (sv *StateValidator) addValidationRules() <span class="cov4" title="10">{
                                                 HelpCommand: "knot task create --help  # to create subtasks",
                                         }
                                 }</span>
-                                <span class="cov4" title="13">return nil</span>
+                                <span class="cov8" title="1">return nil</span>
                         },
                 },
                 {
                         Name:        "deletion_pending_protection",
                         Description: "Tasks marked for deletion cannot transition to other states except via delete operation",
-                        Validate: func(from, to types.TaskState, task *types.Task) error <span class="cov4" title="14">{
+                        Validate: func(from, to types.TaskState, task *types.Task) error <span class="cov8" title="1">{
                                 if from == types.TaskStateDeletionPending &amp;&amp; to != types.TaskStateDeletionPending </span><span class="cov0" title="0">{
                                         return &amp;errors.EnhancedError{
                                                 Operation:   "validating state transition",
@@ -28489,22 +28480,22 @@ func (sv *StateValidator) addValidationRules() <span class="cov4" title="10">{
                                                 HelpCommand: "knot task delete --help",
                                         }
                                 }</span>
-                                <span class="cov4" title="14">return nil</span>
+                                <span class="cov8" title="1">return nil</span>
                         },
                 },
         }
 }
 
 // ValidateTransition validates a state transition
-func (sv *StateValidator) ValidateTransition(from, to types.TaskState, task *types.Task) error <span class="cov5" title="22">{
+func (sv *StateValidator) ValidateTransition(from, to types.TaskState, task *types.Task) error <span class="cov8" title="1">{
         // Check if transition is allowed
         transition := StateTransition{From: from, To: to}
-        if !sv.allowedTransitions[transition] </span><span class="cov4" title="10">{
+        if !sv.allowedTransitions[transition] </span><span class="cov8" title="1">{
                 return sv.createInvalidTransitionError(from, to, task)
         }</span>
 
         // Apply validation rules
-        <span class="cov4" title="12">for _, rule := range sv.validationRules </span><span class="cov6" title="48">{
+        <span class="cov8" title="1">for _, rule := range sv.validationRules </span><span class="cov8" title="1">{
                 if err := rule.Validate(from, to, task); err != nil </span><span class="cov0" title="0">{
                         // For warnings, we might want to log but not fail
                         // For now, treat all as errors
@@ -28512,7 +28503,7 @@ func (sv *StateValidator) ValidateTransition(from, to types.TaskState, task *typ
                 }</span>
         }
 
-        <span class="cov4" title="12">return nil</span>
+        <span class="cov8" title="1">return nil</span>
 }
 
 // ValidateTransitionStrict validates with strict rules (no warnings allowed)
@@ -28521,20 +28512,20 @@ func (sv *StateValidator) ValidateTransitionStrict(from, to types.TaskState, tas
 }</span>
 
 // ValidateTransitionLenient validates with lenient rules (warnings become suggestions)
-func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, task *types.Task) (error, []string) <span class="cov2" title="4">{
+func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, task *types.Task) (error, []string) <span class="cov8" title="1">{
         // Check if transition is allowed
         transition := StateTransition{From: from, To: to}
-        if !sv.allowedTransitions[transition] </span><span class="cov1" title="2">{
+        if !sv.allowedTransitions[transition] </span><span class="cov8" title="1">{
                 return sv.createInvalidTransitionError(from, to, task), nil
         }</span>
 
-        <span class="cov1" title="2">var warnings []string
+        <span class="cov8" title="1">var warnings []string
         
         // Apply validation rules and collect warnings
-        for _, rule := range sv.validationRules </span><span class="cov3" title="8">{
-                if err := rule.Validate(from, to, task); err != nil </span><span class="cov1" title="1">{
+        for _, rule := range sv.validationRules </span><span class="cov8" title="1">{
+                if err := rule.Validate(from, to, task); err != nil </span><span class="cov8" title="1">{
                         // Convert errors to warnings in lenient mode
-                        if enhancedErr, ok := err.(*errors.EnhancedError); ok </span><span class="cov1" title="1">{
+                        if enhancedErr, ok := err.(*errors.EnhancedError); ok </span><span class="cov8" title="1">{
                                 warnings = append(warnings, fmt.Sprintf("⚠️  %s: %s", rule.Name, enhancedErr.Suggestion))
                         }</span> else<span class="cov0" title="0"> {
                                 warnings = append(warnings, fmt.Sprintf("⚠️  %s: %s", rule.Name, err.Error()))
@@ -28542,21 +28533,21 @@ func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, ta
                 }
         }
 
-        <span class="cov1" title="2">return nil, warnings</span>
+        <span class="cov8" title="1">return nil, warnings</span>
 }
 
 // createInvalidTransitionError creates an enhanced error for invalid transitions
-func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState, task *types.Task) error <span class="cov4" title="12">{
+func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState, task *types.Task) error <span class="cov8" title="1">{
         validTransitions := sv.getValidTransitionsFrom(from)
         
         var example string
-        if len(validTransitions) &gt; 0 </span><span class="cov2" title="3">{
+        if len(validTransitions) &gt; 0 </span><span class="cov8" title="1">{
                 example = fmt.Sprintf("knot task update-state --id %s --state %s", task.ID.String(), validTransitions[0])
-        }</span> else<span class="cov4" title="9"> {
+        }</span> else<span class="cov8" title="1"> {
                 example = fmt.Sprintf("knot task delete --id %s  # only deletion allowed", task.ID.String())
         }</span>
         
-        <span class="cov4" title="12">return &amp;errors.EnhancedError{
+        <span class="cov8" title="1">return &amp;errors.EnhancedError{
                 Operation:   "validating state transition",
                 Cause:       fmt.Errorf("invalid state transition from '%s' to '%s'", from, to),
                 Suggestion:  fmt.Sprintf("Valid transitions from '%s': %v", from, validTransitions),
@@ -28566,20 +28557,20 @@ func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState,
 }
 
 // getValidTransitionsFrom returns valid target states from a given state
-func (sv *StateValidator) getValidTransitionsFrom(from types.TaskState) []string <span class="cov5" title="24">{
+func (sv *StateValidator) getValidTransitionsFrom(from types.TaskState) []string <span class="cov8" title="1">{
         var validStates []string
         
-        for transition := range sv.allowedTransitions </span><span class="cov10" title="600">{
-                if transition.From == from &amp;&amp; transition.To != from </span><span class="cov6" title="50">{ // Exclude self-transitions
+        for transition := range sv.allowedTransitions </span><span class="cov8" title="1">{
+                if transition.From == from &amp;&amp; transition.To != from </span><span class="cov8" title="1">{ // Exclude self-transitions
                         validStates = append(validStates, string(transition.To))
                 }</span>
         }
         
-        <span class="cov5" title="24">return validStates</span>
+        <span class="cov8" title="1">return validStates</span>
 }
 
 // GetAllValidStates returns all valid task states
-func (sv *StateValidator) GetAllValidStates() []types.TaskState <span class="cov4" title="12">{
+func (sv *StateValidator) GetAllValidStates() []types.TaskState <span class="cov8" title="1">{
         return []types.TaskState{
                 types.TaskStatePending,
                 types.TaskStateInProgress,
@@ -28591,25 +28582,25 @@ func (sv *StateValidator) GetAllValidStates() []types.TaskState <span class="cov
 }</span>
 
 // IsValidState checks if a state string is valid
-func (sv *StateValidator) IsValidState(state string) bool <span class="cov4" title="10">{
+func (sv *StateValidator) IsValidState(state string) bool <span class="cov8" title="1">{
         validStates := sv.GetAllValidStates()
-        for _, validState := range validStates </span><span class="cov6" title="45">{
-                if string(validState) == state </span><span class="cov3" title="5">{
+        for _, validState := range validStates </span><span class="cov8" title="1">{
+                if string(validState) == state </span><span class="cov8" title="1">{
                         return true
                 }</span>
         }
-        <span class="cov3" title="5">return false</span>
+        <span class="cov8" title="1">return false</span>
 }
 
 // GetStateTransitionMatrix returns the complete transition matrix for documentation
-func (sv *StateValidator) GetStateTransitionMatrix() map[string][]string <span class="cov1" title="2">{
+func (sv *StateValidator) GetStateTransitionMatrix() map[string][]string <span class="cov8" title="1">{
         matrix := make(map[string][]string)
         
-        for _, state := range sv.GetAllValidStates() </span><span class="cov4" title="12">{
+        for _, state := range sv.GetAllValidStates() </span><span class="cov8" title="1">{
                 matrix[string(state)] = sv.getValidTransitionsFrom(state)
         }</span>
         
-        <span class="cov1" title="2">return matrix</span>
+        <span class="cov8" title="1">return matrix</span>
 }</pre>
 		
 		<pre class="file" id="file91" style="display: none">package main
@@ -28947,7 +28938,7 @@ func (Test) Coverage() error <span class="cov0" title="0">{
                 return err
         }</span>
         
-        <span class="cov0" title="0">if err := sh.Run("go", "test", "-coverprofile="+coverageFile, "-covermode=atomic", "./..."); err != nil </span><span class="cov0" title="0">{
+        <span class="cov0" title="0">if err := sh.Run("go", "test", "-coverprofile="+coverageFile, "-covermode=set", "./..."); err != nil </span><span class="cov0" title="0">{
                 return err
         }</span>
 
@@ -29169,7 +29160,7 @@ func (Util) Security() error <span class="cov0" title="0">{
         // Check if gosec is installed
         if _, err := exec.LookPath("gosec"); err != nil </span><span class="cov0" title="0">{
                 fmt.Println("Installing gosec...")
-                if err := sh.Run("go", "install", "github.com/securecodewarrior/gosec/v2/cmd/gosec@latest"); err != nil </span><span class="cov0" title="0">{
+                if err := sh.Run("go", "install", "github.com/securecodewarrior/gosec/cmd/gosec@latest"); err != nil </span><span class="cov0" title="0">{
                         return err
                 }</span>
         }
@@ -29195,7 +29186,7 @@ func (Util) Setup() error <span class="cov0" title="0">{
         tools := []string{
                 "github.com/golangci/golangci-lint/cmd/golangci-lint@latest",
                 "github.com/goreleaser/goreleaser@latest",
-                "github.com/securecodewarrior/gosec/v2/cmd/gosec@latest",
+                "github.com/securecodewarrior/gosec/cmd/gosec@latest",
         }
 
         for _, tool := range tools </span><span class="cov0" title="0">{

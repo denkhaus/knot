@@ -41,7 +41,7 @@ func (Test) Coverage() error {
 		return err
 	}
 	
-	if err := sh.Run("go", "test", "-coverprofile="+coverageFile, "-covermode=atomic", "./..."); err != nil {
+	if err := sh.Run("go", "test", "-coverprofile="+coverageFile, "-covermode=set", "./..."); err != nil {
 		return err
 	}
 
