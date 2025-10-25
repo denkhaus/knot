@@ -143,17 +143,17 @@ func TestAppRunWithError(t *testing.T) {
 	_, w, _ := os.Pipe()
 	os.Stderr = w
 
-	// Test with invalid command - CLI shows help message but doesn't return error
+	// Test with invalid command
 	err = app.Run([]string{"knot", "invalid-command"})
 	
 	// Restore stderr
 	w.Close()
 	os.Stderr = oldStderr
 	
-	// CLI framework shows help for invalid commands but may not return error
-	// This is expected behavior for CLI apps - they show help instead of erroring
-	// So we'll just verify the app runs without panicking
-	assert.NotNil(t, app)
+	// The CLI framework should return an error for invalid commands
+	// This is the expected behavior - invalid commands should error
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "No help topic for")
 }
 
 func TestSetVersionFromBuild(t *testing.T) {
