@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
+	"go.uber.org/zap"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
 	"github.com/denkhaus/knot/internal/types"
 	"github.com/google/uuid"
@@ -116,6 +117,17 @@ func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, 
 		All(ctx)
 	if err != nil {
 		return nil, r.mapError("list projects", err)
+	}
+
+	// Debug: Log the number of projects found
+	r.config.Logger.Info("DEBUG: Found projects in database",
+		zap.Int("count", len(entProjects)))
+	for i, proj := range entProjects {
+		r.config.Logger.Info("DEBUG: Project details",
+			zap.Int("index", i),
+			zap.String("id", proj.ID.String()),
+			zap.String("title", proj.Title),
+			zap.String("state", string(proj.State)))
 	}
 
 	return entProjectsToProjects(entProjects), nil

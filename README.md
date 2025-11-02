@@ -1,14 +1,24 @@
 # Knot
 
 [![CI](https://github.com/denkhaus/knot/workflows/CI/badge.svg)](https://github.com/denkhaus/knot/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/Coverage-8.6%25-red.svg)](./coverage/coverage.html)
+[![Coverage](https://img.shields.io/badge/Coverage-35.2%25-yellow.svg)](./coverage/coverage.html)
 [![Go Version](https://img.shields.io/badge/Go-1.24-blue.svg)](https://golang.org/dl/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![Release](https://img.shields.io/github/release/denkhaus/knot.svg)](https://github.com/denkhaus/knot/releases/latest)
 [![GitHub issues](https://img.shields.io/github/issues/denkhaus/knot.svg)](https://github.com/denkhaus/knot/issues)
 [![GitHub stars](https://img.shields.io/github/stars/denkhaus/knot.svg)](https://github.com/denkhaus/knot/stargazers)
 
-A standalone CLI tool for hierarchical project and task management with dependencies. Specifically designed to be the best friend of every LLM agent - with structured, parsable outputs, comprehensive error handling, and a built-in `get-started` command that makes it easy for AI agents to understand and use all functionality. Perfect for organizing complex workflows and project hierarchies.
+A standalone CLI tool for hierarchical project and task management with dependencies. Specifically designed to be the best friend of every LLM agent - with structured, parsable outputs, comprehensive error handling, and an enhanced `get-started` command that provides immediate workflow guidance for AI agents. Perfect for organizing complex workflows and project hierarchies.
+
+## 🤖 LLM Agent First
+
+Knot is specifically designed for AI agents with:
+
+- **Enhanced `get-started` Command**: Comprehensive workflow guidance with emoji indicators and practical examples
+- **Structured Outputs**: Machine-readable JSON outputs for all list commands
+- **Intelligent Task Discovery**: `actionable`, `ready`, and `blocked` commands for smart workflow management
+- **Quick Start Workflow**: 5-step process that gets agents productive immediately
+- **Typical LLM Workflow Examples**: Complete API development project walkthrough
 
 ## Features
 
@@ -20,9 +30,10 @@ A standalone CLI tool for hierarchical project and task management with dependen
 - **Task Dependencies**: Manage complex task dependencies and blocking relationships with cycle detection
 - **Smart Complexity Management**: Auto-reduce parent task complexity when subtasks are added
 - **Local SQLite Storage**: Automatic .knot directory with persistent SQLite database and connection pooling
+- **Secure File Permissions**: Database files with 600 permissions, directories with 700 - owner access only
 - **Clean CLI Output**: No JSON logs in normal operation, debug mode available
 - **LLM-Friendly**: Structured, parsable outputs perfect for AI agents
-- **LLM Onboarding**: Built-in `get-started` command that provides comprehensive getting started guidance - perfect for LLM agents to understand all capabilities
+- **Enhanced LLM Onboarding**: Improved `get-started` command with workflow examples and emoji indicators
 - **Help Integration**: The `get-started` command is explicitly mentioned in the main help output (`knot --help`) for easy discovery
 - **Audit Trail**: Track all changes with actor information using `--actor` flag
 
@@ -83,8 +94,11 @@ go build -o knot cmd/knot/main.go
 ## Quick Start
 
 ```bash
+# Get comprehensive guidance for LLM agents
+knot get-started
+
 # Create a project
-knot project create --name "My Project" --description "Project description"
+knot project create --title "My Project" --description "Project description"
 
 # List available projects to see project IDs
 knot project list
@@ -112,7 +126,7 @@ knot project select --id <other-project-uuid>
 
 ```bash
 # Create project
-knot project create --name "Web App" --description "Main web application"
+knot project create --title "Web App" --description "Main web application"
 
 # List all projects
 knot project list
@@ -564,14 +578,33 @@ tasks:
 - **max-description-length**: Maximum task description length (default: 1000)
 - **auto-reduce-complexity**: Automatically reduce parent complexity when subtasks added (default: true)
 
+## Recent Enhancements
+
+### v2.1+ Improvements
+
+- **🧪 Enhanced Test Coverage**: Increased from 8.6% to 35.2% overall coverage
+- **📚 Comprehensive Documentation**: Added Godoc documentation for all public interfaces
+- **🔒 Security Improvements**: Implemented secure file permissions (700/600)
+- **⚡ Performance Optimizations**: Refactored long methods and improved actionable task logic
+- **🎯 LLM-Focused Features**: Enhanced get-started command with practical workflow examples
+- **🐛 Critical Bug Fixes**: Resolved database initialization issues and improved hierarchy display
+
+### Test Coverage by Module
+
+- **Repository**: 29.8% → 33.8% (SQLite operations, migrations)
+- **Commands**: ~30% → 57.5% (CLI operations, task analysis)
+- **Manager**: Improved coverage for business logic and task workflows
+- **Types**: Full documentation coverage for core interfaces
+
 ## Database
 
 Knot uses SQLite for local storage with automatic database creation in the `.knot` directory. The database includes:
 
 - Connection pooling for performance
-- Automatic migrations
+- Automatic migrations with secure permission handling
 - Data integrity constraints
 - Transaction support for bulk operations
+- Owner-only file permissions (600) for security
 
 ## Error Handling
 
@@ -592,7 +625,7 @@ PROJECT_ID=$(knot project create --name "Web App" --json | jq -r '.id')
 knot project select --id $PROJECT_ID
 
 # Apply feature template
-knot template apply --template-name "feature-development"
+knot template apply --name "feature-development"
 
 # Find ready work
 knot ready
@@ -613,7 +646,7 @@ knot actionable
 knot project select --id <project-uuid>
 
 # Create bug fix from template
-knot template apply --template-name "bug-fix" \
+knot template apply --name "bug-fix" \
   --var bug_id="BUG-123" \
   --var bug_description="Login form validation error" \
   --var priority="High"

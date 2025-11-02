@@ -87,7 +87,7 @@ func New() (*App, error) {
 	var repo types.Repository
 	var err error
 
-	repo, err = sqlite.NewRepository(
+	repo, err = sqlite.NewRepository("", 
 		sqlite.WithLogger(appLogger),
 		sqlite.WithAutoMigrate(true),
 	)

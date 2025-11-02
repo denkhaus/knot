@@ -138,43 +138,88 @@ func (s *service) ListProjects(ctx context.Context) ([]*types.Project, error) {
 // Task operations
 
 func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error) {
+	// Validate basic input
 	if err := s.validateTaskInput(title, description, complexity); err != nil {
 		return nil, err
 	}
 
 	// Validate project exists
+	if err := s.validateProjectExists(ctx, projectID); err != nil {
+		return nil, err
+	}
+
+	// Validate parent task and calculate depth
+	depth, err := s.validateParentAndCalculateDepth(ctx, parentID, projectID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Validate depth and task count constraints
+	if err := s.validateTaskConstraints(ctx, projectID, depth); err != nil {
+		return nil, err
+	}
+
+	// Create the task
+	task := s.buildNewTask(projectID, parentID, title, description, complexity, priority, depth, actor)
+	if err := s.repo.CreateTask(ctx, task); err != nil {
+		return nil, fmt.Errorf("failed to create task: %w", err)
+	}
+
+	// Handle parent complexity reduction
+	s.handleParentComplexityReduction(ctx, parentID)
+
+	return s.repo.GetTask(ctx, task.ID)
+}
+
+// validateProjectExists checks if the project exists
+func (s *service) validateProjectExists(ctx context.Context, projectID uuid.UUID) error {
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
-		return nil, fmt.Errorf("project not found: %w", err)
+		return fmt.Errorf("project not found: %w", err)
+	}
+	return nil
+}
+
+// validateParentAndCalculateDepth validates the parent task and calculates the depth
+func (s *service) validateParentAndCalculateDepth(ctx context.Context, parentID *uuid.UUID, projectID uuid.UUID) (int, error) {
+	if parentID == nil {
+		return 0, nil
 	}
 
-	// Calculate depth and validate constraints
-	depth := 0
-	if parentID != nil {
-		parentTask, err := s.repo.GetTask(ctx, *parentID)
-		if err != nil {
-			return nil, fmt.Errorf("parent task not found: %w", err)
-		}
-		if parentTask.ProjectID != projectID {
-			return nil, fmt.Errorf("parent task must be in the same project")
-		}
-		depth = parentTask.Depth + 1
+	parentTask, err := s.repo.GetTask(ctx, *parentID)
+	if err != nil {
+		return 0, fmt.Errorf("parent task not found: %w", err)
 	}
 
+	if parentTask.ProjectID != projectID {
+		return 0, fmt.Errorf("parent task must be in the same project")
+	}
+
+	return parentTask.Depth + 1, nil
+}
+
+// validateTaskConstraints validates depth and task count constraints
+func (s *service) validateTaskConstraints(ctx context.Context, projectID uuid.UUID, depth int) error {
 	// Check depth constraints
 	if depth > s.config.MaxDepth {
-		return nil, fmt.Errorf("maximum depth of %d exceeded", s.config.MaxDepth)
+		return fmt.Errorf("maximum depth of %d exceeded", s.config.MaxDepth)
 	}
 
 	// Check task count constraints for this depth
 	counts, err := s.repo.GetTaskCountByDepth(ctx, projectID, depth)
 	if err != nil {
-		return nil, fmt.Errorf("failed to check task count constraints: %w", err)
-	}
-	if counts[depth] >= s.config.MaxTasksPerDepth {
-		return nil, knoterrors.TooManyTasksError(counts[depth], s.config.MaxTasksPerDepth, depth)
+		return fmt.Errorf("failed to check task count constraints: %w", err)
 	}
 
-	task := &types.Task{
+	if counts[depth] >= s.config.MaxTasksPerDepth {
+		return knoterrors.TooManyTasksError(counts[depth], s.config.MaxTasksPerDepth, depth)
+	}
+
+	return nil
+}
+
+// buildNewTask creates a new task instance with the given parameters
+func (s *service) buildNewTask(projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, depth int, actor string) *types.Task {
+	return &types.Task{
 		ID:          uuid.New(),
 		ProjectID:   projectID,
 		ParentID:    parentID,
@@ -186,24 +231,22 @@ func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID 
 		Depth:       depth,
 		CreatedBy:   actor,
 		UpdatedBy:   actor,
-		CreatedAt:   time.Now(),
-		UpdatedAt:   time.Now(),
+		CreatedAt:   s.GetCurrentTime(),
+		UpdatedAt:   s.GetCurrentTime(),
+	}
+}
+
+// handleParentComplexityReduction automatically reduces parent complexity if enabled
+func (s *service) handleParentComplexityReduction(ctx context.Context, parentID *uuid.UUID) {
+	if !s.config.AutoReduceComplexity || parentID == nil {
+		return
 	}
 
-	if err := s.repo.CreateTask(ctx, task); err != nil {
-		return nil, fmt.Errorf("failed to create task: %w", err)
+	if err := s.autoReduceParentComplexity(ctx, *parentID); err != nil {
+		// Log error but don't fail the task creation
+		// The task was successfully created, complexity reduction is a bonus feature
+		fmt.Printf("Warning: Failed to auto-reduce parent complexity: %v\n", err)
 	}
-
-	// Auto-reduce parent complexity if enabled and this is a subtask
-	if s.config.AutoReduceComplexity && parentID != nil {
-		if err := s.autoReduceParentComplexity(ctx, *parentID); err != nil {
-			// Log error but don't fail the task creation
-			// The task was successfully created, complexity reduction is a bonus feature
-			fmt.Printf("Warning: Failed to auto-reduce parent complexity: %v\n", err)
-		}
-	}
-
-	return s.repo.GetTask(ctx, task.ID)
 }
 
 func (s *service) GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {

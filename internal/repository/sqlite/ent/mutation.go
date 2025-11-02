@@ -51,6 +51,8 @@ type ProjectMutation struct {
 	addcompleted_tasks *int
 	progress           *float64
 	addprogress        *float64
+	created_by         *string
+	updated_by         *string
 	clearedFields      map[string]struct{}
 	tasks              map[uuid.UUID]struct{}
 	removedtasks       map[uuid.UUID]struct{}
@@ -525,6 +527,104 @@ func (m *ProjectMutation) ResetProgress() {
 	m.addprogress = nil
 }
 
+// SetCreatedBy sets the "created_by" field.
+func (m *ProjectMutation) SetCreatedBy(s string) {
+	m.created_by = &s
+}
+
+// CreatedBy returns the value of the "created_by" field in the mutation.
+func (m *ProjectMutation) CreatedBy() (r string, exists bool) {
+	v := m.created_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedBy returns the old "created_by" field's value of the Project entity.
+// If the Project object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProjectMutation) OldCreatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedBy: %w", err)
+	}
+	return oldValue.CreatedBy, nil
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (m *ProjectMutation) ClearCreatedBy() {
+	m.created_by = nil
+	m.clearedFields[project.FieldCreatedBy] = struct{}{}
+}
+
+// CreatedByCleared returns if the "created_by" field was cleared in this mutation.
+func (m *ProjectMutation) CreatedByCleared() bool {
+	_, ok := m.clearedFields[project.FieldCreatedBy]
+	return ok
+}
+
+// ResetCreatedBy resets all changes to the "created_by" field.
+func (m *ProjectMutation) ResetCreatedBy() {
+	m.created_by = nil
+	delete(m.clearedFields, project.FieldCreatedBy)
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (m *ProjectMutation) SetUpdatedBy(s string) {
+	m.updated_by = &s
+}
+
+// UpdatedBy returns the value of the "updated_by" field in the mutation.
+func (m *ProjectMutation) UpdatedBy() (r string, exists bool) {
+	v := m.updated_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedBy returns the old "updated_by" field's value of the Project entity.
+// If the Project object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProjectMutation) OldUpdatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedBy: %w", err)
+	}
+	return oldValue.UpdatedBy, nil
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (m *ProjectMutation) ClearUpdatedBy() {
+	m.updated_by = nil
+	m.clearedFields[project.FieldUpdatedBy] = struct{}{}
+}
+
+// UpdatedByCleared returns if the "updated_by" field was cleared in this mutation.
+func (m *ProjectMutation) UpdatedByCleared() bool {
+	_, ok := m.clearedFields[project.FieldUpdatedBy]
+	return ok
+}
+
+// ResetUpdatedBy resets all changes to the "updated_by" field.
+func (m *ProjectMutation) ResetUpdatedBy() {
+	m.updated_by = nil
+	delete(m.clearedFields, project.FieldUpdatedBy)
+}
+
 // AddTaskIDs adds the "tasks" edge to the Task entity by ids.
 func (m *ProjectMutation) AddTaskIDs(ids ...uuid.UUID) {
 	if m.tasks == nil {
@@ -613,7 +713,7 @@ func (m *ProjectMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProjectMutation) Fields() []string {
-	fields := make([]string, 0, 8)
+	fields := make([]string, 0, 10)
 	if m.title != nil {
 		fields = append(fields, project.FieldTitle)
 	}
@@ -637,6 +737,12 @@ func (m *ProjectMutation) Fields() []string {
 	}
 	if m.progress != nil {
 		fields = append(fields, project.FieldProgress)
+	}
+	if m.created_by != nil {
+		fields = append(fields, project.FieldCreatedBy)
+	}
+	if m.updated_by != nil {
+		fields = append(fields, project.FieldUpdatedBy)
 	}
 	return fields
 }
@@ -662,6 +768,10 @@ func (m *ProjectMutation) Field(name string) (ent.Value, bool) {
 		return m.CompletedTasks()
 	case project.FieldProgress:
 		return m.Progress()
+	case project.FieldCreatedBy:
+		return m.CreatedBy()
+	case project.FieldUpdatedBy:
+		return m.UpdatedBy()
 	}
 	return nil, false
 }
@@ -687,6 +797,10 @@ func (m *ProjectMutation) OldField(ctx context.Context, name string) (ent.Value,
 		return m.OldCompletedTasks(ctx)
 	case project.FieldProgress:
 		return m.OldProgress(ctx)
+	case project.FieldCreatedBy:
+		return m.OldCreatedBy(ctx)
+	case project.FieldUpdatedBy:
+		return m.OldUpdatedBy(ctx)
 	}
 	return nil, fmt.Errorf("unknown Project field %s", name)
 }
@@ -751,6 +865,20 @@ func (m *ProjectMutation) SetField(name string, value ent.Value) error {
 			return fmt.Errorf("unexpected type %T for field %s", value, name)
 		}
 		m.SetProgress(v)
+		return nil
+	case project.FieldCreatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedBy(v)
+		return nil
+	case project.FieldUpdatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedBy(v)
 		return nil
 	}
 	return fmt.Errorf("unknown Project field %s", name)
@@ -824,6 +952,12 @@ func (m *ProjectMutation) ClearedFields() []string {
 	if m.FieldCleared(project.FieldDescription) {
 		fields = append(fields, project.FieldDescription)
 	}
+	if m.FieldCleared(project.FieldCreatedBy) {
+		fields = append(fields, project.FieldCreatedBy)
+	}
+	if m.FieldCleared(project.FieldUpdatedBy) {
+		fields = append(fields, project.FieldUpdatedBy)
+	}
 	return fields
 }
 
@@ -840,6 +974,12 @@ func (m *ProjectMutation) ClearField(name string) error {
 	switch name {
 	case project.FieldDescription:
 		m.ClearDescription()
+		return nil
+	case project.FieldCreatedBy:
+		m.ClearCreatedBy()
+		return nil
+	case project.FieldUpdatedBy:
+		m.ClearUpdatedBy()
 		return nil
 	}
 	return fmt.Errorf("unknown Project nullable field %s", name)
@@ -872,6 +1012,12 @@ func (m *ProjectMutation) ResetField(name string) error {
 		return nil
 	case project.FieldProgress:
 		m.ResetProgress()
+		return nil
+	case project.FieldCreatedBy:
+		m.ResetCreatedBy()
+		return nil
+	case project.FieldUpdatedBy:
+		m.ResetUpdatedBy()
 		return nil
 	}
 	return fmt.Errorf("unknown Project field %s", name)

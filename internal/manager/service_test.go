@@ -3,13 +3,17 @@ package manager
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/denkhaus/knot/internal/repository/inmemory"
+	"github.com/denkhaus/knot/internal/repository/sqlite"
 	"github.com/denkhaus/knot/internal/types"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
 )
 
 // TestServiceCreation tests the creation of the service
@@ -418,6 +422,98 @@ func TestConcurrency(t *testing.T) {
 		tasks, err := service.ListTasksForProject(ctx, project.ID)
 		require.NoError(t, err)
 		assert.GreaterOrEqual(t, len(tasks), numTasks)
+	})
+}
+
+// setupSQLiteTestRepository creates a SQLite repository for testing
+func setupSQLiteTestRepository(t *testing.T) (types.Repository, func()) {
+	tempDir, err := os.MkdirTemp("", "knot_manager_test_*")
+	require.NoError(t, err)
+
+	dbPath := filepath.Join(tempDir, "test.db")
+
+	repo, err := sqlite.NewRepository(dbPath,
+		sqlite.WithAutoMigrate(true),
+		sqlite.WithLogger(zap.NewNop()),
+	)
+	require.NoError(t, err)
+
+	cleanup := func() {
+		if closer, ok := repo.(interface{ Close() error }); ok {
+			closer.Close()
+		}
+		os.RemoveAll(tempDir)
+	}
+
+	return repo, cleanup
+}
+
+// TestManagerWithSQLite tests the manager with SQLite repository to reproduce potential bugs
+func TestManagerWithSQLite(t *testing.T) {
+	t.Run("create list consistency with sqlite", func(t *testing.T) {
+		ctx := context.Background()
+		repo, cleanup := setupSQLiteTestRepository(t)
+		defer cleanup()
+
+		config := DefaultConfig()
+		service := NewManagerWithRepository(repo, config)
+
+		// Create a project
+		project, err := service.CreateProject(ctx, "SQLite Test Project", "Testing with SQLite", "test-user")
+		require.NoError(t, err)
+		assert.NotEqual(t, uuid.Nil, project.ID)
+
+		// List projects - this should find our project
+		projects, err := service.ListProjects(ctx)
+		assert.NoError(t, err)
+		assert.Len(t, projects, 1, "Should find exactly one project")
+
+		found := projects[0]
+		assert.Equal(t, project.ID, found.ID)
+		assert.Equal(t, project.Title, found.Title)
+		assert.Equal(t, project.Description, found.Description)
+	})
+
+	t.Run("manager project operations", func(t *testing.T) {
+		ctx := context.Background()
+		repo, cleanup := setupSQLiteTestRepository(t)
+		defer cleanup()
+
+		config := DefaultConfig()
+		service := NewManagerWithRepository(repo, config)
+
+		// Test project creation
+		project, err := service.CreateProject(ctx, "Manager Test", "Manager operations test", "creator")
+		require.NoError(t, err)
+
+		// Test project retrieval
+		retrieved, err := service.GetProject(ctx, project.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, project.Title, retrieved.Title)
+
+		// Test project context operations
+		err = service.SetSelectedProject(ctx, project.ID, "selector")
+		assert.NoError(t, err)
+
+		selectedID, err := service.GetSelectedProject(ctx)
+		assert.NoError(t, err)
+		assert.NotNil(t, selectedID)
+		assert.Equal(t, project.ID, *selectedID)
+
+		// Test task creation
+		task, err := service.CreateTask(ctx, project.ID, nil, "Manager Task", "Task created by manager", 5, types.TaskPriorityHigh, "task-creator")
+		require.NoError(t, err)
+		assert.NotEqual(t, uuid.Nil, task.ID)
+
+		// Test task listing
+		tasks, err := service.ListTasksForProject(ctx, project.ID)
+		assert.NoError(t, err)
+		assert.Len(t, tasks, 1)
+
+		// Test task state updates
+		updated, err := service.UpdateTaskState(ctx, task.ID, types.TaskStateInProgress, "updater")
+		assert.NoError(t, err)
+		assert.Equal(t, types.TaskStateInProgress, updated.State)
 	})
 }
 

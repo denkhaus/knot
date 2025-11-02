@@ -29,13 +29,35 @@ func EnsureProjectDir() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
-	// Create directory if it doesn't exist
-	if err := os.MkdirAll(projectDir, 0755); err != nil {
+
+	// Create directory if it doesn't exist with secure permissions (owner only)
+	if err := os.MkdirAll(projectDir, 0700); err != nil {
 		return "", fmt.Errorf("failed to create project directory: %w", err)
 	}
-	
-	return projectDir, nil
+
+	// Verify and fix directory permissions are secure, even for existing directories
+	return ensureSecureDirectory(projectDir)
+}
+
+// ensureSecureDirectory verifies and fixes directory permissions for security
+func ensureSecureDirectory(dirPath string) (string, error) {
+	// Check current permissions
+	info, err := os.Stat(dirPath)
+	if err != nil {
+		return "", fmt.Errorf("failed to stat directory: %w", err)
+	}
+
+	currentPerms := info.Mode().Perm()
+	securePerms := os.FileMode(0700)
+
+	// If permissions are not secure, fix them
+	if currentPerms != securePerms {
+		if err := os.Chmod(dirPath, securePerms); err != nil {
+			return "", fmt.Errorf("failed to set secure permissions on directory: %w", err)
+		}
+	}
+
+	return dirPath, nil
 }
 
 // GetDatabasePath returns the full path to the SQLite database file

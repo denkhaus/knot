@@ -72,7 +72,7 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository {
 	})
 
 	// Create SQLite repository
-	repo, err := sqlite.NewRepository(
+	repo, err := sqlite.NewRepository("",
 		sqlite.WithLogger(tc.Logger),
 		sqlite.WithAutoMigrate(true),
 	)

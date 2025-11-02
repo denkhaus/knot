@@ -34,6 +34,10 @@ type Project struct {
 	CompletedTasks int `json:"completed_tasks,omitempty"`
 	// Progress holds the value of the "progress" field.
 	Progress float64 `json:"progress,omitempty"`
+	// CreatedBy holds the value of the "created_by" field.
+	CreatedBy string `json:"created_by,omitempty"`
+	// UpdatedBy holds the value of the "updated_by" field.
+	UpdatedBy string `json:"updated_by,omitempty"`
 	// Edges holds the relations/edges for other nodes in the graph.
 	// The values are being populated by the ProjectQuery when eager-loading is set.
 	Edges        ProjectEdges `json:"edges"`
@@ -67,7 +71,7 @@ func (*Project) scanValues(columns []string) ([]any, error) {
 			values[i] = new(sql.NullFloat64)
 		case project.FieldTotalTasks, project.FieldCompletedTasks:
 			values[i] = new(sql.NullInt64)
-		case project.FieldTitle, project.FieldDescription, project.FieldState:
+		case project.FieldTitle, project.FieldDescription, project.FieldState, project.FieldCreatedBy, project.FieldUpdatedBy:
 			values[i] = new(sql.NullString)
 		case project.FieldCreatedAt, project.FieldUpdatedAt:
 			values[i] = new(sql.NullTime)
@@ -142,6 +146,18 @@ func (_m *Project) assignValues(columns []string, values []any) error {
 			} else if value.Valid {
 				_m.Progress = value.Float64
 			}
+		case project.FieldCreatedBy:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field created_by", values[i])
+			} else if value.Valid {
+				_m.CreatedBy = value.String
+			}
+		case project.FieldUpdatedBy:
+			if value, ok := values[i].(*sql.NullString); !ok {
+				return fmt.Errorf("unexpected type %T for field updated_by", values[i])
+			} else if value.Valid {
+				_m.UpdatedBy = value.String
+			}
 		default:
 			_m.selectValues.Set(columns[i], values[i])
 		}
@@ -206,6 +222,12 @@ func (_m *Project) String() string {
 	builder.WriteString(", ")
 	builder.WriteString("progress=")
 	builder.WriteString(fmt.Sprintf("%v", _m.Progress))
+	builder.WriteString(", ")
+	builder.WriteString("created_by=")
+	builder.WriteString(_m.CreatedBy)
+	builder.WriteString(", ")
+	builder.WriteString("updated_by=")
+	builder.WriteString(_m.UpdatedBy)
 	builder.WriteByte(')')
 	return builder.String()
 }

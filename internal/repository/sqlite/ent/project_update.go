@@ -147,6 +147,46 @@ func (_u *ProjectUpdate) AddProgress(v float64) *ProjectUpdate {
 	return _u
 }
 
+// SetCreatedBy sets the "created_by" field.
+func (_u *ProjectUpdate) SetCreatedBy(v string) *ProjectUpdate {
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableCreatedBy(v *string) *ProjectUpdate {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *ProjectUpdate) ClearCreatedBy() *ProjectUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *ProjectUpdate) SetUpdatedBy(v string) *ProjectUpdate {
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableUpdatedBy(v *string) *ProjectUpdate {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *ProjectUpdate) ClearUpdatedBy() *ProjectUpdate {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
 func (_u *ProjectUpdate) AddTaskIDs(ids ...uuid.UUID) *ProjectUpdate {
 	_u.mutation.AddTaskIDs(ids...)
@@ -298,6 +338,18 @@ func (_u *ProjectUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if value, ok := _u.mutation.AddedProgress(); ok {
 		_spec.AddField(project.FieldProgress, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(project.FieldCreatedBy, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(project.FieldUpdatedBy, field.TypeString, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(project.FieldUpdatedBy, field.TypeString)
 	}
 	if _u.mutation.TasksCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -478,6 +530,46 @@ func (_u *ProjectUpdateOne) SetNillableProgress(v *float64) *ProjectUpdateOne {
 // AddProgress adds value to the "progress" field.
 func (_u *ProjectUpdateOne) AddProgress(v float64) *ProjectUpdateOne {
 	_u.mutation.AddProgress(v)
+	return _u
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *ProjectUpdateOne) SetCreatedBy(v string) *ProjectUpdateOne {
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableCreatedBy(v *string) *ProjectUpdateOne {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *ProjectUpdateOne) ClearCreatedBy() *ProjectUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *ProjectUpdateOne) SetUpdatedBy(v string) *ProjectUpdateOne {
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableUpdatedBy(v *string) *ProjectUpdateOne {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *ProjectUpdateOne) ClearUpdatedBy() *ProjectUpdateOne {
+	_u.mutation.ClearUpdatedBy()
 	return _u
 }
 
@@ -662,6 +754,18 @@ func (_u *ProjectUpdateOne) sqlSave(ctx context.Context) (_node *Project, err er
 	}
 	if value, ok := _u.mutation.AddedProgress(); ok {
 		_spec.AddField(project.FieldProgress, field.TypeFloat64, value)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(project.FieldCreatedBy, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(project.FieldUpdatedBy, field.TypeString, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(project.FieldUpdatedBy, field.TypeString)
 	}
 	if _u.mutation.TasksCleared() {
 		edge := &sqlgraph.EdgeSpec{

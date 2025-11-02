@@ -19,6 +19,8 @@ var (
 		{Name: "total_tasks", Type: field.TypeInt, Default: 0},
 		{Name: "completed_tasks", Type: field.TypeInt, Default: 0},
 		{Name: "progress", Type: field.TypeFloat64, Default: 0},
+		{Name: "created_by", Type: field.TypeString, Nullable: true},
+		{Name: "updated_by", Type: field.TypeString, Nullable: true},
 	}
 	// ProjectsTable holds the schema information for the "projects" table.
 	ProjectsTable = &schema.Table{

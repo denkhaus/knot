@@ -269,3 +269,93 @@ func TestProjectCommandsIntegration(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
+
+func TestListActionIntegration(t *testing.T) {
+	config := testutil.NewTestConfig(t)
+	mgr := config.SetupTestManager(t)
+
+	// Create app context
+	appCtx := &shared.AppContext{
+		ProjectManager: mgr,
+		Logger:         config.Logger,
+	}
+
+	// Create a test app
+	app := cli.NewApp()
+
+	t.Run("empty project list", func(t *testing.T) {
+		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
+		listCtx := cli.NewContext(app, listFlagSet, nil)
+
+		listActionFunc := listAction(appCtx)
+		err := listActionFunc(listCtx)
+
+		// Should return an error about no projects found
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "no results found")
+	})
+
+	t.Run("list after creating project", func(t *testing.T) {
+		// First, create a project using the manager
+		_ = testutil.CreateTestProject(t, mgr)
+
+		// Now try to list projects
+		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
+		listCtx := cli.NewContext(app, listFlagSet, nil)
+
+		listActionFunc := listAction(appCtx)
+		err := listActionFunc(listCtx)
+
+		// This should succeed and find our project
+		assert.NoError(t, err, "listAction should succeed after creating project")
+	})
+
+	t.Run("create then list integration test", func(t *testing.T) {
+		// Use a fresh manager to test the create/list inconsistency
+		config2 := testutil.NewTestConfig(t)
+		mgr2 := config2.SetupTestManager(t)
+
+		appCtx2 := &shared.AppContext{
+			ProjectManager: mgr2,
+			Logger:         config2.Logger,
+		}
+
+		// Create a project using createAction
+		createFlagSet := flag.NewFlagSet("create", flag.ContinueOnError)
+		createFlagSet.String("title", "Integration Test Project", "Project title")
+		createFlagSet.String("description", "Testing create/list integration", "Project description")
+		createFlagSet.String("actor", "test-user", "Actor")
+
+		createCtx := cli.NewContext(app, createFlagSet, nil)
+		createActionFunc := createAction(appCtx2)
+		err := createActionFunc(createCtx)
+		assert.NoError(t, err, "createAction should succeed")
+
+		// Now try to list projects
+		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
+		listCtx := cli.NewContext(app, listFlagSet, nil)
+
+		listActionFunc := listAction(appCtx2)
+		err = listActionFunc(listCtx)
+
+		// This should succeed and find the project we just created
+		assert.NoError(t, err, "listAction should find the project created by createAction")
+	})
+
+	t.Run("multiple projects list", func(t *testing.T) {
+		// Create multiple projects
+		for i := 0; i < 3; i++ {
+			_ = testutil.CreateTestProject(t, mgr)
+		}
+
+		// List all projects
+		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
+		listCtx := cli.NewContext(app, listFlagSet, nil)
+
+		listActionFunc := listAction(appCtx)
+		err := listActionFunc(listCtx)
+
+		// Should succeed
+		assert.NoError(t, err, "listAction should succeed with multiple projects")
+	})
+}

@@ -1,3 +1,29 @@
+// Package types defines the core domain models and interfaces for the KNOT project management system.
+//
+// This package contains the fundamental data structures used throughout the application,
+// including projects, tasks, dependencies, and repository interfaces. All types are
+// designed to be serializable to JSON and use UUIDs for primary keys.
+//
+// Key Concepts:
+//   - Projects: Top-level containers for related tasks
+//   - Tasks: Individual work units with hierarchical relationships
+//   - Dependencies: Task execution order constraints
+//   - States: Task and project lifecycle management
+//
+// Example Usage:
+//
+//	project := &types.Project{
+//		Title:       "My Project",
+//		Description: "A sample project",
+//		State:       types.ProjectStateActive,
+//	}
+//
+//	task := &types.Task{
+//		ProjectID:  project.ID,
+//		Title:      "Sample Task",
+//		Complexity: 5,
+//		State:      types.TaskStatePending,
+//	}
 package types
 
 import (
@@ -7,28 +33,72 @@ import (
 	"github.com/google/uuid"
 )
 
-// TaskState represents the current state of a task
+// TaskState represents the current state of a task in its lifecycle.
+// Tasks progress through these states as work is completed.
+//
+// State Flow:
+//   pending → in-progress → completed
+//   pending → blocked → in-progress → completed
+//   any state → cancelled
+//   any state → deletion-pending → deleted
 type TaskState string
 
 const (
-	TaskStatePending       TaskState = "pending"
-	TaskStateInProgress    TaskState = "in-progress"
-	TaskStateCompleted     TaskState = "completed"
-	TaskStateBlocked       TaskState = "blocked"
-	TaskStateCancelled     TaskState = "cancelled"
+	// TaskStatePending indicates the task is ready to be started.
+	TaskStatePending TaskState = "pending"
+
+	// TaskStateInProgress indicates the task is currently being worked on.
+	TaskStateInProgress TaskState = "in-progress"
+
+	// TaskStateCompleted indicates the task has been finished successfully.
+	TaskStateCompleted TaskState = "completed"
+
+	// TaskStateBlocked indicates the task cannot proceed due to dependencies.
+	TaskStateBlocked TaskState = "blocked"
+
+	// TaskStateCancelled indicates the task was cancelled before completion.
+	TaskStateCancelled TaskState = "cancelled"
+
+	// TaskStateDeletionPending indicates the task is marked for deletion.
 	TaskStateDeletionPending TaskState = "deletion-pending"
 )
 
-// TaskPriority represents the priority level of a task
+// TaskPriority represents the priority level of a task.
+// Priority helps determine which tasks should be worked on first when multiple tasks are available.
 type TaskPriority string
 
 const (
-	TaskPriorityLow    TaskPriority = "low"
+	// TaskPriorityLow indicates the task has low priority and can be deferred.
+	TaskPriorityLow TaskPriority = "low"
+
+	// TaskPriorityMedium indicates the task has normal priority.
 	TaskPriorityMedium TaskPriority = "medium"
-	TaskPriorityHigh   TaskPriority = "high"
+
+	// TaskPriorityHigh indicates the task has high priority and should be completed soon.
+	TaskPriorityHigh TaskPriority = "high"
 )
 
-// Task represents a single task in the project hierarchy
+// Task represents a single task in the project hierarchy.
+//
+// Tasks are the fundamental work units in KNOT and support:
+//   - Hierarchical relationships via ParentID
+//   - Dependency management via Dependencies and Dependents
+//   - Complexity-based breakdown decisions
+//   - Priority-based ordering
+//   - Agent assignment for automated workflows
+//   - Time tracking and estimation
+//
+// Example:
+//
+//	task := &types.Task{
+//		ProjectID:   projectID,
+//		Title:       "Implement user authentication",
+//		Description: "Add login and registration functionality",
+//		Complexity:  8, // High complexity - should be broken down
+//		Priority:    types.TaskPriorityHigh,
+//		State:       types.TaskStatePending,
+//		Dependencies: []uuid.UUID{designTaskID},
+//	}
 type Task struct {
 	ID            uuid.UUID    `json:"id"`
 	ProjectID     uuid.UUID    `json:"project_id"`
@@ -108,13 +178,44 @@ type TaskUpdates struct {
 	Complexity *int          `json:"complexity,omitempty"`
 }
 
-// Repository defines the interface for task and project persistence
+// Repository defines the interface for task and project persistence and retrieval.
+//
+// This interface provides a complete abstraction layer for data storage operations,
+// allowing different storage backends (SQLite, in-memory, PostgreSQL, etc.) to be
+// used interchangeably. All operations accept context.Context for cancellation
+// and timeout control.
+//
+// Implementations should handle:
+//   - Transaction management for data consistency
+//   - Concurrent access safely
+//   - Proper error handling and wrapping
+//   - Performance optimization for large datasets
+//
+// Example Usage:
+//
+//	repo := sqlite.NewRepository("data.db", sqlite.WithAutoMigrate(true))
+//	defer repo.Close()
+//
+//	project := &types.Project{Title: "My Project", State: types.ProjectStateActive}
+//	err := repo.CreateProject(ctx, project)
+//	if err != nil {
+//		return fmt.Errorf("failed to create project: %w", err)
+//	}
 type Repository interface {
 	// Project operations
+	// CreateProject persists a new project to the storage backend.
 	CreateProject(ctx context.Context, project *Project) error
+
+	// GetProject retrieves a project by its ID. Returns an error if not found.
 	GetProject(ctx context.Context, id uuid.UUID) (*Project, error)
+
+	// UpdateProject updates an existing project with new values.
 	UpdateProject(ctx context.Context, project *Project) error
+
+	// DeleteProject removes a project and all its associated tasks.
 	DeleteProject(ctx context.Context, id uuid.UUID) error
+
+	// ListProjects returns all projects sorted by creation date.
 	ListProjects(ctx context.Context) ([]*Project, error)
 
 	// Task operations

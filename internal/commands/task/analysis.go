@@ -35,6 +35,19 @@ func isTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool {
 	return true
 }
 
+// hasActiveSubtasks checks if a task has any active (pending/in-progress) subtasks
+func hasActiveSubtasks(parent *types.Task, allTasks []*types.Task) bool {
+	for _, task := range allTasks {
+		if task.ParentID != nil && *task.ParentID == parent.ID {
+			// Found a subtask, check if it's active
+			if task.State == types.TaskStatePending || task.State == types.TaskStateInProgress {
+				return true
+			}
+		}
+	}
+	return false
+}
+
 // ActionableAction finds the next actionable task in a project
 func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
@@ -74,9 +87,9 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Prioritize in-progress tasks first
 		if len(inProgressTasks) > 0 {
-			// For in-progress tasks, find one that has all its dependencies met
+			// For in-progress tasks, find one that has all its dependencies met and no active subtasks
 			for _, task := range inProgressTasks {
-				if isTaskReady(task, taskMap) {
+				if isTaskReady(task, taskMap) && !hasActiveSubtasks(task, allTasks) {
 					fmt.Printf("Next actionable task (in-progress):\n\n")
 					fmt.Printf("* %s (ID: %s)\n", task.Title, task.ID)
 					if task.Description != "" {
@@ -97,9 +110,9 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 			fmt.Println("Warning: In-progress tasks exist but none have all dependencies met - possible data inconsistency")
 		}
 
-		// For pending tasks, find one that has all its dependencies met
+		// For pending tasks, find one that has all its dependencies met and no active subtasks
 		for _, task := range pendingTasks {
-			if isTaskReady(task, taskMap) {
+			if isTaskReady(task, taskMap) && !hasActiveSubtasks(task, allTasks) {
 				fmt.Printf("Next actionable task:\n\n")
 				fmt.Printf("* %s (ID: %s)\n", task.Title, task.ID)
 				if task.Description != "" {

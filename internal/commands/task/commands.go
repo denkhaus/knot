@@ -107,8 +107,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 				},
 				&cli.StringFlag{
 					Name:  "sort",
-					Usage: "Sort by field (title, complexity, state, priority, created, depth)",
-					Value: "created",
+					Usage: "Sort by field (title, complexity, state, priority, created, depth, hierarchy)",
+					Value: "hierarchy",
 				},
 				&cli.BoolFlag{
 					Name:  "reverse",
@@ -361,7 +361,14 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 			for i := 0; i < task.Depth; i++ {
 				indent += "  "
 			}
-			fmt.Printf("%s* %s (ID: %s)\n", indent, task.Title, task.ID)
+
+			// Show parent information for better hierarchy understanding
+			parentInfo := ""
+			if task.ParentID != nil {
+				parentInfo = fmt.Sprintf(" (Parent: %s)", *task.ParentID)
+			}
+
+			fmt.Printf("%s* %s (ID: %s)%s\n", indent, task.Title, task.ID, parentInfo)
 			if task.Description != "" {
 				fmt.Printf("%s  %s\n", indent, task.Description)
 			}
@@ -694,6 +701,13 @@ func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task {
 			less = priorityOrder[string(sorted[i].Priority)] < priorityOrder[string(sorted[j].Priority)]
 		case "depth":
 			less = sorted[i].Depth < sorted[j].Depth
+		case "hierarchy":
+			// Hierarchical sort: first by depth, then by creation time within each level
+			if sorted[i].Depth != sorted[j].Depth {
+				less = sorted[i].Depth < sorted[j].Depth
+			} else {
+				less = sorted[i].ID.String() < sorted[j].ID.String()
+			}
 		case "created":
 			fallthrough
 		default:

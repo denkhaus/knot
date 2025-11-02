@@ -22,7 +22,7 @@ func TestEntRepositoryInterface(t *testing.T) {
 	ctx := context.Background()
 
 	// Create repository
-	repo, err := NewRepository(WithDatabasePath(databaseURL), WithAutoMigrate(true))
+	repo, err := NewRepository(databaseURL, WithAutoMigrate(true))
 	require.NoError(t, err, "Failed to create ent repository")
 	defer func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
@@ -317,7 +317,7 @@ func BenchmarkEntRepository(b *testing.B) {
 	}
 
 	ctx := context.Background()
-	repo, err := NewRepository(WithDatabasePath(databaseURL), WithAutoMigrate(true))
+	repo, err := NewRepository(databaseURL, WithAutoMigrate(true))
 	if err != nil {
 		b.Fatalf("Failed to create repository: %v", err)
 	}

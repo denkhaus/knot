@@ -25,8 +25,7 @@ func setupIntegrationTest(t *testing.T) (manager.ProjectManager, func()) {
 	dbPath := filepath.Join(tempDir, "integration_test.db")
 	
 	// Create repository
-	repo, err := sqlite.NewRepository(
-		sqlite.WithDatabasePath(dbPath),
+	repo, err := sqlite.NewRepository(dbPath,
 		sqlite.WithAutoMigrate(true),
 		sqlite.WithLogger(zap.NewNop()), // Silent logger for tests
 	)

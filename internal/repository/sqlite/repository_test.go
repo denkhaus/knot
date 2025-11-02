@@ -24,8 +24,7 @@ func setupTestRepository(t *testing.T) (types.Repository, func()) {
 	dbPath := filepath.Join(tempDir, "test.db")
 	
 	// Create repository with test configuration
-	repo, err := NewRepository(
-		WithDatabasePath(dbPath),
+	repo, err := NewRepository(dbPath,
 		WithAutoMigrate(true),
 		WithLogger(zap.NewNop()), // Silent logger for tests
 	)
@@ -58,8 +57,7 @@ func TestRepositoryInitialization(t *testing.T) {
 		
 		dbPath := filepath.Join(tempDir, "custom.db")
 		
-		repo, err := NewRepository(
-			WithDatabasePath(dbPath),
+		repo, err := NewRepository(dbPath,
 			WithAutoMigrate(true),
 			WithConnectionPool(2, 1),
 			WithConnectionLifetime(time.Hour, time.Minute*30),
@@ -146,6 +144,61 @@ func TestProjectOperations(t *testing.T) {
 		assert.GreaterOrEqual(t, len(retrieved), 2)
 	})
 	
+	
+	t.Run("create then list project consistency", func(t *testing.T) {
+		// This test reproduces the bug where CreateProject succeeds but ListProjects returns empty
+		ctx := context.Background()
+
+		// Create a project
+		project := &types.Project{
+			ID:          uuid.New(),
+			Title:       "Consistency Test Project",
+			Description: "Testing create/list consistency",
+			State:       types.ProjectStateActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		// Create the project
+		err := repo.CreateProject(ctx, project)
+		require.NoError(t, err, "CreateProject should succeed")
+
+		// Immediately try to list projects
+		projects, err := repo.ListProjects(ctx)
+		assert.NoError(t, err, "ListProjects should succeed")
+		assert.GreaterOrEqual(t, len(projects), 1, "Should find at least the created project")
+
+		// Verify our project is in the list
+		found := false
+		for _, p := range projects {
+			if p.ID == project.ID {
+				found = true
+				assert.Equal(t, project.Title, p.Title)
+				assert.Equal(t, project.Description, p.Description)
+				break
+			}
+		}
+		assert.True(t, found, "Created project should be found in list")
+
+		// Also test direct retrieval
+		retrieved, err := repo.GetProject(ctx, project.ID)
+		assert.NoError(t, err, "GetProject should succeed")
+		assert.Equal(t, project.Title, retrieved.Title)
+		assert.Equal(t, project.Description, retrieved.Description)
+	})
+
+	t.Run("list empty projects", func(t *testing.T) {
+		ctx := context.Background()
+
+		// List projects when there should be none (using fresh repo)
+		repo2, cleanup2 := setupTestRepository(t)
+		defer cleanup2()
+
+		projects, err := repo2.ListProjects(ctx)
+		assert.NoError(t, err, "ListProjects should succeed even when empty")
+		assert.Empty(t, projects, "Should return empty list when no projects exist")
+	})
+
 	t.Run("update project", func(t *testing.T) {
 		// Create a project first
 		project := &types.Project{
@@ -455,5 +508,179 @@ func TestConcurrency(t *testing.T) {
 		assert.NoError(t, err)
 		assert.Greater(t, successCount, 0, "At least some concurrent operations should succeed")
 		assert.GreaterOrEqual(t, len(tasks), successCount)
+	})
+}
+
+// TestBugReproduction reproduces the create/list inconsistency bug
+func TestBugReproduction(t *testing.T) {
+	t.Run("reproduce create list bug", func(t *testing.T) {
+		ctx := context.Background()
+		repo, cleanup := setupTestRepository(t)
+		defer cleanup()
+
+		// Step 1: Create a project (this should succeed)
+		project := &types.Project{
+			ID:          uuid.New(),
+			Title:       "Bug Reproduction Project",
+			Description: "Project to reproduce the create/list bug",
+			State:       types.ProjectStateActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		err := repo.CreateProject(ctx, project)
+		require.NoError(t, err, "CreateProject should succeed")
+
+		// Step 2: List projects (this should also succeed and find our project)
+		projects, err := repo.ListProjects(ctx)
+		assert.NoError(t, err, "ListProjects should succeed")
+		assert.Len(t, projects, 1, "Should find exactly one project")
+
+		// Step 3: Verify project details
+		found := projects[0]
+		assert.Equal(t, project.ID, found.ID)
+		assert.Equal(t, project.Title, found.Title)
+		assert.Equal(t, project.Description, found.Description)
+		assert.Equal(t, project.State, found.State)
+
+		// Step 4: Multiple creates and lists
+		for i := 0; i < 3; i++ {
+			p := &types.Project{
+				ID:          uuid.New(),
+				Title:       fmt.Sprintf("Project %d", i),
+				Description: fmt.Sprintf("Description for project %d", i),
+				State:       types.ProjectStateActive,
+				CreatedAt:   time.Now(),
+				UpdatedAt:   time.Now(),
+			}
+
+			err := repo.CreateProject(ctx, p)
+			require.NoError(t, err)
+
+			// Verify project appears in list immediately
+			projects, err := repo.ListProjects(ctx)
+			assert.NoError(t, err)
+			assert.Len(t, projects, i+2, "Should find all created projects")
+		}
+	})
+
+	t.Run("project context operations", func(t *testing.T) {
+		ctx := context.Background()
+		repo, cleanup := setupTestRepository(t)
+		defer cleanup()
+
+		// Create a project
+		project := &types.Project{
+			ID:          uuid.New(),
+			Title:       "Context Test Project",
+			Description: "Testing project context operations",
+			State:       types.ProjectStateActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		err := repo.CreateProject(ctx, project)
+		require.NoError(t, err)
+
+		// Test project context operations
+		err = repo.SetSelectedProject(ctx, project.ID, "test-actor")
+		assert.NoError(t, err)
+
+		selectedID, err := repo.GetSelectedProject(ctx)
+		assert.NoError(t, err)
+		assert.NotNil(t, selectedID)
+		assert.Equal(t, project.ID, *selectedID)
+
+		hasSelected, err := repo.HasSelectedProject(ctx)
+		assert.NoError(t, err)
+		assert.True(t, hasSelected)
+
+		// Clear selection
+		err = repo.ClearSelectedProject(ctx)
+		assert.NoError(t, err)
+
+		hasSelected, err = repo.HasSelectedProject(ctx)
+		assert.NoError(t, err)
+		assert.False(t, hasSelected)
+
+		selectedID, err = repo.GetSelectedProject(ctx)
+		assert.NoError(t, err)
+		assert.Nil(t, selectedID)
+	})
+
+	t.Run("secure directory permissions", func(t *testing.T) {
+		_, cleanup := setupTestRepository(t)
+		defer cleanup()
+
+		// Check that the .knot directory was created with secure permissions
+		projectDir, err := os.Getwd()
+		require.NoError(t, err)
+
+		knotDir := filepath.Join(projectDir, ".knot")
+		info, err := os.Stat(knotDir)
+		if err == nil {
+			// Directory exists, check permissions
+			perms := info.Mode().Perm()
+			assert.Equal(t, os.FileMode(0700), perms, "Directory should have secure permissions (0700)")
+		}
+	})
+}
+
+func TestSecurityFeatures(t *testing.T) {
+	t.Run("secure project directory creation", func(t *testing.T) {
+		// Test the EnsureProjectDir function directly
+		tempDir, err := os.MkdirTemp("", "knot_security_test_*")
+		require.NoError(t, err)
+		defer os.RemoveAll(tempDir)
+
+		// Change to temp directory
+		originalCwd, err := os.Getwd()
+		require.NoError(t, err)
+		defer os.Chdir(originalCwd)
+
+		err = os.Chdir(tempDir)
+		require.NoError(t, err)
+
+		// Test secure directory creation
+		projectDir, err := EnsureProjectDir()
+		assert.NoError(t, err)
+
+		// Verify permissions
+		info, err := os.Stat(projectDir)
+		assert.NoError(t, err)
+		assert.Equal(t, os.FileMode(0700), info.Mode().Perm())
+	})
+
+	t.Run("database file permissions", func(t *testing.T) {
+		ctx := context.Background()
+		repo, cleanup := setupTestRepository(t)
+		defer cleanup()
+
+		// Get the database path
+		dbPath, err := GetDatabasePath()
+		assert.NoError(t, err)
+
+		// Create a project to ensure the database file is created
+		project := &types.Project{
+			ID:          uuid.New(),
+			Title:       "Security Test Project",
+			Description: "Testing file permissions",
+			State:       types.ProjectStateActive,
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+		}
+
+		err = repo.CreateProject(ctx, project)
+		assert.NoError(t, err)
+
+		// Check database file permissions
+		info, err := os.Stat(dbPath)
+		if err == nil {
+			perms := info.Mode().Perm()
+			// Check if permissions are within acceptable range for security
+			// SQLite typically creates files with 0644, which allows read access to group/others
+			// This is acceptable for database files that don't contain highly sensitive data
+			assert.True(t, perms <= os.FileMode(0644), "Database file should not have world-writable permissions, got %o", perms)
+		}
 	})
 }

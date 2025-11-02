@@ -4,6 +4,8 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"os"
+	"path/filepath"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -22,7 +24,7 @@ type sqliteRepository struct {
 }
 
 // NewRepository creates a new SQLite repository using ent ORM
-func NewRepository(opts ...Option) (types.Repository, error) {
+func NewRepository(dbPath string, opts ...Option) (types.Repository, error) {
 	config := OptimizedConfig() // Use optimized config by default
 
 	repo := &sqliteRepository{
@@ -35,7 +37,7 @@ func NewRepository(opts ...Option) (types.Repository, error) {
 		opt(repo)
 	}
 
-	if err := repo.initialize(); err != nil {
+	if err := repo.initialize(dbPath); err != nil {
 		return nil, fmt.Errorf("failed to initialize repository: %w", err)
 	}
 
@@ -43,9 +45,9 @@ func NewRepository(opts ...Option) (types.Repository, error) {
 }
 
 // initialize sets up the ent client and performs migrations
-func (r *sqliteRepository) initialize() error {
+func (r *sqliteRepository) initialize(dbPath string) error {
 	// Get SQLite connection string
-	connStr, err := GetSQLiteConnectionString()
+	connStr, err := r.getSQLiteConnectionString(dbPath)
 	if err != nil {
 		return fmt.Errorf("failed to get SQLite connection string: %w", err)
 	}
@@ -56,7 +58,7 @@ func (r *sqliteRepository) initialize() error {
 	if err != nil {
 		return NewConnectionError("failed to open database connection", err)
 	}
-	
+
 	// Configure SQLite for optimal performance
 	if err := r.configureSQLiteOptimizations(db); err != nil {
 		return NewConnectionError("failed to configure SQLite optimizations", err)
@@ -83,14 +85,20 @@ func (r *sqliteRepository) initialize() error {
 		defer cancel()
 
 		// Use safe migration options to add new tables without affecting existing data
-		if err := r.client.Schema.Create(ctx, 
+		if err := r.client.Schema.Create(ctx,
 			schema.WithDropIndex(false),
 			schema.WithDropColumn(false),
 		); err != nil {
 			return NewMigrationError("auto-migration failed", err)
 		}
-		
+
 		r.logger.Info("Database schema migration completed successfully")
+	}
+
+	// Ensure database file has secure permissions
+	if err := r.secureDatabaseFile(dbPath); err != nil {
+		r.config.Logger.Warn("Failed to secure database file permissions", zap.Error(err))
+		// Don't fail initialization for permission issues, just log warning
 	}
 
 	return nil
@@ -139,13 +147,13 @@ func (r *sqliteRepository) configureSQLiteOptimizations(db *sql.DB) error {
 
 	for _, opt := range optimizations {
 		if _, err := db.Exec(opt.pragma); err != nil {
-			r.config.Logger.Warn("Failed to apply SQLite optimization", 
+			r.config.Logger.Warn("Failed to apply SQLite optimization",
 				zap.String("optimization", opt.name),
 				zap.String("pragma", opt.pragma),
 				zap.Error(err))
 			// Continue with other optimizations even if one fails
 		} else {
-			r.config.Logger.Debug("Applied SQLite optimization", 
+			r.config.Logger.Debug("Applied SQLite optimization",
 				zap.String("optimization", opt.name))
 		}
 	}
@@ -190,3 +198,42 @@ func (r *sqliteRepository) validateInitialConnection(db *sql.DB) error {
 	r.config.Logger.Info("Database connection validation successful")
 	return nil
 }
+
+// getSQLiteConnectionString returns the SQLite connection string
+func (r *sqliteRepository) getSQLiteConnectionString(dbPath string) (string, error) {
+	// Use default database path if empty
+	if dbPath == "" {
+		var err error
+		dbPath, err = GetDatabasePath()
+		if err != nil {
+			return "", fmt.Errorf("failed to get default database path: %w", err)
+		}
+	}
+
+	// Ensure the directory exists with secure permissions
+	if err := os.MkdirAll(filepath.Dir(dbPath), 0700); err != nil {
+		return "", fmt.Errorf("failed to create database directory: %w", err)
+	}
+
+	// SQLite connection string - simple path format
+	return dbPath, nil
+}
+
+// secureDatabaseFile ensures the database file has secure permissions (owner read/write only)
+func (r *sqliteRepository) secureDatabaseFile(dbPath string) error {
+	// Check if database file exists
+	if _, err := os.Stat(dbPath); os.IsNotExist(err) {
+		// File doesn't exist yet, nothing to secure
+		return nil
+	}
+
+	// Set secure permissions: read/write for owner only
+	securePerms := os.FileMode(0600)
+	if err := os.Chmod(dbPath, securePerms); err != nil {
+		return fmt.Errorf("failed to set secure database file permissions: %w", err)
+	}
+
+	r.config.Logger.Debug("Database file permissions secured", zap.String("path", dbPath))
+	return nil
+}
+

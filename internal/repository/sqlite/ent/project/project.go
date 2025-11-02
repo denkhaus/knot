@@ -32,6 +32,10 @@ const (
 	FieldCompletedTasks = "completed_tasks"
 	// FieldProgress holds the string denoting the progress field in the database.
 	FieldProgress = "progress"
+	// FieldCreatedBy holds the string denoting the created_by field in the database.
+	FieldCreatedBy = "created_by"
+	// FieldUpdatedBy holds the string denoting the updated_by field in the database.
+	FieldUpdatedBy = "updated_by"
 	// EdgeTasks holds the string denoting the tasks edge name in mutations.
 	EdgeTasks = "tasks"
 	// Table holds the table name of the project in the database.
@@ -56,6 +60,8 @@ var Columns = []string{
 	FieldTotalTasks,
 	FieldCompletedTasks,
 	FieldProgress,
+	FieldCreatedBy,
+	FieldUpdatedBy,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -167,6 +173,16 @@ func ByCompletedTasks(opts ...sql.OrderTermOption) OrderOption {
 // ByProgress orders the results by the progress field.
 func ByProgress(opts ...sql.OrderTermOption) OrderOption {
 	return sql.OrderByField(FieldProgress, opts...).ToFunc()
+}
+
+// ByCreatedBy orders the results by the created_by field.
+func ByCreatedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldCreatedBy, opts...).ToFunc()
+}
+
+// ByUpdatedBy orders the results by the updated_by field.
+func ByUpdatedBy(opts ...sql.OrderTermOption) OrderOption {
+	return sql.OrderByField(FieldUpdatedBy, opts...).ToFunc()
 }
 
 // ByTasksCount orders the results by tasks count.

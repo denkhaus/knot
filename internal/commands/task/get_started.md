@@ -2,30 +2,41 @@
 
 Knot is a hierarchical project and task management tool with dependencies. It's designed to help structure complex projects into manageable tasks.
 
-### Essential Project Commands
+### 🚀 Quick Start Workflow
+
+```
+# 1. Create your first project
+knot project create --title "My Project" --description "Project description"
+
+# 2. Select the project (required before any task operations)
+knot project select --id <project-id>
+
+# 3. Create your first task
+knot task create --title "Initial Setup" --description "Project setup tasks" --complexity 3
+
+# 4. Find out what to work on next
+knot actionable        # Shows the next ready task
+
+# 5. Work on the task and update progress
+knot task update-state --id <task-id> --state in-progress
+knot task update-state --id <task-id> --state completed
+```
+
+### 📋 Essential Project Commands
 
 ```
 # Create a new project
-knot project create --name "<project-name>" --description "<project-description>"
+knot project create --title "<project-name>" --description "<project-description>"
 
 # List all projects
 knot project list
 
-# Get project details
+# Get project details and progress
 knot project get --id <project-id>
-```
 
-### Project Selection (Required First)
-
-```
-# Select a project to work with (required before task operations)
+# Switch between projects
 knot project select --id <project-id>
-
-# Check which project is currently selected
 knot project get-selected
-
-# Clear project selection
-knot project clear-selection
 ```
 
 ### Essential Task Commands
@@ -116,6 +127,40 @@ knot template apply --name <template-name> --var name=value
 1. Create project → Select project → Create tasks → Set dependencies → Work through tasks
 2. For complex tasks (complexity ≥8) → Break down into subtasks → Work on subtasks
 3. Select project → Use `ready` command to find next task → Work on task → Update state to `in-progress` → Update state to `completed`
+
+### 🔄 Typical LLM Agent Workflow
+
+```
+# Start a new coding project
+knot project create --title "API Development" --description "REST API with user authentication"
+knot project select --id <project-id>
+
+# Create high-level tasks
+knot task create --title "Setup project structure" --complexity 3
+knot task create --title "Implement user model" --complexity 5
+knot task create --title "Create authentication endpoints" --complexity 8
+
+# Check what needs breakdown
+knot breakdown  # Will show the authentication endpoints task (complexity 8)
+
+# Break down complex task into subtasks
+knot task create --parent-id <auth-task-id> --title "Design JWT token structure" --complexity 4
+knot task create --parent-id <auth-task-id> --title "Implement login endpoint" --complexity 5
+knot task create --parent-id <auth-task-id> --title "Implement token validation" --complexity 6
+
+# Set dependencies (login needs user model first)
+knot dependency add --task-id <login-task-id> --depends-on <user-model-task-id>
+
+# Find your next task
+knot actionable  # Will show "Setup project structure" first
+
+# Work through tasks systematically
+knot task update-state --id <setup-task-id> --state in-progress
+knot task update-state --id <setup-task-id> --state completed
+
+# Check what's next
+knot actionable  # Will show "Implement user model" as it's now ready
+```
 
 ### Important Notes
 

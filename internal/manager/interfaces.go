@@ -1,3 +1,25 @@
+// Package manager provides business logic for hierarchical project and task management.
+//
+// This package implements the core domain logic that sits between the CLI layer
+// and the repository layer. It handles validation, business rules, and complex
+// operations like dependency management and hierarchical task relationships.
+//
+// Key Features:
+//   - Hierarchical task management with parent-child relationships
+//   - Dependency validation and cycle detection
+//   - Complexity-based task breakdown recommendations
+//   - Agent assignment and workload management
+//   - Project progress tracking and analytics
+//
+// Example Usage:
+//
+//	repo := sqlite.NewRepository("data.db", sqlite.WithAutoMigrate(true))
+//	manager := manager.NewManagerWithRepository(repo, manager.DefaultConfig())
+//
+//	project, err := manager.CreateProject(ctx, "My Project", "Description", "user")
+//	if err != nil {
+//		return fmt.Errorf("failed to create project: %w", err)
+//	}
 package manager
 
 import (
@@ -8,7 +30,17 @@ import (
 	"github.com/google/uuid"
 )
 
-// ProjectManager defines the public interface for project task management
+// ProjectManager defines the public interface for project and task management
+// with business logic validation and state transitions.
+//
+// This interface provides high-level operations that include:
+//   - Input validation and business rule enforcement
+//   - State transition validation
+//   - Dependency cycle detection
+//   - Automatic progress calculation
+//   - Audit trail management with actor tracking
+//
+// Implementations should be thread-safe and handle concurrent access properly.
 type ProjectManager interface {
 	// Project operations
 	CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error)
