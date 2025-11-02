@@ -75,11 +75,11 @@
 				
 				<option value="file9">github.com/denkhaus/knot/internal/commands/project/commands.go (57.5%)</option>
 				
-				<option value="file10">github.com/denkhaus/knot/internal/commands/task/analysis.go (3.8%)</option>
+				<option value="file10">github.com/denkhaus/knot/internal/commands/task/analysis.go (3.7%)</option>
 				
 				<option value="file11">github.com/denkhaus/knot/internal/commands/task/bulk.go (0.0%)</option>
 				
-				<option value="file12">github.com/denkhaus/knot/internal/commands/task/commands.go (50.4%)</option>
+				<option value="file12">github.com/denkhaus/knot/internal/commands/task/commands.go (50.0%)</option>
 				
 				<option value="file13">github.com/denkhaus/knot/internal/commands/task/deletion.go (0.0%)</option>
 				
@@ -107,13 +107,13 @@
 				
 				<option value="file25">github.com/denkhaus/knot/internal/manager/manager.go (40.0%)</option>
 				
-				<option value="file26">github.com/denkhaus/knot/internal/manager/service.go (25.1%)</option>
+				<option value="file26">github.com/denkhaus/knot/internal/manager/service.go (27.0%)</option>
 				
 				<option value="file27">github.com/denkhaus/knot/internal/repository/inmemory/repository.go (0.0%)</option>
 				
-				<option value="file28">github.com/denkhaus/knot/internal/repository/sqlite/config.go (68.0%)</option>
+				<option value="file28">github.com/denkhaus/knot/internal/repository/sqlite/config.go (58.8%)</option>
 				
-				<option value="file29">github.com/denkhaus/knot/internal/repository/sqlite/context_operations.go (0.0%)</option>
+				<option value="file29">github.com/denkhaus/knot/internal/repository/sqlite/context_operations.go (73.8%)</option>
 				
 				<option value="file30">github.com/denkhaus/knot/internal/repository/sqlite/dependency_operations.go (0.0%)</option>
 				
@@ -203,15 +203,15 @@
 				
 				<option value="file73">github.com/denkhaus/knot/internal/repository/sqlite/health.go (0.0%)</option>
 				
-				<option value="file74">github.com/denkhaus/knot/internal/repository/sqlite/mappers.go (69.2%)</option>
+				<option value="file74">github.com/denkhaus/knot/internal/repository/sqlite/mappers.go (70.5%)</option>
 				
-				<option value="file75">github.com/denkhaus/knot/internal/repository/sqlite/options.go (76.5%)</option>
+				<option value="file75">github.com/denkhaus/knot/internal/repository/sqlite/options.go (64.7%)</option>
 				
 				<option value="file76">github.com/denkhaus/knot/internal/repository/sqlite/pool_optimization.go (44.7%)</option>
 				
-				<option value="file77">github.com/denkhaus/knot/internal/repository/sqlite/project_operations.go (63.6%)</option>
+				<option value="file77">github.com/denkhaus/knot/internal/repository/sqlite/project_operations.go (65.5%)</option>
 				
-				<option value="file78">github.com/denkhaus/knot/internal/repository/sqlite/repository.go (67.2%)</option>
+				<option value="file78">github.com/denkhaus/knot/internal/repository/sqlite/repository.go (64.1%)</option>
 				
 				<option value="file79">github.com/denkhaus/knot/internal/repository/sqlite/task_operations.go (40.3%)</option>
 				
@@ -382,7 +382,7 @@ func New() (*App, error) <span class="cov8" title="1">{
         var repo types.Repository
         var err error
 
-        repo, err = sqlite.NewRepository(
+        repo, err = sqlite.NewRepository("", 
                 sqlite.WithLogger(appLogger),
                 sqlite.WithAutoMigrate(true),
         )
@@ -2315,6 +2315,19 @@ func isTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool <span
         <span class="cov8" title="1">return true</span>
 }
 
+// hasActiveSubtasks checks if a task has any active (pending/in-progress) subtasks
+func hasActiveSubtasks(parent *types.Task, allTasks []*types.Task) bool <span class="cov0" title="0">{
+        for _, task := range allTasks </span><span class="cov0" title="0">{
+                if task.ParentID != nil &amp;&amp; *task.ParentID == parent.ID </span><span class="cov0" title="0">{
+                        // Found a subtask, check if it's active
+                        if task.State == types.TaskStatePending || task.State == types.TaskStateInProgress </span><span class="cov0" title="0">{
+                                return true
+                        }</span>
+                }
+        }
+        <span class="cov0" title="0">return false</span>
+}
+
 // ActionableAction finds the next actionable task in a project
 func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov0" title="0">{
         return func(c *cli.Context) error </span><span class="cov0" title="0">{
@@ -2354,9 +2367,9 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov
 
                 // Prioritize in-progress tasks first
                 if len(inProgressTasks) &gt; 0 </span><span class="cov0" title="0">{
-                        // For in-progress tasks, find one that has all its dependencies met
+                        // For in-progress tasks, find one that has all its dependencies met and no active subtasks
                         for _, task := range inProgressTasks </span><span class="cov0" title="0">{
-                                if isTaskReady(task, taskMap) </span><span class="cov0" title="0">{
+                                if isTaskReady(task, taskMap) &amp;&amp; !hasActiveSubtasks(task, allTasks) </span><span class="cov0" title="0">{
                                         fmt.Printf("Next actionable task (in-progress):\n\n")
                                         fmt.Printf("* %s (ID: %s)\n", task.Title, task.ID)
                                         if task.Description != "" </span><span class="cov0" title="0">{
@@ -2377,9 +2390,9 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov
                         <span class="cov0" title="0">fmt.Println("Warning: In-progress tasks exist but none have all dependencies met - possible data inconsistency")</span>
                 }
 
-                // For pending tasks, find one that has all its dependencies met
+                // For pending tasks, find one that has all its dependencies met and no active subtasks
                 <span class="cov0" title="0">for _, task := range pendingTasks </span><span class="cov0" title="0">{
-                        if isTaskReady(task, taskMap) </span><span class="cov0" title="0">{
+                        if isTaskReady(task, taskMap) &amp;&amp; !hasActiveSubtasks(task, allTasks) </span><span class="cov0" title="0">{
                                 fmt.Printf("Next actionable task:\n\n")
                                 fmt.Printf("* %s (ID: %s)\n", task.Title, task.ID)
                                 if task.Description != "" </span><span class="cov0" title="0">{
@@ -3236,8 +3249,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command <span class="cov0" title
                                 },
                                 &amp;cli.StringFlag{
                                         Name:  "sort",
-                                        Usage: "Sort by field (title, complexity, state, priority, created, depth)",
-                                        Value: "created",
+                                        Usage: "Sort by field (title, complexity, state, priority, created, depth, hierarchy)",
+                                        Value: "hierarchy",
                                 },
                                 &amp;cli.BoolFlag{
                                         Name:  "reverse",
@@ -3490,7 +3503,14 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc <span class="cov8" tit
                         for i := 0; i &lt; task.Depth; i++ </span><span class="cov0" title="0">{
                                 indent += "  "
                         }</span>
-                        <span class="cov8" title="1">fmt.Printf("%s* %s (ID: %s)\n", indent, task.Title, task.ID)
+
+                        // Show parent information for better hierarchy understanding
+                        <span class="cov8" title="1">parentInfo := ""
+                        if task.ParentID != nil </span><span class="cov0" title="0">{
+                                parentInfo = fmt.Sprintf(" (Parent: %s)", *task.ParentID)
+                        }</span>
+
+                        <span class="cov8" title="1">fmt.Printf("%s* %s (ID: %s)%s\n", indent, task.Title, task.ID, parentInfo)
                         if task.Description != "" </span><span class="cov8" title="1">{
                                 fmt.Printf("%s  %s\n", indent, task.Description)
                         }</span>
@@ -3823,6 +3843,13 @@ func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task <span c
                         less = priorityOrder[string(sorted[i].Priority)] &lt; priorityOrder[string(sorted[j].Priority)]</span>
                 case "depth":<span class="cov0" title="0">
                         less = sorted[i].Depth &lt; sorted[j].Depth</span>
+                case "hierarchy":<span class="cov0" title="0">
+                        // Hierarchical sort: first by depth, then by creation time within each level
+                        if sorted[i].Depth != sorted[j].Depth </span><span class="cov0" title="0">{
+                                less = sorted[i].Depth &lt; sorted[j].Depth
+                        }</span> else<span class="cov0" title="0"> {
+                                less = sorted[i].ID.String() &lt; sorted[j].ID.String()
+                        }</span>
                 case "created":<span class="cov0" title="0">
                         fallthrough</span>
                 default:<span class="cov8" title="1">
@@ -6404,7 +6431,29 @@ func Sync() <span class="cov0" title="0">{
         }</span>
 }</pre>
 		
-		<pre class="file" id="file24" style="display: none">package manager
+		<pre class="file" id="file24" style="display: none">// Package manager provides business logic for hierarchical project and task management.
+//
+// This package implements the core domain logic that sits between the CLI layer
+// and the repository layer. It handles validation, business rules, and complex
+// operations like dependency management and hierarchical task relationships.
+//
+// Key Features:
+//   - Hierarchical task management with parent-child relationships
+//   - Dependency validation and cycle detection
+//   - Complexity-based task breakdown recommendations
+//   - Agent assignment and workload management
+//   - Project progress tracking and analytics
+//
+// Example Usage:
+//
+//        repo := sqlite.NewRepository("data.db", sqlite.WithAutoMigrate(true))
+//        manager := manager.NewManagerWithRepository(repo, manager.DefaultConfig())
+//
+//        project, err := manager.CreateProject(ctx, "My Project", "Description", "user")
+//        if err != nil {
+//                return fmt.Errorf("failed to create project: %w", err)
+//        }
+package manager
 
 import (
         "context"
@@ -6414,7 +6463,17 @@ import (
         "github.com/google/uuid"
 )
 
-// ProjectManager defines the public interface for project task management
+// ProjectManager defines the public interface for project and task management
+// with business logic validation and state transitions.
+//
+// This interface provides high-level operations that include:
+//   - Input validation and business rule enforcement
+//   - State transition validation
+//   - Dependency cycle detection
+//   - Automatic progress calculation
+//   - Audit trail management with actor tracking
+//
+// Implementations should be thread-safe and handle concurrent access properly.
 type ProjectManager interface {
         // Project operations
         CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error)
@@ -6664,43 +6723,88 @@ func (s *service) ListProjects(ctx context.Context) ([]*types.Project, error) <s
 // Task operations
 
 func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error) <span class="cov8" title="1">{
+        // Validate basic input
         if err := s.validateTaskInput(title, description, complexity); err != nil </span><span class="cov8" title="1">{
                 return nil, err
         }</span>
 
         // Validate project exists
-        <span class="cov8" title="1">if _, err := s.repo.GetProject(ctx, projectID); err != nil </span><span class="cov8" title="1">{
-                return nil, fmt.Errorf("project not found: %w", err)
+        <span class="cov8" title="1">if err := s.validateProjectExists(ctx, projectID); err != nil </span><span class="cov8" title="1">{
+                return nil, err
         }</span>
 
-        // Calculate depth and validate constraints
-        <span class="cov8" title="1">depth := 0
-        if parentID != nil </span><span class="cov8" title="1">{
-                parentTask, err := s.repo.GetTask(ctx, *parentID)
-                if err != nil </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("parent task not found: %w", err)
-                }</span>
-                <span class="cov8" title="1">if parentTask.ProjectID != projectID </span><span class="cov0" title="0">{
-                        return nil, fmt.Errorf("parent task must be in the same project")
-                }</span>
-                <span class="cov8" title="1">depth = parentTask.Depth + 1</span>
-        }
+        // Validate parent task and calculate depth
+        <span class="cov8" title="1">depth, err := s.validateParentAndCalculateDepth(ctx, parentID, projectID)
+        if err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
 
+        // Validate depth and task count constraints
+        <span class="cov8" title="1">if err := s.validateTaskConstraints(ctx, projectID, depth); err != nil </span><span class="cov0" title="0">{
+                return nil, err
+        }</span>
+
+        // Create the task
+        <span class="cov8" title="1">task := s.buildNewTask(projectID, parentID, title, description, complexity, priority, depth, actor)
+        if err := s.repo.CreateTask(ctx, task); err != nil </span><span class="cov0" title="0">{
+                return nil, fmt.Errorf("failed to create task: %w", err)
+        }</span>
+
+        // Handle parent complexity reduction
+        <span class="cov8" title="1">s.handleParentComplexityReduction(ctx, parentID)
+
+        return s.repo.GetTask(ctx, task.ID)</span>
+}
+
+// validateProjectExists checks if the project exists
+func (s *service) validateProjectExists(ctx context.Context, projectID uuid.UUID) error <span class="cov8" title="1">{
+        if _, err := s.repo.GetProject(ctx, projectID); err != nil </span><span class="cov8" title="1">{
+                return fmt.Errorf("project not found: %w", err)
+        }</span>
+        <span class="cov8" title="1">return nil</span>
+}
+
+// validateParentAndCalculateDepth validates the parent task and calculates the depth
+func (s *service) validateParentAndCalculateDepth(ctx context.Context, parentID *uuid.UUID, projectID uuid.UUID) (int, error) <span class="cov8" title="1">{
+        if parentID == nil </span><span class="cov8" title="1">{
+                return 0, nil
+        }</span>
+
+        <span class="cov8" title="1">parentTask, err := s.repo.GetTask(ctx, *parentID)
+        if err != nil </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("parent task not found: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">if parentTask.ProjectID != projectID </span><span class="cov0" title="0">{
+                return 0, fmt.Errorf("parent task must be in the same project")
+        }</span>
+
+        <span class="cov8" title="1">return parentTask.Depth + 1, nil</span>
+}
+
+// validateTaskConstraints validates depth and task count constraints
+func (s *service) validateTaskConstraints(ctx context.Context, projectID uuid.UUID, depth int) error <span class="cov8" title="1">{
         // Check depth constraints
-        <span class="cov8" title="1">if depth &gt; s.config.MaxDepth </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("maximum depth of %d exceeded", s.config.MaxDepth)
+        if depth &gt; s.config.MaxDepth </span><span class="cov0" title="0">{
+                return fmt.Errorf("maximum depth of %d exceeded", s.config.MaxDepth)
         }</span>
 
         // Check task count constraints for this depth
         <span class="cov8" title="1">counts, err := s.repo.GetTaskCountByDepth(ctx, projectID, depth)
         if err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("failed to check task count constraints: %w", err)
-        }</span>
-        <span class="cov8" title="1">if counts[depth] &gt;= s.config.MaxTasksPerDepth </span><span class="cov0" title="0">{
-                return nil, knoterrors.TooManyTasksError(counts[depth], s.config.MaxTasksPerDepth, depth)
+                return fmt.Errorf("failed to check task count constraints: %w", err)
         }</span>
 
-        <span class="cov8" title="1">task := &amp;types.Task{
+        <span class="cov8" title="1">if counts[depth] &gt;= s.config.MaxTasksPerDepth </span><span class="cov0" title="0">{
+                return knoterrors.TooManyTasksError(counts[depth], s.config.MaxTasksPerDepth, depth)
+        }</span>
+
+        <span class="cov8" title="1">return nil</span>
+}
+
+// buildNewTask creates a new task instance with the given parameters
+func (s *service) buildNewTask(projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, depth int, actor string) *types.Task <span class="cov8" title="1">{
+        return &amp;types.Task{
                 ID:          uuid.New(),
                 ProjectID:   projectID,
                 ParentID:    parentID,
@@ -6712,24 +6816,22 @@ func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID 
                 Depth:       depth,
                 CreatedBy:   actor,
                 UpdatedBy:   actor,
-                CreatedAt:   time.Now(),
-                UpdatedAt:   time.Now(),
+                CreatedAt:   s.GetCurrentTime(),
+                UpdatedAt:   s.GetCurrentTime(),
         }
+}</span>
 
-        if err := s.repo.CreateTask(ctx, task); err != nil </span><span class="cov0" title="0">{
-                return nil, fmt.Errorf("failed to create task: %w", err)
+// handleParentComplexityReduction automatically reduces parent complexity if enabled
+func (s *service) handleParentComplexityReduction(ctx context.Context, parentID *uuid.UUID) <span class="cov8" title="1">{
+        if !s.config.AutoReduceComplexity || parentID == nil </span><span class="cov8" title="1">{
+                return
         }</span>
 
-        // Auto-reduce parent complexity if enabled and this is a subtask
-        <span class="cov8" title="1">if s.config.AutoReduceComplexity &amp;&amp; parentID != nil </span><span class="cov8" title="1">{
-                if err := s.autoReduceParentComplexity(ctx, *parentID); err != nil </span><span class="cov0" title="0">{
-                        // Log error but don't fail the task creation
-                        // The task was successfully created, complexity reduction is a bonus feature
-                        fmt.Printf("Warning: Failed to auto-reduce parent complexity: %v\n", err)
-                }</span>
-        }
-
-        <span class="cov8" title="1">return s.repo.GetTask(ctx, task.ID)</span>
+        <span class="cov8" title="1">if err := s.autoReduceParentComplexity(ctx, *parentID); err != nil </span><span class="cov0" title="0">{
+                // Log error but don't fail the task creation
+                // The task was successfully created, complexity reduction is a bonus feature
+                fmt.Printf("Warning: Failed to auto-reduce parent complexity: %v\n", err)
+        }</span>
 }
 
 func (s *service) GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) <span class="cov8" title="1">{
@@ -7554,7 +7656,7 @@ func (s *service) HasSelectedProject(ctx context.Context) (bool, error) <span cl
 }</span>
 
 // GetCurrentTime returns the current time
-func (s *service) GetCurrentTime() time.Time <span class="cov0" title="0">{
+func (s *service) GetCurrentTime() time.Time <span class="cov8" title="1">{
         return time.Now()
 }</span>
 </pre>
@@ -8094,13 +8196,35 @@ func EnsureProjectDir() (string, error) <span class="cov8" title="1">{
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
         }</span>
-        
-        // Create directory if it doesn't exist
-        <span class="cov8" title="1">if err := os.MkdirAll(projectDir, 0755); err != nil </span><span class="cov0" title="0">{
+
+        // Create directory if it doesn't exist with secure permissions (owner only)
+        <span class="cov8" title="1">if err := os.MkdirAll(projectDir, 0700); err != nil </span><span class="cov0" title="0">{
                 return "", fmt.Errorf("failed to create project directory: %w", err)
         }</span>
-        
-        <span class="cov8" title="1">return projectDir, nil</span>
+
+        // Verify and fix directory permissions are secure, even for existing directories
+        <span class="cov8" title="1">return ensureSecureDirectory(projectDir)</span>
+}
+
+// ensureSecureDirectory verifies and fixes directory permissions for security
+func ensureSecureDirectory(dirPath string) (string, error) <span class="cov8" title="1">{
+        // Check current permissions
+        info, err := os.Stat(dirPath)
+        if err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("failed to stat directory: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">currentPerms := info.Mode().Perm()
+        securePerms := os.FileMode(0700)
+
+        // If permissions are not secure, fix them
+        if currentPerms != securePerms </span><span class="cov0" title="0">{
+                if err := os.Chmod(dirPath, securePerms); err != nil </span><span class="cov0" title="0">{
+                        return "", fmt.Errorf("failed to set secure permissions on directory: %w", err)
+                }</span>
+        }
+
+        <span class="cov8" title="1">return dirPath, nil</span>
 }
 
 // GetDatabasePath returns the full path to the SQLite database file
@@ -8129,14 +8253,14 @@ func GetDatabasePath() (string, error) <span class="cov8" title="1">{
 }
 
 // GetSQLiteConnectionString returns the SQLite connection string
-func GetSQLiteConnectionString() (string, error) <span class="cov8" title="1">{
+func GetSQLiteConnectionString() (string, error) <span class="cov0" title="0">{
         dbPath, err := GetDatabasePath()
         if err != nil </span><span class="cov0" title="0">{
                 return "", err
         }</span>
         
         // SQLite connection string - simple path format
-        <span class="cov8" title="1">return dbPath, nil</span>
+        <span class="cov0" title="0">return dbPath, nil</span>
 }</pre>
 		
 		<pre class="file" id="file29" style="display: none">package sqlite
@@ -8153,15 +8277,15 @@ import (
 )
 
 // GetSelectedProject retrieves the currently selected project ID from the database
-func (r *sqliteRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) <span class="cov0" title="0">{
+func (r *sqliteRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) <span class="cov8" title="1">{
         r.logger.Debug("Getting selected project from database")
 
         // Query the singleton project context record
         pc, err := r.client.ProjectContext.Query().
                 Where(projectcontext.IDEQ(1)).
                 Only(ctx)
-        if err != nil </span><span class="cov0" title="0">{
-                if ent.IsNotFound(err) </span><span class="cov0" title="0">{
+        if err != nil </span><span class="cov8" title="1">{
+                if ent.IsNotFound(err) </span><span class="cov8" title="1">{
                         r.logger.Debug("No project context found")
                         return nil, nil
                 }</span>
@@ -8169,12 +8293,12 @@ func (r *sqliteRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, 
                 return nil, fmt.Errorf("failed to get selected project: %w", err)</span>
         }
 
-        <span class="cov0" title="0">r.logger.Debug("Retrieved selected project", zap.String("projectID", pc.SelectedProjectID.String()))
+        <span class="cov8" title="1">r.logger.Debug("Retrieved selected project", zap.String("projectID", pc.SelectedProjectID.String()))
         return &amp;pc.SelectedProjectID, nil</span>
 }
 
 // SetSelectedProject sets the currently selected project ID in the database
-func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error <span class="cov0" title="0">{
+func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error <span class="cov8" title="1">{
         r.logger.Debug("Setting selected project in database", 
                 zap.String("projectID", projectID.String()),
                 zap.String("actor", actor))
@@ -8187,13 +8311,13 @@ func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uui
                 r.logger.Error("Failed to check if project exists", zap.Error(err))
                 return fmt.Errorf("failed to verify project exists: %w", err)
         }</span>
-        <span class="cov0" title="0">if !exists </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if !exists </span><span class="cov0" title="0">{
                 return fmt.Errorf("project with ID %s does not exist", projectID)
         }</span>
 
         // Use upsert pattern - try to update existing record, create if not exists
         // Try to update existing record first
-        <span class="cov0" title="0">updated, err := r.client.ProjectContext.Update().
+        <span class="cov8" title="1">updated, err := r.client.ProjectContext.Update().
                 Where(projectcontext.IDEQ(1)).
                 SetSelectedProjectID(projectID).
                 SetUpdatedBy(actor).
@@ -8201,7 +8325,7 @@ func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uui
         
         r.logger.Debug("Update attempt result", zap.Int("updated", updated), zap.Error(err))
         
-        if err != nil || updated == 0 </span><span class="cov0" title="0">{
+        if err != nil || updated == 0 </span><span class="cov8" title="1">{
                 // Create new record if update failed or no record exists
                 r.logger.Debug("Creating new project context record")
                 err = r.client.ProjectContext.Create().
@@ -8212,19 +8336,19 @@ func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uui
                 r.logger.Debug("Create attempt result", zap.Error(err))
         }</span>
 
-        <span class="cov0" title="0">if err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err != nil </span><span class="cov0" title="0">{
                 r.logger.Error("Failed to set selected project", zap.Error(err))
                 return fmt.Errorf("failed to set selected project: %w", err)
         }</span>
 
-        <span class="cov0" title="0">r.logger.Info("Selected project updated", 
+        <span class="cov8" title="1">r.logger.Info("Selected project updated", 
                 zap.String("projectID", projectID.String()),
                 zap.String("actor", actor))
         return nil</span>
 }
 
 // ClearSelectedProject removes the currently selected project from the database
-func (r *sqliteRepository) ClearSelectedProject(ctx context.Context) error <span class="cov0" title="0">{
+func (r *sqliteRepository) ClearSelectedProject(ctx context.Context) error <span class="cov8" title="1">{
         r.logger.Debug("Clearing selected project from database")
 
         // Delete the singleton record
@@ -8236,12 +8360,12 @@ func (r *sqliteRepository) ClearSelectedProject(ctx context.Context) error <span
                 return fmt.Errorf("failed to clear selected project: %w", err)
         }</span>
 
-        <span class="cov0" title="0">r.logger.Info("Selected project cleared")
+        <span class="cov8" title="1">r.logger.Info("Selected project cleared")
         return nil</span>
 }
 
 // HasSelectedProject checks if there is a currently selected project
-func (r *sqliteRepository) HasSelectedProject(ctx context.Context) (bool, error) <span class="cov0" title="0">{
+func (r *sqliteRepository) HasSelectedProject(ctx context.Context) (bool, error) <span class="cov8" title="1">{
         r.logger.Debug("Checking if project is selected")
 
         exists, err := r.client.ProjectContext.Query().
@@ -8252,7 +8376,7 @@ func (r *sqliteRepository) HasSelectedProject(ctx context.Context) (bool, error)
                 return false, fmt.Errorf("failed to check selected project: %w", err)
         }</span>
 
-        <span class="cov0" title="0">r.logger.Debug("Project selection status", zap.Bool("hasSelected", exists))
+        <span class="cov8" title="1">r.logger.Debug("Project selection status", zap.Bool("hasSelected", exists))
         return exists, nil</span>
 }</pre>
 		
@@ -10426,6 +10550,8 @@ var (
                 {Name: "total_tasks", Type: field.TypeInt, Default: 0},
                 {Name: "completed_tasks", Type: field.TypeInt, Default: 0},
                 {Name: "progress", Type: field.TypeFloat64, Default: 0},
+                {Name: "created_by", Type: field.TypeString, Nullable: true},
+                {Name: "updated_by", Type: field.TypeString, Nullable: true},
         }
         // ProjectsTable holds the schema information for the "projects" table.
         ProjectsTable = &amp;schema.Table{
@@ -10720,6 +10846,8 @@ type ProjectMutation struct {
         addcompleted_tasks *int
         progress           *float64
         addprogress        *float64
+        created_by         *string
+        updated_by         *string
         clearedFields      map[string]struct{}
         tasks              map[uuid.UUID]struct{}
         removedtasks       map[uuid.UUID]struct{}
@@ -11194,6 +11322,104 @@ func (m *ProjectMutation) ResetProgress() <span class="cov0" title="0">{
         m.addprogress = nil
 }</span>
 
+// SetCreatedBy sets the "created_by" field.
+func (m *ProjectMutation) SetCreatedBy(s string) <span class="cov0" title="0">{
+        m.created_by = &amp;s
+}</span>
+
+// CreatedBy returns the value of the "created_by" field in the mutation.
+func (m *ProjectMutation) CreatedBy() (r string, exists bool) <span class="cov0" title="0">{
+        v := m.created_by
+        if v == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">return *v, true</span>
+}
+
+// OldCreatedBy returns the old "created_by" field's value of the Project entity.
+// If the Project object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProjectMutation) OldCreatedBy(ctx context.Context) (v string, err error) <span class="cov0" title="0">{
+        if !m.op.Is(OpUpdateOne) </span><span class="cov0" title="0">{
+                return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
+        }</span>
+        <span class="cov0" title="0">if m.id == nil || m.oldValue == nil </span><span class="cov0" title="0">{
+                return v, errors.New("OldCreatedBy requires an ID field in the mutation")
+        }</span>
+        <span class="cov0" title="0">oldValue, err := m.oldValue(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return v, fmt.Errorf("querying old value for OldCreatedBy: %w", err)
+        }</span>
+        <span class="cov0" title="0">return oldValue.CreatedBy, nil</span>
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (m *ProjectMutation) ClearCreatedBy() <span class="cov0" title="0">{
+        m.created_by = nil
+        m.clearedFields[project.FieldCreatedBy] = struct{}{}
+}</span>
+
+// CreatedByCleared returns if the "created_by" field was cleared in this mutation.
+func (m *ProjectMutation) CreatedByCleared() bool <span class="cov0" title="0">{
+        _, ok := m.clearedFields[project.FieldCreatedBy]
+        return ok
+}</span>
+
+// ResetCreatedBy resets all changes to the "created_by" field.
+func (m *ProjectMutation) ResetCreatedBy() <span class="cov0" title="0">{
+        m.created_by = nil
+        delete(m.clearedFields, project.FieldCreatedBy)
+}</span>
+
+// SetUpdatedBy sets the "updated_by" field.
+func (m *ProjectMutation) SetUpdatedBy(s string) <span class="cov0" title="0">{
+        m.updated_by = &amp;s
+}</span>
+
+// UpdatedBy returns the value of the "updated_by" field in the mutation.
+func (m *ProjectMutation) UpdatedBy() (r string, exists bool) <span class="cov0" title="0">{
+        v := m.updated_by
+        if v == nil </span><span class="cov0" title="0">{
+                return
+        }</span>
+        <span class="cov0" title="0">return *v, true</span>
+}
+
+// OldUpdatedBy returns the old "updated_by" field's value of the Project entity.
+// If the Project object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *ProjectMutation) OldUpdatedBy(ctx context.Context) (v string, err error) <span class="cov0" title="0">{
+        if !m.op.Is(OpUpdateOne) </span><span class="cov0" title="0">{
+                return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
+        }</span>
+        <span class="cov0" title="0">if m.id == nil || m.oldValue == nil </span><span class="cov0" title="0">{
+                return v, errors.New("OldUpdatedBy requires an ID field in the mutation")
+        }</span>
+        <span class="cov0" title="0">oldValue, err := m.oldValue(ctx)
+        if err != nil </span><span class="cov0" title="0">{
+                return v, fmt.Errorf("querying old value for OldUpdatedBy: %w", err)
+        }</span>
+        <span class="cov0" title="0">return oldValue.UpdatedBy, nil</span>
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (m *ProjectMutation) ClearUpdatedBy() <span class="cov0" title="0">{
+        m.updated_by = nil
+        m.clearedFields[project.FieldUpdatedBy] = struct{}{}
+}</span>
+
+// UpdatedByCleared returns if the "updated_by" field was cleared in this mutation.
+func (m *ProjectMutation) UpdatedByCleared() bool <span class="cov0" title="0">{
+        _, ok := m.clearedFields[project.FieldUpdatedBy]
+        return ok
+}</span>
+
+// ResetUpdatedBy resets all changes to the "updated_by" field.
+func (m *ProjectMutation) ResetUpdatedBy() <span class="cov0" title="0">{
+        m.updated_by = nil
+        delete(m.clearedFields, project.FieldUpdatedBy)
+}</span>
+
 // AddTaskIDs adds the "tasks" edge to the Task entity by ids.
 func (m *ProjectMutation) AddTaskIDs(ids ...uuid.UUID) <span class="cov0" title="0">{
         if m.tasks == nil </span><span class="cov0" title="0">{
@@ -11282,7 +11508,7 @@ func (m *ProjectMutation) Type() string <span class="cov0" title="0">{
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *ProjectMutation) Fields() []string <span class="cov0" title="0">{
-        fields := make([]string, 0, 8)
+        fields := make([]string, 0, 10)
         if m.title != nil </span><span class="cov0" title="0">{
                 fields = append(fields, project.FieldTitle)
         }</span>
@@ -11306,6 +11532,12 @@ func (m *ProjectMutation) Fields() []string <span class="cov0" title="0">{
         }</span>
         <span class="cov0" title="0">if m.progress != nil </span><span class="cov0" title="0">{
                 fields = append(fields, project.FieldProgress)
+        }</span>
+        <span class="cov0" title="0">if m.created_by != nil </span><span class="cov0" title="0">{
+                fields = append(fields, project.FieldCreatedBy)
+        }</span>
+        <span class="cov0" title="0">if m.updated_by != nil </span><span class="cov0" title="0">{
+                fields = append(fields, project.FieldUpdatedBy)
         }</span>
         <span class="cov0" title="0">return fields</span>
 }
@@ -11331,6 +11563,10 @@ func (m *ProjectMutation) Field(name string) (ent.Value, bool) <span class="cov0
                 return m.CompletedTasks()</span>
         case project.FieldProgress:<span class="cov0" title="0">
                 return m.Progress()</span>
+        case project.FieldCreatedBy:<span class="cov0" title="0">
+                return m.CreatedBy()</span>
+        case project.FieldUpdatedBy:<span class="cov0" title="0">
+                return m.UpdatedBy()</span>
         }
         <span class="cov0" title="0">return nil, false</span>
 }
@@ -11356,6 +11592,10 @@ func (m *ProjectMutation) OldField(ctx context.Context, name string) (ent.Value,
                 return m.OldCompletedTasks(ctx)</span>
         case project.FieldProgress:<span class="cov0" title="0">
                 return m.OldProgress(ctx)</span>
+        case project.FieldCreatedBy:<span class="cov0" title="0">
+                return m.OldCreatedBy(ctx)</span>
+        case project.FieldUpdatedBy:<span class="cov0" title="0">
+                return m.OldUpdatedBy(ctx)</span>
         }
         <span class="cov0" title="0">return nil, fmt.Errorf("unknown Project field %s", name)</span>
 }
@@ -11420,6 +11660,20 @@ func (m *ProjectMutation) SetField(name string, value ent.Value) error <span cla
                         return fmt.Errorf("unexpected type %T for field %s", value, name)
                 }</span>
                 <span class="cov0" title="0">m.SetProgress(v)
+                return nil</span>
+        case project.FieldCreatedBy:<span class="cov0" title="0">
+                v, ok := value.(string)
+                if !ok </span><span class="cov0" title="0">{
+                        return fmt.Errorf("unexpected type %T for field %s", value, name)
+                }</span>
+                <span class="cov0" title="0">m.SetCreatedBy(v)
+                return nil</span>
+        case project.FieldUpdatedBy:<span class="cov0" title="0">
+                v, ok := value.(string)
+                if !ok </span><span class="cov0" title="0">{
+                        return fmt.Errorf("unexpected type %T for field %s", value, name)
+                }</span>
+                <span class="cov0" title="0">m.SetUpdatedBy(v)
                 return nil</span>
         }
         <span class="cov0" title="0">return fmt.Errorf("unknown Project field %s", name)</span>
@@ -11493,6 +11747,12 @@ func (m *ProjectMutation) ClearedFields() []string <span class="cov0" title="0">
         if m.FieldCleared(project.FieldDescription) </span><span class="cov0" title="0">{
                 fields = append(fields, project.FieldDescription)
         }</span>
+        <span class="cov0" title="0">if m.FieldCleared(project.FieldCreatedBy) </span><span class="cov0" title="0">{
+                fields = append(fields, project.FieldCreatedBy)
+        }</span>
+        <span class="cov0" title="0">if m.FieldCleared(project.FieldUpdatedBy) </span><span class="cov0" title="0">{
+                fields = append(fields, project.FieldUpdatedBy)
+        }</span>
         <span class="cov0" title="0">return fields</span>
 }
 
@@ -11509,6 +11769,12 @@ func (m *ProjectMutation) ClearField(name string) error <span class="cov0" title
         switch name </span>{
         case project.FieldDescription:<span class="cov0" title="0">
                 m.ClearDescription()
+                return nil</span>
+        case project.FieldCreatedBy:<span class="cov0" title="0">
+                m.ClearCreatedBy()
+                return nil</span>
+        case project.FieldUpdatedBy:<span class="cov0" title="0">
+                m.ClearUpdatedBy()
                 return nil</span>
         }
         <span class="cov0" title="0">return fmt.Errorf("unknown Project nullable field %s", name)</span>
@@ -11541,6 +11807,12 @@ func (m *ProjectMutation) ResetField(name string) error <span class="cov0" title
                 return nil</span>
         case project.FieldProgress:<span class="cov0" title="0">
                 m.ResetProgress()
+                return nil</span>
+        case project.FieldCreatedBy:<span class="cov0" title="0">
+                m.ResetCreatedBy()
+                return nil</span>
+        case project.FieldUpdatedBy:<span class="cov0" title="0">
+                m.ResetUpdatedBy()
                 return nil</span>
         }
         <span class="cov0" title="0">return fmt.Errorf("unknown Project field %s", name)</span>
@@ -14089,6 +14361,10 @@ type Project struct {
         CompletedTasks int `json:"completed_tasks,omitempty"`
         // Progress holds the value of the "progress" field.
         Progress float64 `json:"progress,omitempty"`
+        // CreatedBy holds the value of the "created_by" field.
+        CreatedBy string `json:"created_by,omitempty"`
+        // UpdatedBy holds the value of the "updated_by" field.
+        UpdatedBy string `json:"updated_by,omitempty"`
         // Edges holds the relations/edges for other nodes in the graph.
         // The values are being populated by the ProjectQuery when eager-loading is set.
         Edges        ProjectEdges `json:"edges"`
@@ -14122,7 +14398,7 @@ func (*Project) scanValues(columns []string) ([]any, error) <span class="cov0" t
                         values[i] = new(sql.NullFloat64)</span>
                 case project.FieldTotalTasks, project.FieldCompletedTasks:<span class="cov0" title="0">
                         values[i] = new(sql.NullInt64)</span>
-                case project.FieldTitle, project.FieldDescription, project.FieldState:<span class="cov0" title="0">
+                case project.FieldTitle, project.FieldDescription, project.FieldState, project.FieldCreatedBy, project.FieldUpdatedBy:<span class="cov0" title="0">
                         values[i] = new(sql.NullString)</span>
                 case project.FieldCreatedAt, project.FieldUpdatedAt:<span class="cov0" title="0">
                         values[i] = new(sql.NullTime)</span>
@@ -14197,6 +14473,18 @@ func (_m *Project) assignValues(columns []string, values []any) error <span clas
                         }</span> else<span class="cov0" title="0"> if value.Valid </span><span class="cov0" title="0">{
                                 _m.Progress = value.Float64
                         }</span>
+                case project.FieldCreatedBy:<span class="cov0" title="0">
+                        if value, ok := values[i].(*sql.NullString); !ok </span><span class="cov0" title="0">{
+                                return fmt.Errorf("unexpected type %T for field created_by", values[i])
+                        }</span> else<span class="cov0" title="0"> if value.Valid </span><span class="cov0" title="0">{
+                                _m.CreatedBy = value.String
+                        }</span>
+                case project.FieldUpdatedBy:<span class="cov0" title="0">
+                        if value, ok := values[i].(*sql.NullString); !ok </span><span class="cov0" title="0">{
+                                return fmt.Errorf("unexpected type %T for field updated_by", values[i])
+                        }</span> else<span class="cov0" title="0"> if value.Valid </span><span class="cov0" title="0">{
+                                _m.UpdatedBy = value.String
+                        }</span>
                 default:<span class="cov0" title="0">
                         _m.selectValues.Set(columns[i], values[i])</span>
                 }
@@ -14261,6 +14549,12 @@ func (_m *Project) String() string <span class="cov0" title="0">{
         builder.WriteString(", ")
         builder.WriteString("progress=")
         builder.WriteString(fmt.Sprintf("%v", _m.Progress))
+        builder.WriteString(", ")
+        builder.WriteString("created_by=")
+        builder.WriteString(_m.CreatedBy)
+        builder.WriteString(", ")
+        builder.WriteString("updated_by=")
+        builder.WriteString(_m.UpdatedBy)
         builder.WriteByte(')')
         return builder.String()
 }</span>
@@ -14303,6 +14597,10 @@ const (
         FieldCompletedTasks = "completed_tasks"
         // FieldProgress holds the string denoting the progress field in the database.
         FieldProgress = "progress"
+        // FieldCreatedBy holds the string denoting the created_by field in the database.
+        FieldCreatedBy = "created_by"
+        // FieldUpdatedBy holds the string denoting the updated_by field in the database.
+        FieldUpdatedBy = "updated_by"
         // EdgeTasks holds the string denoting the tasks edge name in mutations.
         EdgeTasks = "tasks"
         // Table holds the table name of the project in the database.
@@ -14327,6 +14625,8 @@ var Columns = []string{
         FieldTotalTasks,
         FieldCompletedTasks,
         FieldProgress,
+        FieldCreatedBy,
+        FieldUpdatedBy,
 }
 
 // ValidColumn reports if the column name is valid (part of the table columns).
@@ -14438,6 +14738,16 @@ func ByCompletedTasks(opts ...sql.OrderTermOption) OrderOption <span class="cov0
 // ByProgress orders the results by the progress field.
 func ByProgress(opts ...sql.OrderTermOption) OrderOption <span class="cov0" title="0">{
         return sql.OrderByField(FieldProgress, opts...).ToFunc()
+}</span>
+
+// ByCreatedBy orders the results by the created_by field.
+func ByCreatedBy(opts ...sql.OrderTermOption) OrderOption <span class="cov0" title="0">{
+        return sql.OrderByField(FieldCreatedBy, opts...).ToFunc()
+}</span>
+
+// ByUpdatedBy orders the results by the updated_by field.
+func ByUpdatedBy(opts ...sql.OrderTermOption) OrderOption <span class="cov0" title="0">{
+        return sql.OrderByField(FieldUpdatedBy, opts...).ToFunc()
 }</span>
 
 // ByTasksCount orders the results by tasks count.
@@ -14553,6 +14863,16 @@ func CompletedTasks(v int) predicate.Project <span class="cov0" title="0">{
 // Progress applies equality check predicate on the "progress" field. It's identical to ProgressEQ.
 func Progress(v float64) predicate.Project <span class="cov0" title="0">{
         return predicate.Project(sql.FieldEQ(FieldProgress, v))
+}</span>
+
+// CreatedBy applies equality check predicate on the "created_by" field. It's identical to CreatedByEQ.
+func CreatedBy(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldEQ(FieldCreatedBy, v))
+}</span>
+
+// UpdatedBy applies equality check predicate on the "updated_by" field. It's identical to UpdatedByEQ.
+func UpdatedBy(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldEQ(FieldUpdatedBy, v))
 }</span>
 
 // TitleEQ applies the EQ predicate on the "title" field.
@@ -14915,6 +15235,156 @@ func ProgressLTE(v float64) predicate.Project <span class="cov0" title="0">{
         return predicate.Project(sql.FieldLTE(FieldProgress, v))
 }</span>
 
+// CreatedByEQ applies the EQ predicate on the "created_by" field.
+func CreatedByEQ(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldEQ(FieldCreatedBy, v))
+}</span>
+
+// CreatedByNEQ applies the NEQ predicate on the "created_by" field.
+func CreatedByNEQ(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldNEQ(FieldCreatedBy, v))
+}</span>
+
+// CreatedByIn applies the In predicate on the "created_by" field.
+func CreatedByIn(vs ...string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldIn(FieldCreatedBy, vs...))
+}</span>
+
+// CreatedByNotIn applies the NotIn predicate on the "created_by" field.
+func CreatedByNotIn(vs ...string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldNotIn(FieldCreatedBy, vs...))
+}</span>
+
+// CreatedByGT applies the GT predicate on the "created_by" field.
+func CreatedByGT(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldGT(FieldCreatedBy, v))
+}</span>
+
+// CreatedByGTE applies the GTE predicate on the "created_by" field.
+func CreatedByGTE(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldGTE(FieldCreatedBy, v))
+}</span>
+
+// CreatedByLT applies the LT predicate on the "created_by" field.
+func CreatedByLT(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldLT(FieldCreatedBy, v))
+}</span>
+
+// CreatedByLTE applies the LTE predicate on the "created_by" field.
+func CreatedByLTE(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldLTE(FieldCreatedBy, v))
+}</span>
+
+// CreatedByContains applies the Contains predicate on the "created_by" field.
+func CreatedByContains(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldContains(FieldCreatedBy, v))
+}</span>
+
+// CreatedByHasPrefix applies the HasPrefix predicate on the "created_by" field.
+func CreatedByHasPrefix(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldHasPrefix(FieldCreatedBy, v))
+}</span>
+
+// CreatedByHasSuffix applies the HasSuffix predicate on the "created_by" field.
+func CreatedByHasSuffix(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldHasSuffix(FieldCreatedBy, v))
+}</span>
+
+// CreatedByIsNil applies the IsNil predicate on the "created_by" field.
+func CreatedByIsNil() predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldIsNull(FieldCreatedBy))
+}</span>
+
+// CreatedByNotNil applies the NotNil predicate on the "created_by" field.
+func CreatedByNotNil() predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldNotNull(FieldCreatedBy))
+}</span>
+
+// CreatedByEqualFold applies the EqualFold predicate on the "created_by" field.
+func CreatedByEqualFold(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldEqualFold(FieldCreatedBy, v))
+}</span>
+
+// CreatedByContainsFold applies the ContainsFold predicate on the "created_by" field.
+func CreatedByContainsFold(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldContainsFold(FieldCreatedBy, v))
+}</span>
+
+// UpdatedByEQ applies the EQ predicate on the "updated_by" field.
+func UpdatedByEQ(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldEQ(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByNEQ applies the NEQ predicate on the "updated_by" field.
+func UpdatedByNEQ(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldNEQ(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByIn applies the In predicate on the "updated_by" field.
+func UpdatedByIn(vs ...string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldIn(FieldUpdatedBy, vs...))
+}</span>
+
+// UpdatedByNotIn applies the NotIn predicate on the "updated_by" field.
+func UpdatedByNotIn(vs ...string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldNotIn(FieldUpdatedBy, vs...))
+}</span>
+
+// UpdatedByGT applies the GT predicate on the "updated_by" field.
+func UpdatedByGT(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldGT(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByGTE applies the GTE predicate on the "updated_by" field.
+func UpdatedByGTE(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldGTE(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByLT applies the LT predicate on the "updated_by" field.
+func UpdatedByLT(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldLT(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByLTE applies the LTE predicate on the "updated_by" field.
+func UpdatedByLTE(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldLTE(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByContains applies the Contains predicate on the "updated_by" field.
+func UpdatedByContains(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldContains(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByHasPrefix applies the HasPrefix predicate on the "updated_by" field.
+func UpdatedByHasPrefix(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldHasPrefix(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByHasSuffix applies the HasSuffix predicate on the "updated_by" field.
+func UpdatedByHasSuffix(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldHasSuffix(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByIsNil applies the IsNil predicate on the "updated_by" field.
+func UpdatedByIsNil() predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldIsNull(FieldUpdatedBy))
+}</span>
+
+// UpdatedByNotNil applies the NotNil predicate on the "updated_by" field.
+func UpdatedByNotNil() predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldNotNull(FieldUpdatedBy))
+}</span>
+
+// UpdatedByEqualFold applies the EqualFold predicate on the "updated_by" field.
+func UpdatedByEqualFold(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldEqualFold(FieldUpdatedBy, v))
+}</span>
+
+// UpdatedByContainsFold applies the ContainsFold predicate on the "updated_by" field.
+func UpdatedByContainsFold(v string) predicate.Project <span class="cov0" title="0">{
+        return predicate.Project(sql.FieldContainsFold(FieldUpdatedBy, v))
+}</span>
+
 // HasTasks applies the HasEdge predicate on the "tasks" edge.
 func HasTasks() predicate.Project <span class="cov0" title="0">{
         return predicate.Project(func(s *sql.Selector) </span><span class="cov0" title="0">{
@@ -15078,6 +15548,34 @@ func (_c *ProjectCreate) SetProgress(v float64) *ProjectCreate <span class="cov0
 func (_c *ProjectCreate) SetNillableProgress(v *float64) *ProjectCreate <span class="cov0" title="0">{
         if v != nil </span><span class="cov0" title="0">{
                 _c.SetProgress(*v)
+        }</span>
+        <span class="cov0" title="0">return _c</span>
+}
+
+// SetCreatedBy sets the "created_by" field.
+func (_c *ProjectCreate) SetCreatedBy(v string) *ProjectCreate <span class="cov0" title="0">{
+        _c.mutation.SetCreatedBy(v)
+        return _c
+}</span>
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *ProjectCreate) SetNillableCreatedBy(v *string) *ProjectCreate <span class="cov0" title="0">{
+        if v != nil </span><span class="cov0" title="0">{
+                _c.SetCreatedBy(*v)
+        }</span>
+        <span class="cov0" title="0">return _c</span>
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *ProjectCreate) SetUpdatedBy(v string) *ProjectCreate <span class="cov0" title="0">{
+        _c.mutation.SetUpdatedBy(v)
+        return _c
+}</span>
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *ProjectCreate) SetNillableUpdatedBy(v *string) *ProjectCreate <span class="cov0" title="0">{
+        if v != nil </span><span class="cov0" title="0">{
+                _c.SetUpdatedBy(*v)
         }</span>
         <span class="cov0" title="0">return _c</span>
 }
@@ -15290,6 +15788,14 @@ func (_c *ProjectCreate) createSpec() (*Project, *sqlgraph.CreateSpec) <span cla
         <span class="cov0" title="0">if value, ok := _c.mutation.Progress(); ok </span><span class="cov0" title="0">{
                 _spec.SetField(project.FieldProgress, field.TypeFloat64, value)
                 _node.Progress = value
+        }</span>
+        <span class="cov0" title="0">if value, ok := _c.mutation.CreatedBy(); ok </span><span class="cov0" title="0">{
+                _spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+                _node.CreatedBy = value
+        }</span>
+        <span class="cov0" title="0">if value, ok := _c.mutation.UpdatedBy(); ok </span><span class="cov0" title="0">{
+                _spec.SetField(project.FieldUpdatedBy, field.TypeString, value)
+                _node.UpdatedBy = value
         }</span>
         <span class="cov0" title="0">if nodes := _c.mutation.TasksIDs(); len(nodes) &gt; 0 </span><span class="cov0" title="0">{
                 edge := &amp;sqlgraph.EdgeSpec{
@@ -16243,6 +16749,46 @@ func (_u *ProjectUpdate) AddProgress(v float64) *ProjectUpdate <span class="cov0
         return _u
 }</span>
 
+// SetCreatedBy sets the "created_by" field.
+func (_u *ProjectUpdate) SetCreatedBy(v string) *ProjectUpdate <span class="cov0" title="0">{
+        _u.mutation.SetCreatedBy(v)
+        return _u
+}</span>
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableCreatedBy(v *string) *ProjectUpdate <span class="cov0" title="0">{
+        if v != nil </span><span class="cov0" title="0">{
+                _u.SetCreatedBy(*v)
+        }</span>
+        <span class="cov0" title="0">return _u</span>
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *ProjectUpdate) ClearCreatedBy() *ProjectUpdate <span class="cov0" title="0">{
+        _u.mutation.ClearCreatedBy()
+        return _u
+}</span>
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *ProjectUpdate) SetUpdatedBy(v string) *ProjectUpdate <span class="cov0" title="0">{
+        _u.mutation.SetUpdatedBy(v)
+        return _u
+}</span>
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *ProjectUpdate) SetNillableUpdatedBy(v *string) *ProjectUpdate <span class="cov0" title="0">{
+        if v != nil </span><span class="cov0" title="0">{
+                _u.SetUpdatedBy(*v)
+        }</span>
+        <span class="cov0" title="0">return _u</span>
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *ProjectUpdate) ClearUpdatedBy() *ProjectUpdate <span class="cov0" title="0">{
+        _u.mutation.ClearUpdatedBy()
+        return _u
+}</span>
+
 // AddTaskIDs adds the "tasks" edge to the Task entity by IDs.
 func (_u *ProjectUpdate) AddTaskIDs(ids ...uuid.UUID) *ProjectUpdate <span class="cov0" title="0">{
         _u.mutation.AddTaskIDs(ids...)
@@ -16394,6 +16940,18 @@ func (_u *ProjectUpdate) sqlSave(ctx context.Context) (_node int, err error) <sp
         }</span>
         <span class="cov0" title="0">if value, ok := _u.mutation.AddedProgress(); ok </span><span class="cov0" title="0">{
                 _spec.AddField(project.FieldProgress, field.TypeFloat64, value)
+        }</span>
+        <span class="cov0" title="0">if value, ok := _u.mutation.CreatedBy(); ok </span><span class="cov0" title="0">{
+                _spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+        }</span>
+        <span class="cov0" title="0">if _u.mutation.CreatedByCleared() </span><span class="cov0" title="0">{
+                _spec.ClearField(project.FieldCreatedBy, field.TypeString)
+        }</span>
+        <span class="cov0" title="0">if value, ok := _u.mutation.UpdatedBy(); ok </span><span class="cov0" title="0">{
+                _spec.SetField(project.FieldUpdatedBy, field.TypeString, value)
+        }</span>
+        <span class="cov0" title="0">if _u.mutation.UpdatedByCleared() </span><span class="cov0" title="0">{
+                _spec.ClearField(project.FieldUpdatedBy, field.TypeString)
         }</span>
         <span class="cov0" title="0">if _u.mutation.TasksCleared() </span><span class="cov0" title="0">{
                 edge := &amp;sqlgraph.EdgeSpec{
@@ -16574,6 +17132,46 @@ func (_u *ProjectUpdateOne) SetNillableProgress(v *float64) *ProjectUpdateOne <s
 // AddProgress adds value to the "progress" field.
 func (_u *ProjectUpdateOne) AddProgress(v float64) *ProjectUpdateOne <span class="cov0" title="0">{
         _u.mutation.AddProgress(v)
+        return _u
+}</span>
+
+// SetCreatedBy sets the "created_by" field.
+func (_u *ProjectUpdateOne) SetCreatedBy(v string) *ProjectUpdateOne <span class="cov0" title="0">{
+        _u.mutation.SetCreatedBy(v)
+        return _u
+}</span>
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableCreatedBy(v *string) *ProjectUpdateOne <span class="cov0" title="0">{
+        if v != nil </span><span class="cov0" title="0">{
+                _u.SetCreatedBy(*v)
+        }</span>
+        <span class="cov0" title="0">return _u</span>
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *ProjectUpdateOne) ClearCreatedBy() *ProjectUpdateOne <span class="cov0" title="0">{
+        _u.mutation.ClearCreatedBy()
+        return _u
+}</span>
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *ProjectUpdateOne) SetUpdatedBy(v string) *ProjectUpdateOne <span class="cov0" title="0">{
+        _u.mutation.SetUpdatedBy(v)
+        return _u
+}</span>
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *ProjectUpdateOne) SetNillableUpdatedBy(v *string) *ProjectUpdateOne <span class="cov0" title="0">{
+        if v != nil </span><span class="cov0" title="0">{
+                _u.SetUpdatedBy(*v)
+        }</span>
+        <span class="cov0" title="0">return _u</span>
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *ProjectUpdateOne) ClearUpdatedBy() *ProjectUpdateOne <span class="cov0" title="0">{
+        _u.mutation.ClearUpdatedBy()
         return _u
 }</span>
 
@@ -16758,6 +17356,18 @@ func (_u *ProjectUpdateOne) sqlSave(ctx context.Context) (_node *Project, err er
         }</span>
         <span class="cov0" title="0">if value, ok := _u.mutation.AddedProgress(); ok </span><span class="cov0" title="0">{
                 _spec.AddField(project.FieldProgress, field.TypeFloat64, value)
+        }</span>
+        <span class="cov0" title="0">if value, ok := _u.mutation.CreatedBy(); ok </span><span class="cov0" title="0">{
+                _spec.SetField(project.FieldCreatedBy, field.TypeString, value)
+        }</span>
+        <span class="cov0" title="0">if _u.mutation.CreatedByCleared() </span><span class="cov0" title="0">{
+                _spec.ClearField(project.FieldCreatedBy, field.TypeString)
+        }</span>
+        <span class="cov0" title="0">if value, ok := _u.mutation.UpdatedBy(); ok </span><span class="cov0" title="0">{
+                _spec.SetField(project.FieldUpdatedBy, field.TypeString, value)
+        }</span>
+        <span class="cov0" title="0">if _u.mutation.UpdatedByCleared() </span><span class="cov0" title="0">{
+                _spec.ClearField(project.FieldUpdatedBy, field.TypeString)
         }</span>
         <span class="cov0" title="0">if _u.mutation.TasksCleared() </span><span class="cov0" title="0">{
                 edge := &amp;sqlgraph.EdgeSpec{
@@ -25894,7 +26504,7 @@ func entProjectsToProjects(entProjects []*ent.Project) []*types.Project <span cl
 // projectStateToEntState converts domain ProjectState to ent project state
 func projectStateToEntState(state types.ProjectState) project.State <span class="cov8" title="1">{
         switch state </span>{
-        case types.ProjectStateActive:<span class="cov0" title="0">
+        case types.ProjectStateActive:<span class="cov8" title="1">
                 return project.StateActive</span>
         case types.ProjectStateCompleted:<span class="cov0" title="0">
                 return project.StateCompleted</span>
@@ -25974,8 +26584,8 @@ func WithConfig(config *Config) Option <span class="cov0" title="0">{
 }
 
 // WithDatabasePath sets the database file path
-func WithDatabasePath(path string) Option <span class="cov8" title="1">{
-        return func(r *sqliteRepository) </span><span class="cov8" title="1">{
+func WithDatabasePath(path string) Option <span class="cov0" title="0">{
+        return func(r *sqliteRepository) </span><span class="cov0" title="0">{
                 r.config.DatabasePath = path
         }</span>
 }
@@ -26144,6 +26754,7 @@ import (
         "github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
         "github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
         "github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
+        "go.uber.org/zap"
         "github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
         "github.com/denkhaus/knot/internal/types"
         "github.com/google/uuid"
@@ -26254,6 +26865,17 @@ func (r *sqliteRepository) ListProjects(ctx context.Context) ([]*types.Project, 
                 return nil, r.mapError("list projects", err)
         }</span>
 
+        // Debug: Log the number of projects found
+        <span class="cov8" title="1">r.config.Logger.Info("DEBUG: Found projects in database",
+                zap.Int("count", len(entProjects)))
+        for i, proj := range entProjects </span><span class="cov8" title="1">{
+                r.config.Logger.Info("DEBUG: Project details",
+                        zap.Int("index", i),
+                        zap.String("id", proj.ID.String()),
+                        zap.String("title", proj.Title),
+                        zap.String("state", string(proj.State)))
+        }</span>
+
         <span class="cov8" title="1">return entProjectsToProjects(entProjects), nil</span>
 }
 
@@ -26355,6 +26977,8 @@ import (
         "context"
         "database/sql"
         "fmt"
+        "os"
+        "path/filepath"
 
         "entgo.io/ent/dialect"
         entsql "entgo.io/ent/dialect/sql"
@@ -26373,7 +26997,7 @@ type sqliteRepository struct {
 }
 
 // NewRepository creates a new SQLite repository using ent ORM
-func NewRepository(opts ...Option) (types.Repository, error) <span class="cov8" title="1">{
+func NewRepository(dbPath string, opts ...Option) (types.Repository, error) <span class="cov8" title="1">{
         config := OptimizedConfig() // Use optimized config by default
 
         repo := &amp;sqliteRepository{
@@ -26386,7 +27010,7 @@ func NewRepository(opts ...Option) (types.Repository, error) <span class="cov8" 
                 opt(repo)
         }</span>
 
-        <span class="cov8" title="1">if err := repo.initialize(); err != nil </span><span class="cov0" title="0">{
+        <span class="cov8" title="1">if err := repo.initialize(dbPath); err != nil </span><span class="cov0" title="0">{
                 return nil, fmt.Errorf("failed to initialize repository: %w", err)
         }</span>
 
@@ -26394,9 +27018,9 @@ func NewRepository(opts ...Option) (types.Repository, error) <span class="cov8" 
 }
 
 // initialize sets up the ent client and performs migrations
-func (r *sqliteRepository) initialize() error <span class="cov8" title="1">{
+func (r *sqliteRepository) initialize(dbPath string) error <span class="cov8" title="1">{
         // Get SQLite connection string
-        connStr, err := GetSQLiteConnectionString()
+        connStr, err := r.getSQLiteConnectionString(dbPath)
         if err != nil </span><span class="cov0" title="0">{
                 return fmt.Errorf("failed to get SQLite connection string: %w", err)
         }</span>
@@ -26407,7 +27031,7 @@ func (r *sqliteRepository) initialize() error <span class="cov8" title="1">{
         if err != nil </span><span class="cov0" title="0">{
                 return NewConnectionError("failed to open database connection", err)
         }</span>
-        
+
         // Configure SQLite for optimal performance
         <span class="cov8" title="1">if err := r.configureSQLiteOptimizations(db); err != nil </span><span class="cov0" title="0">{
                 return NewConnectionError("failed to configure SQLite optimizations", err)
@@ -26434,15 +27058,21 @@ func (r *sqliteRepository) initialize() error <span class="cov8" title="1">{
                 defer cancel()
 
                 // Use safe migration options to add new tables without affecting existing data
-                if err := r.client.Schema.Create(ctx, 
+                if err := r.client.Schema.Create(ctx,
                         schema.WithDropIndex(false),
                         schema.WithDropColumn(false),
                 ); err != nil </span><span class="cov0" title="0">{
                         return NewMigrationError("auto-migration failed", err)
                 }</span>
-                
+
                 <span class="cov8" title="1">r.logger.Info("Database schema migration completed successfully")</span>
         }
+
+        // Ensure database file has secure permissions
+        <span class="cov8" title="1">if err := r.secureDatabaseFile(dbPath); err != nil </span><span class="cov0" title="0">{
+                r.config.Logger.Warn("Failed to secure database file permissions", zap.Error(err))
+                // Don't fail initialization for permission issues, just log warning
+        }</span>
 
         <span class="cov8" title="1">return nil</span>
 }
@@ -26490,13 +27120,13 @@ func (r *sqliteRepository) configureSQLiteOptimizations(db *sql.DB) error <span 
 
         for _, opt := range optimizations </span><span class="cov8" title="1">{
                 if _, err := db.Exec(opt.pragma); err != nil </span><span class="cov0" title="0">{
-                        r.config.Logger.Warn("Failed to apply SQLite optimization", 
+                        r.config.Logger.Warn("Failed to apply SQLite optimization",
                                 zap.String("optimization", opt.name),
                                 zap.String("pragma", opt.pragma),
                                 zap.Error(err))
                         // Continue with other optimizations even if one fails
                 }</span> else<span class="cov8" title="1"> {
-                        r.config.Logger.Debug("Applied SQLite optimization", 
+                        r.config.Logger.Debug("Applied SQLite optimization",
                                 zap.String("optimization", opt.name))
                 }</span>
         }
@@ -26541,6 +27171,45 @@ func (r *sqliteRepository) validateInitialConnection(db *sql.DB) error <span cla
         <span class="cov8" title="1">r.config.Logger.Info("Database connection validation successful")
         return nil</span>
 }
+
+// getSQLiteConnectionString returns the SQLite connection string
+func (r *sqliteRepository) getSQLiteConnectionString(dbPath string) (string, error) <span class="cov8" title="1">{
+        // Use default database path if empty
+        if dbPath == "" </span><span class="cov0" title="0">{
+                var err error
+                dbPath, err = GetDatabasePath()
+                if err != nil </span><span class="cov0" title="0">{
+                        return "", fmt.Errorf("failed to get default database path: %w", err)
+                }</span>
+        }
+
+        // Ensure the directory exists with secure permissions
+        <span class="cov8" title="1">if err := os.MkdirAll(filepath.Dir(dbPath), 0700); err != nil </span><span class="cov0" title="0">{
+                return "", fmt.Errorf("failed to create database directory: %w", err)
+        }</span>
+
+        // SQLite connection string - simple path format
+        <span class="cov8" title="1">return dbPath, nil</span>
+}
+
+// secureDatabaseFile ensures the database file has secure permissions (owner read/write only)
+func (r *sqliteRepository) secureDatabaseFile(dbPath string) error <span class="cov8" title="1">{
+        // Check if database file exists
+        if _, err := os.Stat(dbPath); os.IsNotExist(err) </span><span class="cov0" title="0">{
+                // File doesn't exist yet, nothing to secure
+                return nil
+        }</span>
+
+        // Set secure permissions: read/write for owner only
+        <span class="cov8" title="1">securePerms := os.FileMode(0600)
+        if err := os.Chmod(dbPath, securePerms); err != nil </span><span class="cov0" title="0">{
+                return fmt.Errorf("failed to set secure database file permissions: %w", err)
+        }</span>
+
+        <span class="cov8" title="1">r.config.Logger.Debug("Database file permissions secured", zap.String("path", dbPath))
+        return nil</span>
+}
+
 </pre>
 		
 		<pre class="file" id="file79" style="display: none">package sqlite
@@ -27982,7 +28651,7 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository <span c
         }</span>)
 
         // Create SQLite repository
-        <span class="cov0" title="0">repo, err := sqlite.NewRepository(
+        <span class="cov0" title="0">repo, err := sqlite.NewRepository("",
                 sqlite.WithLogger(tc.Logger),
                 sqlite.WithAutoMigrate(true),
         )

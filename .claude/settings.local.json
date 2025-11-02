@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(knot get-started:*)",
+      "Bash(knot project create:*)",
+      "Bash(knot project select:*)",
+      "Bash(knot:*)",
+      "Bash(sqlite3:*)",
+      "Bash(go test:*)",
+      "Bash(go install:*)",
+      "Bash(gh release list:*)",
+      "Bash(gh run view:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
