@@ -42,7 +42,19 @@ jobs:
       run: go install github.com/magefile/mage@latest
 
     - name: Run tests with coverage
-      run: mage test:coverage
+      run: |
+        echo "Running tests with coverage for Go ${{ matrix.go-version }}..."
+        # Create coverage directory
+        mkdir -p coverage
+        # Run tests with coverage and detailed output
+        go test -v -coverprofile=coverage/coverage.out -covermode=set ./... 2>&1 || {
+          echo "Tests failed, showing detailed output:"
+          go test -v ./...
+          exit 1
+        }
+        # Generate HTML report
+        go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+        echo "Coverage report generated successfully"
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4

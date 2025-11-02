@@ -42,6 +42,7 @@ func (Test) Coverage() error {
 	}
 	
 	if err := sh.Run("go", "test", "-coverprofile="+coverageFile, "-covermode=set", "./..."); err != nil {
+		fmt.Printf("Error running tests: %v\n", err)
 		return err
 	}
 
