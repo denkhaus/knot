@@ -117,25 +117,38 @@ func TestFlagsIntegration(t *testing.T) {
 		NewLogLevelFlag(),
 	}
 
-	// Create a mock app to test flag initialization
-	app := &cli.App{
+	// Test default values first
+	app1 := &cli.App{
 		Name:  "test",
 		Flags: flags,
 		Action: func(c *cli.Context) error {
-			// Verify that the flags were processed correctly
+			// Verify that default flags are processed correctly
 			assert.Equal(t, 10, c.Int("limit"))
 			assert.False(t, c.Bool("json"))
-			assert.Equal(t, "debug", c.String("log-level"))
+			assert.Equal(t, "off", c.String("log-level"))
 			return nil
 		},
 	}
 
 	// Run with default values (no flags provided)
-	err := app.Run([]string{"test"})
+	err := app1.Run([]string{"test"})
 	assert.NoError(t, err)
 
+	// Test custom values
+	app2 := &cli.App{
+		Name:  "test",
+		Flags: flags,
+		Action: func(c *cli.Context) error {
+			// Verify that custom flags are processed correctly
+			assert.Equal(t, 5, c.Int("limit"))
+			assert.True(t, c.Bool("json"))
+			assert.Equal(t, "debug", c.String("log-level"))
+			return nil
+		},
+	}
+
 	// Run with custom values
-	err = app.Run([]string{"test", "--limit", "5", "--json", "--log-level", "debug"})
+	err = app2.Run([]string{"test", "--limit", "5", "--json", "--log-level", "debug"})
 	assert.NoError(t, err)
 }
 

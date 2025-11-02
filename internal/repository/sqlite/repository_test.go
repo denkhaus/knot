@@ -636,7 +636,9 @@ func TestSecurityFeatures(t *testing.T) {
 		// Change to temp directory
 		originalCwd, err := os.Getwd()
 		require.NoError(t, err)
-		defer os.Chdir(originalCwd)
+		defer func() {
+			_ = os.Chdir(originalCwd) // Ignore error during cleanup
+		}()
 
 		err = os.Chdir(tempDir)
 		require.NoError(t, err)
