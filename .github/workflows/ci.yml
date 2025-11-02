@@ -41,34 +41,12 @@ jobs:
     - name: Install Mage
       run: go install github.com/magefile/mage@latest
 
-    - name: Run tests with coverage
+    - name: Run tests
       run: |
-        echo "Running tests with coverage for Go ${{ matrix.go-version }}..."
-        # Create coverage directory
-        mkdir -p coverage
-        # Run tests with coverage and detailed output
-        go test -v -coverprofile=coverage/coverage.out -covermode=set ./... 2>&1 || {
-          echo "Tests failed, showing detailed output:"
-          go test -v ./...
-          exit 1
-        }
-        # Generate HTML report
-        go tool cover -html=coverage/coverage.out -o coverage/coverage.html
-        echo "Coverage report generated successfully"
+        echo "Running tests for Go ${{ matrix.go-version }}..."
+        go test -v ./...
 
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage/coverage.out
-        flags: unittests
-        name: codecov-umbrella
-
-    - name: Upload coverage artifacts
-      uses: actions/upload-artifact@v4
-      with:
-        name: coverage-report-${{ matrix.go-version }}
-        path: coverage/
-
+    
   lint:
     runs-on: ubuntu-latest
     steps:
