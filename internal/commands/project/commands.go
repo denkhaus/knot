@@ -41,6 +41,9 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			Name:   "list",
 			Usage:  "List all projects",
 			Action: listAction(appCtx),
+			Flags: []cli.Flag{
+				shared.NewJSONFlag(),
+			},
 		},
 		{
 			Name:   "get",
@@ -158,6 +161,16 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		appCtx.Logger.Info("Projects retrieved", zap.Int("count", len(projects)))
+
+		// Output JSON if requested
+		if c.Bool("json") {
+			jsonData, err := json.MarshalIndent(projects, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal projects to JSON: %w", err)
+			}
+			fmt.Println(string(jsonData))
+			return nil
+		}
 
 		if len(projects) == 0 {
 			return errors.EmptyResultError("list projects", "current workspace")

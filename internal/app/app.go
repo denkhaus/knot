@@ -87,7 +87,7 @@ func New() (*App, error) {
 	var repo types.Repository
 	var err error
 
-	repo, err = sqlite.NewRepository("", 
+	repo, err = sqlite.NewRepository("",
 		sqlite.WithLogger(appLogger),
 		sqlite.WithAutoMigrate(true),
 	)
@@ -96,7 +96,7 @@ func New() (*App, error) {
 		repo = inmemory.NewMemoryRepository()
 	} else {
 		appLogger.Info("SQLite repository initialized successfully")
-		
+
 		// Initialize templates automatically after successful database setup
 		if err := templates.CheckAndSeedIfNeeded(); err != nil {
 			appLogger.Warn("Failed to seed templates during initialization", zap.Error(err))
@@ -114,8 +114,8 @@ func New() (*App, error) {
 
 	// Create CLI app
 	cliApp := &cli.App{
-		Name:    "knot",
-		Usage:   "A CLI tool for hierarchical project and task management with dependencies",
+		Name:  "knot",
+		Usage: "A CLI tool for hierarchical project and task management with dependencies",
 		Description: `A CLI tool for hierarchical project and task management with dependencies.
 Designed to be the best friend of every LLM agent with structured, parsable outputs and comprehensive error handling.
 For new users or LLM agents, run 'knot get-started' for a comprehensive guide to all available commands and usage.`,
@@ -132,16 +132,16 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:   "Actor name for audit trail (default: $USER)",
 				EnvVars: []string{"KNOT_ACTOR", "USER"},
 			},
-			NewLogLevelFlag(),
+			shared.NewLogLevelFlag(),
 		},
 		Before: func(c *cli.Context) error {
 			// Configure logger based on log-level flag
 			logLevel := c.String("log-level")
 			logger.SetLogLevel(logLevel)
-			
+
 			// Update appCtx logger reference after reconfiguration
 			appCtx.Logger = logger.GetLogger()
-			
+
 			appCtx.SetActor(c.String("actor"))
 			appCtx.Logger.Info("Knot CLI started", zap.String("version", version))
 			return nil
@@ -152,6 +152,9 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Aliases:     []string{"p"},
 				Usage:       "Project management commands",
 				Subcommands: project.Commands(appCtx),
+				Flags: []cli.Flag{
+					shared.NewJSONFlag(),
+				},
 			},
 			{
 				Name:        "task",
@@ -192,8 +195,8 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:  "Show tasks with no blockers (ready to work on)",
 				Action: task.ReadyAction(appCtx),
 				Flags: []cli.Flag{
-					NewTaskLimitFlag(),
-					NewJSONFlag(),
+					shared.NewTaskLimitFlag(),
+					shared.NewJSONFlag(),
 				},
 			},
 			{
@@ -201,8 +204,8 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:  "Show tasks blocked by dependencies",
 				Action: task.BlockedAction(appCtx),
 				Flags: []cli.Flag{
-					NewTaskLimitFlag(),
-					NewJSONFlag(),
+					shared.NewTaskLimitFlag(),
+					shared.NewJSONFlag(),
 				},
 			},
 			{
@@ -210,7 +213,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:  "Find the next actionable task in a project",
 				Action: task.ActionableAction(appCtx),
 				Flags: []cli.Flag{
-					NewJSONFlag(),
+					shared.NewJSONFlag(),
 				},
 			},
 			{
@@ -218,8 +221,8 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:  "Find tasks that need breakdown based on complexity",
 				Action: task.BreakdownAction(appCtx),
 				Flags: []cli.Flag{
-					NewTaskLimitFlag(),
-					NewJSONFlag(),
+					shared.NewTaskLimitFlag(),
+					shared.NewJSONFlag(),
 					&cli.IntFlag{
 						Name:    "threshold",
 						Aliases: []string{"t"},

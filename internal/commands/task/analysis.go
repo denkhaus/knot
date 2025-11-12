@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/denkhaus/knot/internal/shared"
@@ -85,49 +86,63 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 		// Show project context indicator
 		shared.ShowProjectContextWithSeparator(c, appCtx)
 
-		// Prioritize in-progress tasks first
+		// Find the next actionable task
+		var actionableTask *types.Task
 		if len(inProgressTasks) > 0 {
 			// For in-progress tasks, find one that has all its dependencies met and no active subtasks
 			for _, task := range inProgressTasks {
 				if isTaskReady(task, taskMap) && !hasActiveSubtasks(task, allTasks) {
-					fmt.Printf("Next actionable task (in-progress):\n\n")
-					fmt.Printf("* %s (ID: %s)\n", task.Title, task.ID)
-					if task.Description != "" {
-						fmt.Printf("  %s\n", task.Description)
-					}
-					fmt.Printf("  State: %s | Complexity: %d\n", task.State, task.Complexity)
-					if task.Depth > 0 {
-						fmt.Printf("  Depth: %d", task.Depth)
-						if task.ParentID != nil {
-							fmt.Printf(" | Parent: %s", *task.ParentID)
-						}
-						fmt.Println()
-					}
-					return nil
+					actionableTask = task
+					break
 				}
 			}
-			// If no in-progress task has its dependencies met, this indicates an inconsistency
-			fmt.Println("Warning: In-progress tasks exist but none have all dependencies met - possible data inconsistency")
 		}
 
-		// For pending tasks, find one that has all its dependencies met and no active subtasks
-		for _, task := range pendingTasks {
-			if isTaskReady(task, taskMap) && !hasActiveSubtasks(task, allTasks) {
-				fmt.Printf("Next actionable task:\n\n")
-				fmt.Printf("* %s (ID: %s)\n", task.Title, task.ID)
-				if task.Description != "" {
-					fmt.Printf("  %s\n", task.Description)
+		if actionableTask == nil {
+			// For pending tasks, find one that has all its dependencies met and no active subtasks
+			for _, task := range pendingTasks {
+				if isTaskReady(task, taskMap) && !hasActiveSubtasks(task, allTasks) {
+					actionableTask = task
+					break
 				}
-				fmt.Printf("  State: %s | Complexity: %d\n", task.State, task.Complexity)
-				if task.Depth > 0 {
-					fmt.Printf("  Depth: %d", task.Depth)
-					if task.ParentID != nil {
-						fmt.Printf(" | Parent: %s", *task.ParentID)
-					}
-					fmt.Println()
-				}
-				return nil
 			}
+		}
+
+		// Output JSON if requested
+		if c.Bool("json") {
+			if actionableTask != nil {
+				jsonData, err := json.MarshalIndent(actionableTask, "", "  ")
+				if err != nil {
+					return fmt.Errorf("failed to marshal actionable task to JSON: %w", err)
+				}
+				fmt.Println(string(jsonData))
+			} else {
+				fmt.Println("null")
+			}
+			return nil
+		}
+
+		// Output formatted text
+		if len(inProgressTasks) > 0 && actionableTask != nil && actionableTask.State == types.TaskStateInProgress {
+			fmt.Printf("Next actionable task (in-progress):\n\n")
+		} else if actionableTask != nil {
+			fmt.Printf("Next actionable task:\n\n")
+		}
+
+		if actionableTask != nil {
+			fmt.Printf("* %s (ID: %s)\n", actionableTask.Title, actionableTask.ID)
+			if actionableTask.Description != "" {
+				fmt.Printf("  %s\n", actionableTask.Description)
+			}
+			fmt.Printf("  State: %s | Complexity: %d\n", actionableTask.State, actionableTask.Complexity)
+			if actionableTask.Depth > 0 {
+				fmt.Printf("  Depth: %d", actionableTask.Depth)
+				if actionableTask.ParentID != nil {
+					fmt.Printf(" | Parent: %s", *actionableTask.ParentID)
+				}
+				fmt.Println()
+			}
+			return nil
 		}
 
 		// If we reach here, check for specific scenarios

@@ -1,9 +1,15 @@
-package app
+package shared
 
-import (
-	"github.com/urfave/cli/v2"
-)
+import "github.com/urfave/cli/v2"
 
+// NewJSONFlag creates a consistent JSON flag for all commands
+func NewJSONFlag() cli.Flag {
+	return &cli.BoolFlag{
+		Name:    "json",
+		Aliases: []string{"j"},
+		Usage:   "Output in JSON format",
+	}
+}
 
 func NewTaskLimitFlag() cli.Flag {
 	return &cli.IntFlag{
@@ -12,14 +18,6 @@ func NewTaskLimitFlag() cli.Flag {
 		Usage:   "Maximum number of tasks to show (default: 10)",
 		Value:   10,
 		EnvVars: []string{"KNOT_TASK_LIMIT"},
-	}
-}
-
-func NewJSONFlag() cli.Flag {
-	return &cli.BoolFlag{
-		Name:    "json",
-		Aliases: []string{"j"},
-		Usage:   "Output in JSON format",
 	}
 }
 

@@ -2,6 +2,7 @@ package task
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"sort"
 
@@ -13,6 +14,12 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
+
+// TreeNode represents a task node in JSON tree format
+type TreeNode struct {
+	*types.Task
+	Children []*TreeNode `json:"children,omitempty"`
+}
 
 // TreeAction shows task hierarchy as a tree
 func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
@@ -52,7 +59,6 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 				return fmt.Errorf("failed to get root tasks: %w", err)
 			}
 			startingTasks = roots
-			fmt.Printf("Task tree for project %s:\n\n", projectID)
 		}
 
 		if len(startingTasks) == 0 {
@@ -65,6 +71,34 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return startingTasks[i].Title < startingTasks[j].Title
 		})
 
+		// Show headers for non-JSON mode
+		if !c.Bool("json") {
+			if rootTaskIDStr != "" {
+				fmt.Printf("Task tree starting from '%s':\n\n", startingTasks[0].Title)
+			} else {
+				fmt.Printf("Task tree for project %s:\n\n", projectID)
+			}
+		}
+
+		// Output JSON if requested
+		if c.Bool("json") {
+			var treeNodes []*TreeNode
+			for _, task := range startingTasks {
+				treeNode, err := buildTreeJSON(appCtx.ProjectManager, task, 0, maxDepth)
+				if err != nil {
+					return fmt.Errorf("failed to build JSON tree: %w", err)
+				}
+				treeNodes = append(treeNodes, treeNode)
+			}
+
+			jsonData, err := json.MarshalIndent(treeNodes, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal tree to JSON: %w", err)
+			}
+			fmt.Println(string(jsonData))
+			return nil
+		}
+
 		for _, task := range startingTasks {
 			if err := printTaskTree(appCtx.ProjectManager, task, 0, maxDepth, ""); err != nil {
 				return fmt.Errorf("failed to print task tree: %w", err)
@@ -73,6 +107,41 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		return nil
 	}
+}
+
+// buildTreeJSON recursively builds a JSON tree structure
+func buildTreeJSON(projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int) (*TreeNode, error) {
+	// Check depth limit
+	if maxDepth > 0 && currentDepth >= maxDepth {
+		return &TreeNode{Task: task, Children: []*TreeNode{}}, nil
+	}
+
+	node := &TreeNode{
+		Task:     task,
+		Children: []*TreeNode{},
+	}
+
+	// Get children
+	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Sort children
+	sort.Slice(children, func(i, j int) bool {
+		return children[i].Title < children[j].Title
+	})
+
+	// Build child nodes
+	for _, child := range children {
+		childNode, err := buildTreeJSON(projectManager, child, currentDepth+1, maxDepth)
+		if err != nil {
+			return nil, err
+		}
+		node.Children = append(node.Children, childNode)
+	}
+
+	return node, nil
 }
 
 // getAllDescendants recursively gets all descendants of a task
