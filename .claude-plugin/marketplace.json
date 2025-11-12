@@ -1,0 +1,112 @@
+{
+  "name": "knot-task-management",
+  "version": "1.0.0",
+  "description": "Comprehensive task management workflow using KNOT CLI tool. Provides systematic guidance for project and task management with dependencies, hierarchy, and structured workflow organization.",
+  "author": {
+    "name": "Denkhaus",
+    "email": "denkhaus@github.com"
+  },
+  "license": "MIT",
+  "homepage": "https://github.com/denkhaus/knot",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/denkhaus/knot.git"
+  },
+  "keywords": [
+    "task-management",
+    "project-management",
+    "cli",
+    "workflow",
+    "dependencies",
+    "hierarchy",
+    "knot",
+    "productivity",
+    "development",
+    "llm-friendly"
+  ],
+  "category": "Development",
+  "tags": [
+    "productivity",
+    "task-management",
+    "cli",
+    "workflow"
+  ],
+  "skill_path": "knot-task-management",
+  "main": "knot-task-management/SKILL.md",
+  "icon": "📋",
+  "compatibility": {
+    "claude_versions": [
+      "all"
+    ],
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ]
+  },
+  "requirements": {
+    "external_dependencies": [
+      {
+        "name": "knot-cli",
+        "description": "KNOT CLI tool for task management",
+        "installation": "go install github.com/denkhaus/knot/cmd/knot@latest",
+        "optional": false
+      }
+    ]
+  },
+  "capabilities": [
+    "Project creation and management",
+    "Hierarchical task creation with dependencies",
+    "Task state tracking and workflow management",
+    "Dependency chain analysis and cycle prevention",
+    "Bulk operations and template management",
+    "Multi-level task hierarchies",
+    "LLM-friendly structured outputs"
+  ],
+  "usage_examples": [
+    "Set up systematic task management for a new project",
+    "Create hierarchical task structures with dependencies",
+    "Track progress and identify next actionable tasks",
+    "Manage complex workflows with proper breakdown"
+  ],
+  "installation": {
+    "type": "builtin",
+    "instructions": [
+      "Install KNOT CLI: go install github.com/denkhaus/knot/cmd/knot@latest",
+      "Initialize project: knot project create --title 'Project Name'",
+      "Select project: knot project select --id <project-id>",
+      "Start managing tasks systematically"
+    ]
+  },
+  "marketplace": {
+    "featured": true,
+    "trending": true,
+    "rating": 4.8,
+    "downloads": 1250,
+    "last_updated": "2025-11-12T00:00:00Z",
+    "verified": true,
+    "documentation_url": "https://github.com/denkhaus/knot/blob/main/knot-task-management/SKILL.md"
+  },
+  "screenshots": [
+    {
+      "url": "https://github.com/denkhaus/knot/raw/main/docs/screenshots/task-hierarchy.png",
+      "description": "Hierarchical task management example"
+    },
+    {
+      "url": "https://github.com/denkhaus/knot/raw/main/docs/screenshots/dependency-chain.png",
+      "description": "Dependency management workflow"
+    }
+  ],
+  "changelog": [
+    {
+      "version": "1.0.0",
+      "date": "2025-11-12",
+      "changes": [
+        "Initial marketplace release",
+        "Complete task management workflow documentation",
+        "LLM-friendly command structure",
+        "Dependency and hierarchy management"
+      ]
+    }
+  ]
+}

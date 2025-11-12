@@ -1,0 +1,57 @@
+{
+  "name": "knot-task-management",
+  "version": "1.0.0",
+  "description": "Comprehensive task management workflow using KNOT CLI tool",
+  "skill_file": "SKILL.md",
+  "icon": "📋",
+  "category": "Development",
+  "tags": [
+    "task-management",
+    "project-management",
+    "cli",
+    "workflow",
+    "dependencies"
+  ],
+  "author": "Denkhaus",
+  "license": "MIT",
+  "repository": "https://github.com/denkhaus/knot.git",
+  "homepage": "https://github.com/denkhaus/knot",
+  "dependencies": {
+    "tools": [
+      {
+        "name": "knot-cli",
+        "required": true,
+        "installation": "go install github.com/denkhaus/knot/cmd/knot@latest"
+      }
+    ],
+    "platforms": [
+      "linux",
+      "macos",
+      "windows"
+    ]
+  },
+  "capabilities": [
+    "project-creation",
+    "task-hierarchy",
+    "dependency-management",
+    "workflow-optimization",
+    "bulk-operations",
+    "template-usage",
+    "state-tracking",
+    "llm-integration"
+  ],
+  "entry_points": [
+    "Project setup and initialization",
+    "Task creation and management",
+    "Dependency establishment and validation",
+    "Workflow analysis and optimization",
+    "Template application and customization"
+  ],
+  "example_usage": [
+    "Create a new project for web development",
+    "Set up hierarchical tasks with dependencies",
+    "Identify next actionable tasks",
+    "Apply feature development template",
+    "Analyze blocked tasks and bottlenecks"
+  ]
+}
