@@ -410,11 +410,30 @@ func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 			zap.String("newState", stateStr),
 			zap.String("actor", actor))
 
+		// Resolve project context to ensure task belongs to current project
+		projectID, err := shared.ResolveProjectID(c, appCtx)
+		if err != nil {
+			appCtx.Logger.Error("Failed to resolve project context", zap.Error(err))
+			return err
+		}
+
+		appCtx.Logger.Info("Task update-state debug",
+			zap.String("taskID", taskID.String()),
+			zap.String("currentProjectID", projectID.String()),
+			zap.String("newState", stateStr),
+			zap.String("actor", actor))
+
 		// Get current task to preserve other fields
 		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
 		if err != nil {
 			appCtx.Logger.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
+		}
+
+		// Validate task belongs to current project
+		if task.ProjectID != projectID {
+			return fmt.Errorf("task %s belongs to project %s, but current project is %s",
+				taskID, task.ProjectID, projectID)
 		}
 
 		// Validate state transition
