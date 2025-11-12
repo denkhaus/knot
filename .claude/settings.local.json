@@ -9,7 +9,8 @@
       "Bash(go test:*)",
       "Bash(go install:*)",
       "Bash(gh release list:*)",
-      "Bash(gh run view:*)"
+      "Bash(gh run view:*)",
+      "mcp__brain__store_memory"
     ],
     "deny": [],
     "ask": []
