@@ -192,7 +192,7 @@ func validateTemplate(template *types.TaskTemplate) error {
 func validateTemplateVariables(template *types.TaskTemplate, variables map[string]string) error {
 	for _, variable := range template.Variables {
 		value, provided := variables[variable.Name]
-		
+
 		if variable.Required && !provided {
 			return fmt.Errorf("required variable '%s' not provided", variable.Name)
 		}
@@ -236,7 +236,7 @@ func applyTemplate(appCtx *shared.AppContext, template *types.TaskTemplate, proj
 
 	// Create task ID mapping for dependencies
 	taskIDMap := make(map[string]uuid.UUID)
-	
+
 	// First pass: create all tasks without dependencies
 	for _, taskSpec := range template.Tasks {
 		// Skip conditional tasks that don't match

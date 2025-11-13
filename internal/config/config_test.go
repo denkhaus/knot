@@ -68,7 +68,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "valid config",
 			config: &manager.Config{
 				MaxTasksPerDepth:     5,
-				ComplexityThreshold: 3,
+				ComplexityThreshold:  3,
 				MaxDepth:             10,
 				MaxDescriptionLength: 200,
 			},
@@ -78,7 +78,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "valid config with minimum values",
 			config: &manager.Config{
 				MaxTasksPerDepth:     1,
-				ComplexityThreshold: 1,
+				ComplexityThreshold:  1,
 				MaxDepth:             1,
 				MaxDescriptionLength: 1,
 			},
@@ -88,7 +88,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "valid config with maximum complexity threshold",
 			config: &manager.Config{
 				MaxTasksPerDepth:     10,
-				ComplexityThreshold: 10,
+				ComplexityThreshold:  10,
 				MaxDepth:             20,
 				MaxDescriptionLength: 1000,
 			},
@@ -98,7 +98,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid MaxTasksPerDepth - zero",
 			config: &manager.Config{
 				MaxTasksPerDepth:     0,
-				ComplexityThreshold: 3,
+				ComplexityThreshold:  3,
 				MaxDepth:             10,
 				MaxDescriptionLength: 200,
 			},
@@ -109,7 +109,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid MaxTasksPerDepth - negative",
 			config: &manager.Config{
 				MaxTasksPerDepth:     -1,
-				ComplexityThreshold: 3,
+				ComplexityThreshold:  3,
 				MaxDepth:             10,
 				MaxDescriptionLength: 200,
 			},
@@ -120,7 +120,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid ComplexityThreshold - zero",
 			config: &manager.Config{
 				MaxTasksPerDepth:     5,
-				ComplexityThreshold: 0,
+				ComplexityThreshold:  0,
 				MaxDepth:             10,
 				MaxDescriptionLength: 200,
 			},
@@ -131,7 +131,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid ComplexityThreshold - too high",
 			config: &manager.Config{
 				MaxTasksPerDepth:     5,
-				ComplexityThreshold: 11,
+				ComplexityThreshold:  11,
 				MaxDepth:             10,
 				MaxDescriptionLength: 200,
 			},
@@ -142,7 +142,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid MaxDepth - zero",
 			config: &manager.Config{
 				MaxTasksPerDepth:     5,
-				ComplexityThreshold: 3,
+				ComplexityThreshold:  3,
 				MaxDepth:             0,
 				MaxDescriptionLength: 200,
 			},
@@ -153,7 +153,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "invalid MaxDescriptionLength - zero",
 			config: &manager.Config{
 				MaxTasksPerDepth:     5,
-				ComplexityThreshold: 3,
+				ComplexityThreshold:  3,
 				MaxDepth:             10,
 				MaxDescriptionLength: 0,
 			},
@@ -164,7 +164,7 @@ func TestValidateConfig(t *testing.T) {
 			name: "multiple invalid values",
 			config: &manager.Config{
 				MaxTasksPerDepth:     0,
-				ComplexityThreshold: 0,
+				ComplexityThreshold:  0,
 				MaxDepth:             0,
 				MaxDescriptionLength: 0,
 			},
@@ -205,7 +205,7 @@ func TestConfigIntegration(t *testing.T) {
 		// Create a valid config
 		config := &manager.Config{
 			MaxTasksPerDepth:     3,
-			ComplexityThreshold: 5,
+			ComplexityThreshold:  5,
 			MaxDepth:             8,
 			MaxDescriptionLength: 150,
 		}

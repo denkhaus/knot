@@ -219,7 +219,7 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 func showAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
-		
+
 		template, err := findTemplateByName(templateName)
 		if err != nil {
 			return fmt.Errorf("template not found: %w", err)
@@ -320,7 +320,7 @@ func applyAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		dryRun := c.Bool("dry-run")
-		
+
 		// Apply template
 		result, err := applyTemplate(appCtx, template, projectID, parentID, variables, dryRun)
 		if err != nil {
@@ -366,7 +366,7 @@ func applyAction(appCtx *shared.AppContext) cli.ActionFunc {
 func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		filePath := c.String("file")
-		
+
 		template, err := loadTemplateFromFile(filePath)
 		if err != nil {
 			return fmt.Errorf("failed to load template: %w", err)
@@ -389,7 +389,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		filePath := c.String("file")
-		
+
 		template, err := loadTemplateFromFile(filePath)
 		if err != nil {
 			return fmt.Errorf("failed to load template: %w", err)
@@ -406,11 +406,12 @@ func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
 		return nil
 	}
 }
+
 // infoAction shows detailed information about a template including source
 func infoAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
-		
+
 		template, err := findTemplateByName(templateName)
 		if err != nil {
 			return fmt.Errorf("template not found: %w", err)
@@ -464,7 +465,7 @@ func infoAction(appCtx *shared.AppContext) cli.ActionFunc {
 func editAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
-		
+
 		// Check if template exists
 		template, err := findTemplateByName(templateName)
 		if err != nil {
@@ -510,7 +511,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
 		force := c.Bool("force")
-		
+
 		// Check if template exists
 		template, err := findTemplateByName(templateName)
 		if err != nil {
@@ -539,7 +540,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		fmt.Printf("User template \"%s\" deleted successfully.\n", templateName)
-		
+
 		// Check if built-in version exists
 		builtInTemplates, err := loadBuiltInTemplates()
 		if err == nil {

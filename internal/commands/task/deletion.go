@@ -338,7 +338,7 @@ func getTaskDescendants(projectManager manager.ProjectManager, taskID uuid.UUID)
 // checkSubtreeDependencies checks for external dependencies on tasks in the subtree
 func checkSubtreeDependencies(appCtx *shared.AppContext, rootTask *types.Task, descendants []*types.Task) error {
 	allTasks := append([]*types.Task{rootTask}, descendants...)
-	
+
 	// Check dependencies for root task
 	dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), rootTask.ID)
 	if err == nil && len(dependencies) > 0 {

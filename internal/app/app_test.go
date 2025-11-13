@@ -142,7 +142,7 @@ func TestAppRunWithError(t *testing.T) {
 	// This is standard behavior for CLI applications using urfave/cli
 	// We'll test that the app was created successfully instead
 	assert.NotNil(t, app)
-	
+
 	// We can test that the app has the expected structure
 	assert.NotEmpty(t, app.App.Commands)
 	assert.NotEmpty(t, app.App.Flags)

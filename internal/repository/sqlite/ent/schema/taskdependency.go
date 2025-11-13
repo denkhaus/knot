@@ -39,7 +39,7 @@ func (TaskDependency) Edges() []ent.Edge {
 			Field("task_id").
 			Unique().
 			Required(),
-		
+
 		// The task that is depended upon
 		edge.To("depends_on_task", Task.Type).
 			Field("depends_on_task_id").
@@ -54,13 +54,13 @@ func (TaskDependency) Indexes() []ent.Index {
 		// Individual indexes for foreign keys
 		index.Fields("task_id"),
 		index.Fields("depends_on_task_id"),
-		
+
 		// Unique constraint to prevent duplicate dependencies
 		index.Fields("task_id", "depends_on_task_id").Unique(),
-		
+
 		// Index for reverse lookups (what depends on this task)
 		index.Fields("depends_on_task_id", "task_id"),
-		
+
 		// Index for time-based queries
 		index.Fields("created_at"),
 	}

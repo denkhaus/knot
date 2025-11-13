@@ -120,7 +120,7 @@ type Config struct {
 // DefaultConfig returns a sensible default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		MaxTasksPerDepth:     100,  // Increased from 20 to 100 for better scalability
+		MaxTasksPerDepth:     100, // Increased from 20 to 100 for better scalability
 		ComplexityThreshold:  8,
 		MaxDepth:             5,
 		MaxDescriptionLength: 2000, // Default maximum description length

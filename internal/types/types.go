@@ -37,10 +37,11 @@ import (
 // Tasks progress through these states as work is completed.
 //
 // State Flow:
-//   pending → in-progress → completed
-//   pending → blocked → in-progress → completed
-//   any state → cancelled
-//   any state → deletion-pending → deleted
+//
+//	pending → in-progress → completed
+//	pending → blocked → in-progress → completed
+//	any state → cancelled
+//	any state → deletion-pending → deleted
 type TaskState string
 
 const (
@@ -115,8 +116,8 @@ type Task struct {
 	Dependents    []uuid.UUID  `json:"dependents,omitempty"`     // Tasks that depend on this task
 	CreatedAt     time.Time    `json:"created_at"`
 	UpdatedAt     time.Time    `json:"updated_at"`
-	CreatedBy     string       `json:"created_by,omitempty"`     // Actor who created the task
-	UpdatedBy     string       `json:"updated_by,omitempty"`     // Actor who last updated the task
+	CreatedBy     string       `json:"created_by,omitempty"` // Actor who created the task
+	UpdatedBy     string       `json:"updated_by,omitempty"` // Actor who last updated the task
 	CompletedAt   *time.Time   `json:"completed_at,omitempty"`
 }
 
@@ -124,9 +125,9 @@ type Task struct {
 type ProjectState string
 
 const (
-	ProjectStateActive         ProjectState = "active"
-	ProjectStateCompleted      ProjectState = "completed"
-	ProjectStateArchived       ProjectState = "archived"
+	ProjectStateActive          ProjectState = "active"
+	ProjectStateCompleted       ProjectState = "completed"
+	ProjectStateArchived        ProjectState = "archived"
 	ProjectStateDeletionPending ProjectState = "deletion-pending"
 )
 

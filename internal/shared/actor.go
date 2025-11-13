@@ -1,8 +1,8 @@
 package shared
 
 import (
-	"os"
 	"github.com/urfave/cli/v2"
+	"os"
 )
 
 // GetActorFromContext resolves the actor from CLI context with proper fallback logic
@@ -20,7 +20,8 @@ import (
 // - string: resolved actor name
 //
 // Usage example:
-//   actor := shared.GetActorFromContext(c)
+//
+//	actor := shared.GetActorFromContext(c)
 //
 // Related to task: a42c4861-f7f7-4d03-9a29-53b965a7ee1e
 func GetActorFromContext(c *cli.Context) string {

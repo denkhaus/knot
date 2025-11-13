@@ -18,7 +18,7 @@ func GetStartedAction(appCtx *shared.AppContext) cli.ActionFunc {
 		if err != nil {
 			return fmt.Errorf("failed to read get-started content: %w", err)
 		}
-		
+
 		fmt.Print(string(content))
 		return nil
 	}

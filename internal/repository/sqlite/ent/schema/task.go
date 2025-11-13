@@ -71,7 +71,7 @@ func (Task) Edges() []ent.Edge {
 			Field("project_id").
 			Unique().
 			Required(),
-		
+
 		// Self-referencing parent-child relationship
 		edge.To("children", Task.Type).
 			From("parent").
@@ -92,7 +92,7 @@ func (Task) Indexes() []ent.Index {
 		index.Fields("complexity"),
 		index.Fields("depth"),
 		index.Fields("created_at"),
-		
+
 		// Composite indexes for common query patterns
 		index.Fields("project_id", "state"),
 		index.Fields("project_id", "priority"),

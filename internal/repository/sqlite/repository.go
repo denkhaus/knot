@@ -12,8 +12,8 @@ import (
 	"entgo.io/ent/dialect/sql/schema"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent"
 	"github.com/denkhaus/knot/internal/types"
-	_ "modernc.org/sqlite"
 	"go.uber.org/zap"
+	_ "modernc.org/sqlite"
 )
 
 // sqliteRepository implements the Repository interface using ent ORM
@@ -137,12 +137,12 @@ func (r *sqliteRepository) configureSQLiteOptimizations(db *sql.DB) error {
 		pragma string
 	}{
 		{"foreign_keys", "PRAGMA foreign_keys = ON"},
-		{"wal_mode", "PRAGMA journal_mode = WAL"},           // Enable WAL mode for better concurrency
-		{"synchronous", "PRAGMA synchronous = NORMAL"},      // Balance between safety and performance
-		{"cache_size", "PRAGMA cache_size = -64000"},        // 64MB cache (negative = KB)
-		{"temp_store", "PRAGMA temp_store = MEMORY"},        // Store temp tables in memory
-		{"mmap_size", "PRAGMA mmap_size = 268435456"},       // 256MB memory-mapped I/O
-		{"optimize", "PRAGMA optimize"},                     // Analyze and optimize query planner
+		{"wal_mode", "PRAGMA journal_mode = WAL"},      // Enable WAL mode for better concurrency
+		{"synchronous", "PRAGMA synchronous = NORMAL"}, // Balance between safety and performance
+		{"cache_size", "PRAGMA cache_size = -64000"},   // 64MB cache (negative = KB)
+		{"temp_store", "PRAGMA temp_store = MEMORY"},   // Store temp tables in memory
+		{"mmap_size", "PRAGMA mmap_size = 268435456"},  // 256MB memory-mapped I/O
+		{"optimize", "PRAGMA optimize"},                // Analyze and optimize query planner
 	}
 
 	for _, opt := range optimizations {
@@ -236,4 +236,3 @@ func (r *sqliteRepository) secureDatabaseFile(dbPath string) error {
 	r.config.Logger.Debug("Database file permissions secured", zap.String("path", dbPath))
 	return nil
 }
-

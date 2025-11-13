@@ -20,7 +20,7 @@ import (
 func TestServiceCreation(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
 	config := DefaultConfig()
-	
+
 	service := NewManagerWithRepository(repo, config)
 	assert.NotNil(t, service)
 }
@@ -341,7 +341,7 @@ func TestValidationRules(t *testing.T) {
 		for i := range longDesc {
 			longDesc = longDesc[:i] + "a" + longDesc[i+1:]
 		}
-		
+
 		_, err := service.CreateTask(ctx, project.ID, nil, "Long Desc Task", longDesc, 3, types.TaskPriorityMedium, "test-user")
 		assert.Error(t, err, "Should reject overly long description")
 	})
@@ -404,9 +404,9 @@ func TestConcurrency(t *testing.T) {
 		// Create tasks concurrently
 		for i := 0; i < numTasks; i++ {
 			go func(index int) {
-				_, err := service.CreateTask(ctx, project.ID, nil, 
-					fmt.Sprintf("Concurrent Task %d", index), 
-					fmt.Sprintf("Task created concurrently %d", index), 
+				_, err := service.CreateTask(ctx, project.ID, nil,
+					fmt.Sprintf("Concurrent Task %d", index),
+					fmt.Sprintf("Task created concurrently %d", index),
 					3, types.TaskPriorityMedium, "test-user")
 				results <- err
 			}(i)
@@ -516,4 +516,3 @@ func TestManagerWithSQLite(t *testing.T) {
 		assert.Equal(t, types.TaskStateInProgress, updated.State)
 	})
 }
-

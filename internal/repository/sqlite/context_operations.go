@@ -34,7 +34,7 @@ func (r *sqliteRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, 
 
 // SetSelectedProject sets the currently selected project ID in the database
 func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
-	r.logger.Debug("Setting selected project in database", 
+	r.logger.Debug("Setting selected project in database",
 		zap.String("projectID", projectID.String()),
 		zap.String("actor", actor))
 
@@ -57,9 +57,9 @@ func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uui
 		SetSelectedProjectID(projectID).
 		SetUpdatedBy(actor).
 		Save(ctx)
-	
+
 	r.logger.Debug("Update attempt result", zap.Int("updated", updated), zap.Error(err))
-	
+
 	if err != nil || updated == 0 {
 		// Create new record if update failed or no record exists
 		r.logger.Debug("Creating new project context record")
@@ -76,7 +76,7 @@ func (r *sqliteRepository) SetSelectedProject(ctx context.Context, projectID uui
 		return fmt.Errorf("failed to set selected project: %w", err)
 	}
 
-	r.logger.Info("Selected project updated", 
+	r.logger.Info("Selected project updated",
 		zap.String("projectID", projectID.String()),
 		zap.String("actor", actor))
 	return nil

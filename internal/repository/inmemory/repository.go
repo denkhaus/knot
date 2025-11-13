@@ -18,7 +18,7 @@ type simpleMemoryRepository struct {
 	tasksByProject    map[uuid.UUID][]uuid.UUID
 	tasksByParent     map[uuid.UUID][]uuid.UUID
 	taskDependencies  map[uuid.UUID][]uuid.UUID // taskID -> list of dependency taskIDs
-	selectedProjectID *uuid.UUID                 // Currently selected project
+	selectedProjectID *uuid.UUID                // Currently selected project
 }
 
 // NewMemoryRepository creates a new in-memory repository
@@ -113,10 +113,10 @@ func (r *simpleMemoryRepository) CreateTask(ctx context.Context, task *types.Tas
 	task.UpdatedAt = time.Now()
 
 	r.tasks[task.ID] = task
-	
+
 	// Add to project tasks
 	r.tasksByProject[task.ProjectID] = append(r.tasksByProject[task.ProjectID], task.ID)
-	
+
 	// Add to parent tasks if applicable
 	if task.ParentID != nil {
 		r.tasksByParent[*task.ParentID] = append(r.tasksByParent[*task.ParentID], task.ID)
@@ -159,7 +159,7 @@ func (r *simpleMemoryRepository) DeleteTask(ctx context.Context, id uuid.UUID) e
 	}
 
 	delete(r.tasks, id)
-	
+
 	// Remove from project tasks
 	if projectTasks, exists := r.tasksByProject[task.ProjectID]; exists {
 		for i, taskID := range projectTasks {
@@ -292,7 +292,7 @@ func (r *simpleMemoryRepository) AddTaskDependency(ctx context.Context, taskID u
 	if !exists {
 		return nil, fmt.Errorf("task not found")
 	}
-	
+
 	if _, exists := r.tasks[dependsOnTaskID]; !exists {
 		return nil, fmt.Errorf("dependency task not found")
 	}
@@ -304,13 +304,13 @@ func (r *simpleMemoryRepository) AddTaskDependency(ctx context.Context, taskID u
 			return task, nil // Already exists
 		}
 	}
-	
+
 	r.taskDependencies[taskID] = append(deps, dependsOnTaskID)
-	
+
 	// Update task dependencies slice
 	task.Dependencies = r.taskDependencies[taskID]
 	r.tasks[taskID] = task
-	
+
 	return task, nil
 }
 
@@ -330,11 +330,11 @@ func (r *simpleMemoryRepository) RemoveTaskDependency(ctx context.Context, taskI
 			break
 		}
 	}
-	
+
 	// Update task dependencies slice
 	task.Dependencies = r.taskDependencies[taskID]
 	r.tasks[taskID] = task
-	
+
 	return task, nil
 }
 
@@ -344,13 +344,13 @@ func (r *simpleMemoryRepository) GetTaskDependencies(ctx context.Context, taskID
 
 	deps := r.taskDependencies[taskID]
 	tasks := make([]*types.Task, 0, len(deps))
-	
+
 	for _, depID := range deps {
 		if task, exists := r.tasks[depID]; exists {
 			tasks = append(tasks, task)
 		}
 	}
-	
+
 	return tasks, nil
 }
 
@@ -359,7 +359,7 @@ func (r *simpleMemoryRepository) GetDependentTasks(ctx context.Context, taskID u
 	defer r.mu.RUnlock()
 
 	var dependents []*types.Task
-	
+
 	for otherTaskID, deps := range r.taskDependencies {
 		for _, depID := range deps {
 			if depID == taskID {
@@ -370,7 +370,7 @@ func (r *simpleMemoryRepository) GetDependentTasks(ctx context.Context, taskID u
 			}
 		}
 	}
-	
+
 	return dependents, nil
 }
 
@@ -389,7 +389,7 @@ func (r *simpleMemoryRepository) GetProjectProgress(ctx context.Context, project
 
 	for _, task := range tasks {
 		progress.TasksByDepth[task.Depth]++
-		
+
 		switch task.State {
 		case types.TaskStateCompleted:
 			progress.CompletedTasks++
@@ -433,11 +433,11 @@ func (r *simpleMemoryRepository) GetTaskCountByDepth(ctx context.Context, projec
 func (r *simpleMemoryRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	if r.selectedProjectID == nil {
 		return nil, nil
 	}
-	
+
 	// Return a copy to avoid mutation
 	projectID := *r.selectedProjectID
 	return &projectID, nil
@@ -447,12 +447,12 @@ func (r *simpleMemoryRepository) GetSelectedProject(ctx context.Context) (*uuid.
 func (r *simpleMemoryRepository) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	// Verify project exists
 	if _, exists := r.projects[projectID]; !exists {
 		return fmt.Errorf("project with ID %s does not exist", projectID)
 	}
-	
+
 	r.selectedProjectID = &projectID
 	return nil
 }
@@ -461,7 +461,7 @@ func (r *simpleMemoryRepository) SetSelectedProject(ctx context.Context, project
 func (r *simpleMemoryRepository) ClearSelectedProject(ctx context.Context) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
-	
+
 	r.selectedProjectID = nil
 	return nil
 }
@@ -470,7 +470,7 @@ func (r *simpleMemoryRepository) ClearSelectedProject(ctx context.Context) error
 func (r *simpleMemoryRepository) HasSelectedProject(ctx context.Context) (bool, error) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
-	
+
 	return r.selectedProjectID != nil, nil
 }
 

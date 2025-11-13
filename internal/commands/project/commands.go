@@ -14,7 +14,6 @@ import (
 	"go.uber.org/zap"
 )
 
-
 // Commands returns all project-related CLI commands
 func Commands(appCtx *shared.AppContext) []*cli.Command {
 	return []*cli.Command{

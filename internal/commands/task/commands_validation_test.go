@@ -99,11 +99,11 @@ func TestCreateActionValidation(t *testing.T) {
 				ProjectManager: mgr,
 				Logger:         config.Logger,
 			}
-			
+
 			// Set project context for the test
 			err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
 			require.NoError(t, err)
-			
+
 			action := createAction(appCtx)
 
 			// Execute the action
@@ -154,11 +154,11 @@ func TestInputValidationIntegration(t *testing.T) {
 		ProjectManager: mgr,
 		Logger:         config.Logger,
 	}
-	
+
 	// Set project context for the test
 	err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
 	require.NoError(t, err)
-	
+
 	action := createAction(appCtx)
 
 	err = action(ctx)

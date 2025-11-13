@@ -298,7 +298,7 @@ func BlockedAction(appCtx *shared.AppContext) cli.ActionFunc {
 				fmt.Printf("   %s\n", task.Description)
 			}
 			fmt.Printf("   State: %s | Complexity: %d\n", task.State, task.Complexity)
-			
+
 			// Show blocking dependencies
 			fmt.Printf("   Blocked by %d dependencies:\n", len(task.Dependencies))
 			for _, depID := range task.Dependencies {
@@ -329,7 +329,7 @@ func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 			complexityThreshold = 8 // Default from original pkg/tools/project
 		}
 
-		appCtx.Logger.Info("Finding tasks needing breakdown", 
+		appCtx.Logger.Info("Finding tasks needing breakdown",
 			zap.String("projectID", projectID.String()),
 			zap.Int("threshold", complexityThreshold))
 
@@ -368,11 +368,11 @@ func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 		// Apply limit if specified
 		limit := c.Int("limit")
 		if limit > 0 && len(needsBreakdown) > limit {
-			fmt.Printf("Tasks needing breakdown (showing %d of %d with complexity >= %d):\n\n", 
+			fmt.Printf("Tasks needing breakdown (showing %d of %d with complexity >= %d):\n\n",
 				limit, len(needsBreakdown), complexityThreshold)
 			needsBreakdown = needsBreakdown[:limit]
 		} else {
-			fmt.Printf("Tasks needing breakdown (%d tasks with complexity >= %d):\n\n", 
+			fmt.Printf("Tasks needing breakdown (%d tasks with complexity >= %d):\n\n",
 				len(needsBreakdown), complexityThreshold)
 		}
 
@@ -381,7 +381,7 @@ func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 			if task.Description != "" {
 				fmt.Printf("   %s\n", task.Description)
 			}
-			fmt.Printf("   State: %s | Complexity: %d (>= %d threshold)\n", 
+			fmt.Printf("   State: %s | Complexity: %d (>= %d threshold)\n",
 				task.State, task.Complexity, complexityThreshold)
 			if task.Depth > 0 {
 				fmt.Printf("   Depth: %d", task.Depth)

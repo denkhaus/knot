@@ -8,7 +8,7 @@ import (
 
 func TestNewInputValidator(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	assert.Equal(t, 200, validator.MaxTitleLength)
 	assert.Equal(t, 2000, validator.MaxDescriptionLength)
 	assert.False(t, validator.AllowHTML)
@@ -16,7 +16,7 @@ func TestNewInputValidator(t *testing.T) {
 
 func TestInputValidatorValidateTaskTitle(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	tests := []struct {
 		name        string
 		title       string
@@ -64,7 +64,7 @@ func TestInputValidatorValidateTaskTitle(t *testing.T) {
 			} else {
 				title = tt.title
 			}
-			
+
 			err := validator.ValidateTaskTitle(title)
 			if tt.expectError {
 				assert.Error(t, err)
@@ -77,7 +77,7 @@ func TestInputValidatorValidateTaskTitle(t *testing.T) {
 
 func TestInputValidatorValidateTaskDescription(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	tests := []struct {
 		name        string
 		description string
@@ -125,7 +125,7 @@ func TestInputValidatorValidateTaskDescription(t *testing.T) {
 			} else {
 				description = tt.description
 			}
-			
+
 			err := validator.ValidateTaskDescription(description)
 			if tt.expectError {
 				assert.Error(t, err)
@@ -138,7 +138,7 @@ func TestInputValidatorValidateTaskDescription(t *testing.T) {
 
 func TestInputValidatorValidateProjectTitle(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	longTitle := make([]byte, 201)
 	for i := range longTitle {
 		longTitle[i] = 'a'
@@ -180,7 +180,7 @@ func TestInputValidatorValidateProjectTitle(t *testing.T) {
 
 func TestInputValidatorValidateProjectDescription(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	longDescription := make([]byte, 2001)
 	for i := range longDescription {
 		longDescription[i] = 'a'
@@ -222,7 +222,7 @@ func TestInputValidatorValidateProjectDescription(t *testing.T) {
 
 func TestInputValidatorValidateContent(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	tests := []struct {
 		name        string
 		content     string
@@ -276,7 +276,7 @@ func TestInputValidatorValidateContent(t *testing.T) {
 func TestInputValidatorCheckForHTML(t *testing.T) {
 	validator := NewInputValidator()
 	validator.AllowHTML = false // Default, but being explicit
-	
+
 	htmlTests := []struct {
 		name        string
 		content     string
@@ -328,7 +328,7 @@ func TestInputValidatorCheckForHTML(t *testing.T) {
 
 func TestInputValidatorSanitizeContent(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	tests := []struct {
 		name     string
 		content  string
@@ -362,17 +362,17 @@ func TestInputValidatorSanitizeContent(t *testing.T) {
 func TestInputValidatorSanitizeContentWithHTMLAllowed(t *testing.T) {
 	validator := NewInputValidator()
 	validator.AllowHTML = true
-	
+
 	content := "<div>HTML content</div>"
 	result := validator.SanitizeContent(content)
-	
+
 	// When HTML is allowed, content should be returned as-is
 	assert.Equal(t, content, result)
 }
 
 func TestInputValidatorValidateComplexity(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	tests := []struct {
 		name        string
 		complexity  int
@@ -424,7 +424,7 @@ func TestInputValidatorValidateComplexity(t *testing.T) {
 
 func TestInputValidatorValidateActor(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	longActor := make([]byte, 101)
 	for i := range longActor {
 		longActor[i] = 'a'
@@ -476,7 +476,7 @@ func TestInputValidatorValidateActor(t *testing.T) {
 
 func TestInputValidatorValidateTaskPriority(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	tests := []struct {
 		name        string
 		priority    string
@@ -525,25 +525,25 @@ func TestInputValidatorWithCustomLimits(t *testing.T) {
 	validator := &InputValidator{
 		MaxTitleLength:       50,
 		MaxDescriptionLength: 100,
-		AllowHTML:           false,
+		AllowHTML:            false,
 	}
-	
+
 	// Test with custom length limits
 	longTitle := make([]byte, 51)
 	for i := range longTitle {
 		longTitle[i] = 'a'
 	}
-	
+
 	err := validator.ValidateTaskTitle(string(longTitle))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "title too long")
-	
+
 	// Test with custom description limit
 	longDesc := make([]byte, 101)
 	for i := range longDesc {
 		longDesc[i] = 'a'
 	}
-	
+
 	err = validator.ValidateTaskDescription(string(longDesc))
 	assert.Error(t, err)
 	assert.Contains(t, err.Error(), "description too long")
@@ -552,7 +552,7 @@ func TestInputValidatorWithCustomLimits(t *testing.T) {
 func TestInputValidatorValidateContentWithHTMLAllowed(t *testing.T) {
 	validator := NewInputValidator()
 	validator.AllowHTML = true // Allow HTML for this test
-	
+
 	// Should not return error when HTML is allowed
 	err := validator.validateContent("test <div>html</div>", "test field")
 	assert.NoError(t, err)
@@ -560,36 +560,36 @@ func TestInputValidatorValidateContentWithHTMLAllowed(t *testing.T) {
 
 func TestInputValidatorValidationCombinations(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	// Test valid combinations
 	err := validator.ValidateTaskTitle("Valid Title")
 	assert.NoError(t, err)
-	
+
 	err = validator.ValidateTaskDescription("Valid Description")
 	assert.NoError(t, err)
-	
+
 	err = validator.ValidateProjectTitle("Valid Project Title")
 	assert.NoError(t, err)
-	
+
 	err = validator.ValidateProjectDescription("Valid Project Description")
 	assert.NoError(t, err)
-	
+
 	err = validator.ValidateComplexity(5)
 	assert.NoError(t, err)
-	
+
 	err = validator.ValidateActor("valid_actor")
 	assert.NoError(t, err)
-	
+
 	err = validator.ValidateTaskPriority("medium")
 	assert.NoError(t, err)
 }
 
 func TestInputValidatorValidateContentWithVariousControlChars(t *testing.T) {
 	validator := NewInputValidator()
-	
+
 	// Test with various control characters that should be rejected
 	controlChars := []byte{1, 2, 3, 4, 5, 6, 7, 8, 11, 12, 14, 15, 16, 17, 18, 19, 20, 21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31}
-	
+
 	for i, char := range controlChars {
 		t.Run("control_char_"+string(rune(i)), func(t *testing.T) {
 			content := "test" + string(char) + "content"
@@ -597,7 +597,7 @@ func TestInputValidatorValidateContentWithVariousControlChars(t *testing.T) {
 			assert.Error(t, err)
 		})
 	}
-	
+
 	// Test allowed control characters (tab, newline, carriage return)
 	allowedContent := "test\t\n\rontent" // tab, newline, carriage return
 	err := validator.validateContent(allowedContent, "test field")
@@ -607,7 +607,7 @@ func TestInputValidatorValidateContentWithVariousControlChars(t *testing.T) {
 // Benchmark tests to ensure validation is performant
 func BenchmarkValidateTaskTitle(b *testing.B) {
 	validator := NewInputValidator()
-	
+
 	for i := 0; i < b.N; i++ {
 		_ = validator.ValidateTaskTitle("Test Title")
 	}
@@ -615,7 +615,7 @@ func BenchmarkValidateTaskTitle(b *testing.B) {
 
 func BenchmarkValidateTaskDescription(b *testing.B) {
 	validator := NewInputValidator()
-	
+
 	for i := 0; i < b.N; i++ {
 		_ = validator.ValidateTaskDescription("Test Description")
 	}
@@ -623,7 +623,7 @@ func BenchmarkValidateTaskDescription(b *testing.B) {
 
 func BenchmarkValidateComplexity(b *testing.B) {
 	validator := NewInputValidator()
-	
+
 	for i := 0; i < b.N; i++ {
 		_ = validator.ValidateComplexity(5)
 	}

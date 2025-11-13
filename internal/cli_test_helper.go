@@ -26,24 +26,24 @@ func NewCLITestHelper(t *testing.T) *CLITestHelper {
 	// Create temporary directory for test database
 	tempDir, err := os.MkdirTemp("", "knot_cli_test_*")
 	require.NoError(t, err)
-	
+
 	// Save original directory
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	
+
 	// Change to temp directory
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)
-	
+
 	// Create .knot directory
 	knotDir := filepath.Join(tempDir, ".knot")
 	err = os.MkdirAll(knotDir, 0755)
 	require.NoError(t, err)
-	
+
 	// Create application
 	application, err := app.New()
 	require.NoError(t, err)
-	
+
 	return &CLITestHelper{
 		tempDir:     tempDir,
 		originalDir: originalDir,
@@ -56,31 +56,31 @@ func NewCLITestHelper(t *testing.T) *CLITestHelper {
 func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) {
 	// Prepare full args with program name
 	fullArgs := append([]string{"knot"}, args...)
-	
+
 	// Capture stdout and stderr
 	oldStdout := os.Stdout
 	oldStderr := os.Stderr
-	
+
 	rOut, wOut, _ := os.Pipe()
 	rErr, wErr, _ := os.Pipe()
-	
+
 	os.Stdout = wOut
 	os.Stderr = wErr
-	
+
 	// Run the command
 	err := h.app.Run(fullArgs)
-	
+
 	// Close writers and restore
 	wOut.Close()
 	wErr.Close()
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
-	
+
 	// Read captured output
 	var stdout, stderr bytes.Buffer
 	_, _ = io.Copy(&stdout, rOut)
 	_, _ = io.Copy(&stderr, rErr)
-	
+
 	return stdout.String(), stderr.String(), err
 }
 
@@ -137,9 +137,9 @@ func (h *CLITestHelper) CreateTestProject(title, description string) string {
 func (h *CLITestHelper) CreateTestTask(projectID, title, description string, complexity int) string {
 	// First select the project
 	h.RunCommandExpectSuccess("project", "select", "--id", projectID)
-	
+
 	// Then create the task
-	stdout, _ := h.RunCommandExpectSuccess("task", "create", 
+	stdout, _ := h.RunCommandExpectSuccess("task", "create",
 		"--title", title,
 		"--description", description,
 		"--complexity", strconv.Itoa(complexity),

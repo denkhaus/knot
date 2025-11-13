@@ -20,16 +20,16 @@ func setupTestRepository(t *testing.T) (types.Repository, func()) {
 	// Create temporary directory for test database
 	tempDir, err := os.MkdirTemp("", "knot_test_*")
 	require.NoError(t, err)
-	
+
 	dbPath := filepath.Join(tempDir, "test.db")
-	
+
 	// Create repository with test configuration
 	repo, err := NewRepository(dbPath,
 		WithAutoMigrate(true),
 		WithLogger(zap.NewNop()), // Silent logger for tests
 	)
 	require.NoError(t, err)
-	
+
 	// Return cleanup function
 	cleanup := func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
@@ -37,7 +37,7 @@ func setupTestRepository(t *testing.T) (types.Repository, func()) {
 		}
 		os.RemoveAll(tempDir)
 	}
-	
+
 	return repo, cleanup
 }
 
@@ -46,17 +46,17 @@ func TestRepositoryInitialization(t *testing.T) {
 	t.Run("successful initialization", func(t *testing.T) {
 		repo, cleanup := setupTestRepository(t)
 		defer cleanup()
-		
+
 		assert.NotNil(t, repo)
 	})
-	
+
 	t.Run("initialization with custom config", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "knot_test_*")
 		require.NoError(t, err)
 		defer os.RemoveAll(tempDir)
-		
+
 		dbPath := filepath.Join(tempDir, "custom.db")
-		
+
 		repo, err := NewRepository(dbPath,
 			WithAutoMigrate(true),
 			WithConnectionPool(2, 1),
@@ -68,7 +68,7 @@ func TestRepositoryInitialization(t *testing.T) {
 				closer.Close()
 			}
 		}()
-		
+
 		assert.NotNil(t, repo)
 	})
 }
@@ -77,9 +77,9 @@ func TestRepositoryInitialization(t *testing.T) {
 func TestProjectOperations(t *testing.T) {
 	repo, cleanup := setupTestRepository(t)
 	defer cleanup()
-	
+
 	ctx := context.Background()
-	
+
 	t.Run("create project", func(t *testing.T) {
 		project := &types.Project{
 			ID:          uuid.New(),
@@ -88,11 +88,11 @@ func TestProjectOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateProject(ctx, project)
 		assert.NoError(t, err)
 	})
-	
+
 	t.Run("get project", func(t *testing.T) {
 		// Create a project first
 		project := &types.Project{
@@ -102,10 +102,10 @@ func TestProjectOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateProject(ctx, project)
 		require.NoError(t, err)
-		
+
 		// Get the project
 		retrieved, err := repo.GetProject(ctx, project.ID)
 		assert.NoError(t, err)
@@ -113,7 +113,7 @@ func TestProjectOperations(t *testing.T) {
 		assert.Equal(t, project.Title, retrieved.Title)
 		assert.Equal(t, project.Description, retrieved.Description)
 	})
-	
+
 	t.Run("list projects", func(t *testing.T) {
 		// Create multiple projects
 		projects := []*types.Project{
@@ -132,19 +132,18 @@ func TestProjectOperations(t *testing.T) {
 				UpdatedAt:   time.Now(),
 			},
 		}
-		
+
 		for _, project := range projects {
 			err := repo.CreateProject(ctx, project)
 			require.NoError(t, err)
 		}
-		
+
 		// List projects
 		retrieved, err := repo.ListProjects(ctx)
 		assert.NoError(t, err)
 		assert.GreaterOrEqual(t, len(retrieved), 2)
 	})
-	
-	
+
 	t.Run("create then list project consistency", func(t *testing.T) {
 		// This test reproduces the bug where CreateProject succeeds but ListProjects returns empty
 		ctx := context.Background()
@@ -208,25 +207,25 @@ func TestProjectOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateProject(ctx, project)
 		require.NoError(t, err)
-		
+
 		// Update the project
 		project.Title = "Updated Title"
 		project.Description = "Updated Description"
 		project.UpdatedAt = time.Now()
-		
+
 		err = repo.UpdateProject(ctx, project)
 		assert.NoError(t, err)
-		
+
 		// Verify the update
 		retrieved, err := repo.GetProject(ctx, project.ID)
 		assert.NoError(t, err)
 		assert.Equal(t, "Updated Title", retrieved.Title)
 		assert.Equal(t, "Updated Description", retrieved.Description)
 	})
-	
+
 	t.Run("delete project", func(t *testing.T) {
 		// Create a project first
 		project := &types.Project{
@@ -236,14 +235,14 @@ func TestProjectOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateProject(ctx, project)
 		require.NoError(t, err)
-		
+
 		// Delete the project
 		err = repo.DeleteProject(ctx, project.ID)
 		assert.NoError(t, err)
-		
+
 		// Verify deletion
 		_, err = repo.GetProject(ctx, project.ID)
 		assert.Error(t, err)
@@ -254,9 +253,9 @@ func TestProjectOperations(t *testing.T) {
 func TestTaskOperations(t *testing.T) {
 	repo, cleanup := setupTestRepository(t)
 	defer cleanup()
-	
+
 	ctx := context.Background()
-	
+
 	// Create a test project first
 	project := &types.Project{
 		ID:          uuid.New(),
@@ -265,10 +264,10 @@ func TestTaskOperations(t *testing.T) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	err := repo.CreateProject(ctx, project)
 	require.NoError(t, err)
-	
+
 	t.Run("create task", func(t *testing.T) {
 		task := &types.Task{
 			ID:          uuid.New(),
@@ -281,11 +280,11 @@ func TestTaskOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateTask(ctx, task)
 		assert.NoError(t, err)
 	})
-	
+
 	t.Run("get task", func(t *testing.T) {
 		// Create a task first
 		task := &types.Task{
@@ -299,10 +298,10 @@ func TestTaskOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateTask(ctx, task)
 		require.NoError(t, err)
-		
+
 		// Get the task
 		retrieved, err := repo.GetTask(ctx, task.ID)
 		assert.NoError(t, err)
@@ -311,7 +310,7 @@ func TestTaskOperations(t *testing.T) {
 		assert.Equal(t, task.State, retrieved.State)
 		assert.Equal(t, task.Complexity, retrieved.Complexity)
 	})
-	
+
 	t.Run("list tasks by project", func(t *testing.T) {
 		// Create multiple tasks
 		tasks := []*types.Task{
@@ -321,7 +320,7 @@ func TestTaskOperations(t *testing.T) {
 				Title:       "List Test Task 1",
 				Description: "Description 1",
 				State:       types.TaskStatePending,
-			Priority:    types.TaskPriorityMedium,
+				Priority:    types.TaskPriorityMedium,
 				Complexity:  1,
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
@@ -338,18 +337,18 @@ func TestTaskOperations(t *testing.T) {
 				UpdatedAt:   time.Now(),
 			},
 		}
-		
+
 		for _, task := range tasks {
 			err := repo.CreateTask(ctx, task)
 			require.NoError(t, err)
 		}
-		
+
 		// List tasks
 		retrieved, err := repo.GetTasksByProject(ctx, project.ID)
 		assert.NoError(t, err)
 		assert.GreaterOrEqual(t, len(retrieved), 2)
 	})
-	
+
 	t.Run("update task", func(t *testing.T) {
 		// Create a task first
 		task := &types.Task{
@@ -363,19 +362,19 @@ func TestTaskOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateTask(ctx, task)
 		require.NoError(t, err)
-		
+
 		// Update the task
 		task.Title = "Updated Task Title"
 		task.State = types.TaskStateInProgress
 		task.Complexity = 3
 		task.UpdatedAt = time.Now()
-		
+
 		err = repo.UpdateTask(ctx, task)
 		assert.NoError(t, err)
-		
+
 		// Verify the update
 		retrieved, err := repo.GetTask(ctx, task.ID)
 		assert.NoError(t, err)
@@ -383,7 +382,7 @@ func TestTaskOperations(t *testing.T) {
 		assert.Equal(t, types.TaskStateInProgress, retrieved.State)
 		assert.Equal(t, 3, retrieved.Complexity)
 	})
-	
+
 	t.Run("delete task", func(t *testing.T) {
 		// Create a task first
 		task := &types.Task{
@@ -397,14 +396,14 @@ func TestTaskOperations(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateTask(ctx, task)
 		require.NoError(t, err)
-		
+
 		// Delete the task
 		err = repo.DeleteTask(ctx, task.ID)
 		assert.NoError(t, err)
-		
+
 		// Verify deletion
 		_, err = repo.GetTask(ctx, task.ID)
 		assert.Error(t, err)
@@ -415,21 +414,21 @@ func TestTaskOperations(t *testing.T) {
 func TestErrorHandling(t *testing.T) {
 	repo, cleanup := setupTestRepository(t)
 	defer cleanup()
-	
+
 	ctx := context.Background()
-	
+
 	t.Run("get non-existent project", func(t *testing.T) {
 		nonExistentID := uuid.New()
 		_, err := repo.GetProject(ctx, nonExistentID)
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("get non-existent task", func(t *testing.T) {
 		nonExistentID := uuid.New()
 		_, err := repo.GetTask(ctx, nonExistentID)
 		assert.Error(t, err)
 	})
-	
+
 	t.Run("create task with non-existent project", func(t *testing.T) {
 		task := &types.Task{
 			ID:          uuid.New(),
@@ -442,7 +441,7 @@ func TestErrorHandling(t *testing.T) {
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
 		}
-		
+
 		err := repo.CreateTask(ctx, task)
 		assert.Error(t, err)
 	})
@@ -452,9 +451,9 @@ func TestErrorHandling(t *testing.T) {
 func TestConcurrency(t *testing.T) {
 	repo, cleanup := setupTestRepository(t)
 	defer cleanup()
-	
+
 	ctx := context.Background()
-	
+
 	// Create a test project
 	project := &types.Project{
 		ID:          uuid.New(),
@@ -463,19 +462,19 @@ func TestConcurrency(t *testing.T) {
 		CreatedAt:   time.Now(),
 		UpdatedAt:   time.Now(),
 	}
-	
+
 	err := repo.CreateProject(ctx, project)
 	require.NoError(t, err)
-	
+
 	t.Run("concurrent task creation", func(t *testing.T) {
 		// Note: SQLite has limited concurrency due to file locking
 		// This test demonstrates the behavior but may have some failures
 		const numTasks = 5 // Reduced for SQLite limitations
-		
+
 		// Create tasks concurrently
 		errChan := make(chan error, numTasks)
 		successCount := 0
-		
+
 		for i := 0; i < numTasks; i++ {
 			go func(index int) {
 				task := &types.Task{
@@ -484,16 +483,16 @@ func TestConcurrency(t *testing.T) {
 					Title:       fmt.Sprintf("Concurrent Task %d", index),
 					Description: fmt.Sprintf("Description %d", index),
 					State:       types.TaskStatePending,
-			Priority:    types.TaskPriorityMedium,
+					Priority:    types.TaskPriorityMedium,
 					Complexity:  1,
 					CreatedAt:   time.Now(),
 					UpdatedAt:   time.Now(),
 				}
-				
+
 				errChan <- repo.CreateTask(ctx, task)
 			}(i)
 		}
-		
+
 		// Check operations - some may fail due to SQLite locking
 		for i := 0; i < numTasks; i++ {
 			err := <-errChan
@@ -502,7 +501,7 @@ func TestConcurrency(t *testing.T) {
 			}
 			// Don't assert NoError since SQLite locking is expected
 		}
-		
+
 		// Verify at least some tasks were created
 		tasks, err := repo.GetTasksByProject(ctx, project.ID)
 		assert.NoError(t, err)

@@ -95,14 +95,14 @@ func GetEmbeddedTemplateContent(filename string) ([]byte, error) {
 func generateDeterministicUUID(filename string) uuid.UUID {
 	// Create deterministic UUID based on filename
 	hash := sha256.Sum256([]byte("knot-builtin-template:" + filename))
-	
+
 	// Use first 16 bytes of hash to create UUID
 	var uuidBytes [16]byte
 	copy(uuidBytes[:], hash[:16])
-	
+
 	// Set version (4) and variant bits
 	uuidBytes[6] = (uuidBytes[6] & 0x0f) | 0x40 // Version 4
 	uuidBytes[8] = (uuidBytes[8] & 0x3f) | 0x80 // Variant 10
-	
+
 	return uuid.UUID(uuidBytes)
 }

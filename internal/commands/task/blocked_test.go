@@ -120,7 +120,7 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 		// Task C is blocked by Task B (in-progress)
 		taskCData := taskMap[taskC.ID]
 		assert.Len(t, taskCData.Dependencies, 1, "Task C should have 1 dependency")
-		
+
 		blockingTask := taskMap[taskCData.Dependencies[0]]
 		assert.Equal(t, taskB.ID, blockingTask.ID, "Task C should be blocked by Task B")
 		assert.Equal(t, types.TaskStateInProgress, blockingTask.State, "Blocking task should be in-progress")
@@ -128,7 +128,7 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 		// Task D is blocked by Task B (in-progress), even though A is completed
 		taskDData := taskMap[taskD.ID]
 		assert.Len(t, taskDData.Dependencies, 2, "Task D should have 2 dependencies")
-		
+
 		// Check that at least one dependency is not completed
 		hasIncompleteDepencency := false
 		for _, depID := range taskDData.Dependencies {
@@ -164,7 +164,7 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 		// Should handle empty task list gracefully
 		taskMap := make(map[uuid.UUID]*types.Task)
 		var blockedTasks []*types.Task
-		
+
 		// This should not panic
 		for _, task := range allTasks {
 			if task.State == types.TaskStatePending || task.State == types.TaskStateInProgress {
@@ -198,9 +198,9 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 
 		// Create task map with our tasks
 		taskMap := map[uuid.UUID]*types.Task{
-			taskA.ID:                taskA,
-			taskB.ID:                taskB,
-			taskWithMissingDep.ID:   taskWithMissingDep,
+			taskA.ID:              taskA,
+			taskB.ID:              taskB,
+			taskWithMissingDep.ID: taskWithMissingDep,
 		}
 
 		// Task with missing dependency should not be ready

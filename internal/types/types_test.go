@@ -58,7 +58,7 @@ func TestTaskSerialization(t *testing.T) {
 	completedAt := now.Add(time.Hour)
 	parentID := uuid.New()
 	agentID := uuid.New()
-	
+
 	task := &Task{
 		ID:            uuid.New(),
 		ProjectID:     uuid.New(),
@@ -113,7 +113,7 @@ func TestTaskSerialization(t *testing.T) {
 // TestProjectSerialization tests JSON serialization/deserialization of Project
 func TestProjectSerialization(t *testing.T) {
 	now := time.Now().UTC().Truncate(time.Second)
-	
+
 	project := &Project{
 		ID:             uuid.New(),
 		Title:          "Test Project",
@@ -158,7 +158,7 @@ func TestTaskFilter(t *testing.T) {
 	projectID := uuid.New()
 	parentID := uuid.New()
 	state := TaskStateInProgress
-	
+
 	filter := &TaskFilter{
 		ProjectID:     &projectID,
 		ParentID:      &parentID,
@@ -190,7 +190,7 @@ func TestTaskFilter(t *testing.T) {
 func TestTaskUpdates(t *testing.T) {
 	state := TaskStateCompleted
 	complexity := 7
-	
+
 	updates := &TaskUpdates{
 		State:      &state,
 		Complexity: &complexity,
@@ -273,7 +273,7 @@ func TestTaskValidation(t *testing.T) {
 	t.Run("Task with dependencies", func(t *testing.T) {
 		dep1 := uuid.New()
 		dep2 := uuid.New()
-		
+
 		task := &Task{
 			ID:           uuid.New(),
 			ProjectID:    uuid.New(),
@@ -317,7 +317,7 @@ func TestProjectValidation(t *testing.T) {
 	t.Run("Progress calculation consistency", func(t *testing.T) {
 		expectedProgress := float64(5) / float64(20) * 100.0
 		assert.Equal(t, 25.0, expectedProgress)
-		
+
 		// Test edge cases
 		emptyProject := &Project{TotalTasks: 0, CompletedTasks: 0}
 		assert.Equal(t, 0, emptyProject.TotalTasks)

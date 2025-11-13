@@ -79,7 +79,7 @@ func TestTaskCreateAction(t *testing.T) {
 			flagSet.String("priority", "", "")
 			flagSet.String("parent-id", "", "")
 			flagSet.String("actor", "", "")
-			
+
 			_ = flagSet.Set("title", tt.title)
 			_ = flagSet.Set("description", tt.description)
 			_ = flagSet.Set("complexity", tt.complexity)
@@ -88,7 +88,7 @@ func TestTaskCreateAction(t *testing.T) {
 				_ = flagSet.Set("parent-id", tt.parentID)
 			}
 			_ = flagSet.Set("actor", tt.actor)
-			
+
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Set project context for the test
@@ -123,7 +123,7 @@ func TestTaskListAction(t *testing.T) {
 		// Create CLI context
 		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		
+
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Set project context for the test
@@ -146,7 +146,7 @@ func TestTaskListAction(t *testing.T) {
 		// Create CLI context
 		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		
+
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Set project context for the test
@@ -222,11 +222,11 @@ func TestTaskUpdateStateAction(t *testing.T) {
 			flagSet.String("id", "", "")
 			flagSet.String("state", "", "")
 			flagSet.String("actor", "", "")
-			
+
 			_ = flagSet.Set("id", tt.taskID)
 			_ = flagSet.Set("state", tt.state)
 			_ = flagSet.Set("actor", tt.actor)
-			
+
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
@@ -238,7 +238,7 @@ func TestTaskUpdateStateAction(t *testing.T) {
 				assert.Contains(t, err.Error(), tt.errorMsg)
 			} else {
 				assert.NoError(t, err)
-				
+
 				// Verify state was actually updated
 				testutil.AssertTaskState(t, mgr, task.ID, types.TaskState(tt.state))
 			}
@@ -298,11 +298,11 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 			flagSet.String("id", "", "")
 			flagSet.String("title", "", "")
 			flagSet.String("actor", "", "")
-			
+
 			_ = flagSet.Set("id", tt.taskID)
 			_ = flagSet.Set("title", tt.title)
 			_ = flagSet.Set("actor", tt.actor)
-			
+
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
@@ -339,13 +339,13 @@ func TestTaskWorkflow(t *testing.T) {
 		flagSet.String("complexity", "", "")
 		flagSet.String("priority", "", "")
 		flagSet.String("actor", "", "")
-		
+
 		_ = flagSet.Set("title", "Workflow Test Task")
 		_ = flagSet.Set("description", "Created during workflow test")
 		_ = flagSet.Set("complexity", "5")
 		_ = flagSet.Set("priority", "medium")
 		_ = flagSet.Set("actor", "workflow-test")
-		
+
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Set project context for the test
@@ -358,7 +358,7 @@ func TestTaskWorkflow(t *testing.T) {
 
 		// 2. List tasks (should now have at least one)
 		listFlagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		
+
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
 		listActionFunc := listAction(appCtx)
@@ -377,7 +377,7 @@ func TestTaskWorkflow(t *testing.T) {
 		_ = updateFlagSet.Set("id", tasks[0].ID.String())
 		_ = updateFlagSet.Set("state", "in-progress")
 		_ = updateFlagSet.Set("actor", "workflow-test")
-		
+
 		updateCtx := cli.NewContext(app, updateFlagSet, nil)
 
 		updateActionFunc := updateStateAction(appCtx)

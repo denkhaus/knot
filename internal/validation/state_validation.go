@@ -35,7 +35,7 @@ func NewStateValidator() *StateValidator {
 
 	// Define allowed state transitions
 	validator.defineAllowedTransitions()
-	
+
 	// Add validation rules
 	validator.addValidationRules()
 
@@ -51,33 +51,33 @@ func (sv *StateValidator) defineAllowedTransitions() {
 		{types.TaskStatePending, types.TaskStateBlocked},
 		{types.TaskStatePending, types.TaskStateCancelled},
 		{types.TaskStatePending, types.TaskStateDeletionPending},
-		
+
 		// From in-progress
 		{types.TaskStateInProgress, types.TaskStateCompleted},
 		{types.TaskStateInProgress, types.TaskStateBlocked},
 		{types.TaskStateInProgress, types.TaskStatePending},
 		{types.TaskStateInProgress, types.TaskStateCancelled},
 		{types.TaskStateInProgress, types.TaskStateDeletionPending},
-		
+
 		// From completed
 		{types.TaskStateCompleted, types.TaskStateInProgress}, // Reopen for fixes
 		{types.TaskStateCompleted, types.TaskStatePending},    // Reset if needed
 		{types.TaskStateCompleted, types.TaskStateDeletionPending},
-		
+
 		// From blocked
 		{types.TaskStateBlocked, types.TaskStatePending},
 		{types.TaskStateBlocked, types.TaskStateInProgress},
 		{types.TaskStateBlocked, types.TaskStateCancelled},
 		{types.TaskStateBlocked, types.TaskStateDeletionPending},
-		
+
 		// From cancelled
 		{types.TaskStateCancelled, types.TaskStatePending},    // Restore
 		{types.TaskStateCancelled, types.TaskStateInProgress}, // Resume
 		{types.TaskStateCancelled, types.TaskStateDeletionPending},
-		
+
 		// From deletion-pending - NO TRANSITIONS ALLOWED except delete operation
 		// This ensures only the delete command can proceed from this state
-		
+
 		// Self-transitions (no-op but valid)
 		{types.TaskStatePending, types.TaskStatePending},
 		{types.TaskStateInProgress, types.TaskStateInProgress},
@@ -197,7 +197,7 @@ func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, ta
 	}
 
 	var warnings []string
-	
+
 	// Apply validation rules and collect warnings
 	for _, rule := range sv.validationRules {
 		if err := rule.Validate(from, to, task); err != nil {
@@ -216,14 +216,14 @@ func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, ta
 // createInvalidTransitionError creates an enhanced error for invalid transitions
 func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState, task *types.Task) error {
 	validTransitions := sv.getValidTransitionsFrom(from)
-	
+
 	var example string
 	if len(validTransitions) > 0 {
 		example = fmt.Sprintf("knot task update-state --id %s --state %s", task.ID.String(), validTransitions[0])
 	} else {
 		example = fmt.Sprintf("knot task delete --id %s  # only deletion allowed", task.ID.String())
 	}
-	
+
 	return &errors.EnhancedError{
 		Operation:   "validating state transition",
 		Cause:       fmt.Errorf("invalid state transition from '%s' to '%s'", from, to),
@@ -236,13 +236,13 @@ func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState,
 // getValidTransitionsFrom returns valid target states from a given state
 func (sv *StateValidator) getValidTransitionsFrom(from types.TaskState) []string {
 	var validStates []string
-	
+
 	for transition := range sv.allowedTransitions {
 		if transition.From == from && transition.To != from { // Exclude self-transitions
 			validStates = append(validStates, string(transition.To))
 		}
 	}
-	
+
 	return validStates
 }
 
@@ -272,10 +272,10 @@ func (sv *StateValidator) IsValidState(state string) bool {
 // GetStateTransitionMatrix returns the complete transition matrix for documentation
 func (sv *StateValidator) GetStateTransitionMatrix() map[string][]string {
 	matrix := make(map[string][]string)
-	
+
 	for _, state := range sv.GetAllValidStates() {
 		matrix[string(state)] = sv.getValidTransitionsFrom(state)
 	}
-	
+
 	return matrix
 }

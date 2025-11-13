@@ -18,29 +18,29 @@ type EnhancedError struct {
 
 func (e *EnhancedError) Error() string {
 	var parts []string
-	
+
 	// Main error message
 	if e.Cause != nil {
 		parts = append(parts, e.Cause.Error())
 	} else {
 		parts = append(parts, fmt.Sprintf("Error in %s", e.Operation))
 	}
-	
+
 	// Add suggestion if available
 	if e.Suggestion != "" {
 		parts = append(parts, fmt.Sprintf("Suggestion: %s", e.Suggestion))
 	}
-	
+
 	// Add example if available
 	if e.Example != "" {
 		parts = append(parts, fmt.Sprintf("Example: %s", e.Example))
 	}
-	
+
 	// Add help command if available
 	if e.HelpCommand != "" {
 		parts = append(parts, fmt.Sprintf("For more help: %s", e.HelpCommand))
 	}
-	
+
 	return strings.Join(parts, "\n")
 }
 
@@ -109,10 +109,10 @@ func CircularDependencyError(taskID, dependsOnID uuid.UUID) *EnhancedError {
 // DatabaseConnectionError creates an enhanced error for database issues
 func DatabaseConnectionError(operation string, cause error) *EnhancedError {
 	return &EnhancedError{
-		Operation:  operation,
-		Cause:      cause,
-		Suggestion: "Check if the .knot directory exists and is writable, or try running from a different directory",
-		Example:    "ls -la .knot/  # check database directory permissions",
+		Operation:   operation,
+		Cause:       cause,
+		Suggestion:  "Check if the .knot directory exists and is writable, or try running from a different directory",
+		Example:     "ls -la .knot/  # check database directory permissions",
 		HelpCommand: "knot project list  # test database connectivity",
 	}
 }
@@ -121,11 +121,11 @@ func DatabaseConnectionError(operation string, cause error) *EnhancedError {
 func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError {
 	var example string
 	var helpCommand string
-	
+
 	if commandContext == "" {
 		commandContext = "command"
 	}
-	
+
 	switch flagName {
 	case "project-id":
 		example = "knot " + commandContext + " (select a project first with: knot project select --id <project-id>)"
@@ -137,7 +137,7 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError {
 		example = "knot " + commandContext + " --" + flagName + " <value>"
 		helpCommand = "knot --help"
 	}
-	
+
 	// Safe help command generation
 	if commandContext != "" && commandContext != "command" {
 		fields := strings.Fields(commandContext)
@@ -145,7 +145,7 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError {
 			helpCommand = "knot " + fields[0] + " --help"
 		}
 	}
-	
+
 	var flagType string
 	if flagName == "project-id" {
 		// project-id is no longer a global flag, suggest using project selection instead
@@ -159,7 +159,7 @@ func MissingRequiredFlagError(flagName, commandContext string) *EnhancedError {
 	} else {
 		flagType = "required flag"
 	}
-	
+
 	return &EnhancedError{
 		Operation:   "parsing command flags",
 		Cause:       fmt.Errorf("%s --%s not provided", flagType, flagName),
@@ -205,7 +205,7 @@ func NewValidationError(message string, cause error) *EnhancedError {
 // EmptyResultError creates an enhanced error for empty query results
 func EmptyResultError(operation, context string) *EnhancedError {
 	var suggestion, example string
-	
+
 	switch operation {
 	case "list tasks":
 		suggestion = "Create some tasks first, or check if you're using the correct project ID"
@@ -220,7 +220,7 @@ func EmptyResultError(operation, context string) *EnhancedError {
 		suggestion = "Check your query parameters or create the required resources first"
 		example = "knot --help  # see available commands"
 	}
-	
+
 	return &EnhancedError{
 		Operation:   operation,
 		Cause:       fmt.Errorf("no results found for %s", context),
@@ -229,6 +229,7 @@ func EmptyResultError(operation, context string) *EnhancedError {
 		HelpCommand: "knot --help",
 	}
 }
+
 // NoProjectContextError creates an enhanced error when no project context is available
 func NoProjectContextError() *EnhancedError {
 	return &EnhancedError{

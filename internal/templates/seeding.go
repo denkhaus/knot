@@ -58,7 +58,7 @@ func AutoSeedTemplates() error {
 			fmt.Printf("Warning: Failed to seed template '%s': %v\n", template.Name, err)
 			continue
 		}
-		
+
 		// Use template UUID as key, store template info as value
 		templateKey := template.ID.String()
 		metadata.SeededTemplates[templateKey] = SeededTemplateInfo{
@@ -186,7 +186,7 @@ func CheckAndSeedIfNeeded() error {
 				fmt.Printf("Warning: Failed to seed new template '%s': %v\n", template.Name, err)
 				continue
 			}
-			
+
 			// Update metadata
 			if err := UpdateSeededTemplate(template); err != nil {
 				fmt.Printf("Warning: Failed to update metadata for template '%s': %v\n", template.Name, err)

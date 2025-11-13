@@ -12,7 +12,6 @@ import (
 // Uses the existing manager.Config struct but adds file persistence
 // REFERENCE: pkg/tools/project/interfaces.go lines 64-80 (original Config struct)
 
-
 // GetConfigPath returns the path to the knot configuration file
 func GetConfigPath() (string, error) {
 	// Use .knot directory for configuration (same as database)
@@ -20,12 +19,11 @@ func GetConfigPath() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get current working directory: %w", err)
 	}
-	
+
 	knotDir := filepath.Join(cwd, ".knot")
 	configPath := filepath.Join(knotDir, "config.json")
 	return configPath, nil
 }
-
 
 // ValidateConfig checks if the configuration values are valid
 func ValidateConfig(c *manager.Config) error {

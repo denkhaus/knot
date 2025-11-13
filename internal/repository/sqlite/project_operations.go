@@ -8,10 +8,10 @@ import (
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
-	"go.uber.org/zap"
 	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
 	"github.com/denkhaus/knot/internal/types"
 	"github.com/google/uuid"
+	"go.uber.org/zap"
 )
 
 // Project CRUD Operations

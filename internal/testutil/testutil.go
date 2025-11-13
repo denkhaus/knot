@@ -63,10 +63,10 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository {
 	// Change to temp directory for SQLite database creation
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
-	
+
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)
-	
+
 	t.Cleanup(func() {
 		_ = os.Chdir(originalDir)
 	})
@@ -94,40 +94,40 @@ func (tc *TestConfig) SetupTestManager(t *testing.T) manager.ProjectManager {
 // CreateTestProject creates a test project for testing
 func CreateTestProject(t *testing.T, mgr manager.ProjectManager) *types.Project {
 	ctx := context.Background()
-	
+
 	project, err := mgr.CreateProject(ctx, "Test Project", "Test Description", "test-user")
 	require.NoError(t, err)
 	require.NotNil(t, project)
-	
+
 	return project
 }
 
 // CreateTestTask creates a test task for testing
 func CreateTestTask(t *testing.T, mgr manager.ProjectManager, projectID uuid.UUID) *types.Task {
 	ctx := context.Background()
-	
+
 	task, err := mgr.CreateTask(ctx, projectID, nil, "Test Task", "Test Description", 5, types.TaskPriorityMedium, "test-user")
 	require.NoError(t, err)
 	require.NotNil(t, task)
-	
+
 	return task
 }
 
 // CreateTestTaskWithParent creates a test task with a parent
 func CreateTestTaskWithParent(t *testing.T, mgr manager.ProjectManager, projectID, parentID uuid.UUID) *types.Task {
 	ctx := context.Background()
-	
+
 	task, err := mgr.CreateTask(ctx, projectID, &parentID, "Test Subtask", "Test Subtask Description", 3, types.TaskPriorityMedium, "test-user")
 	require.NoError(t, err)
 	require.NotNil(t, task)
-	
+
 	return task
 }
 
 // AssertTaskState asserts that a task has the expected state
 func AssertTaskState(t *testing.T, mgr manager.ProjectManager, taskID uuid.UUID, expectedState types.TaskState) {
 	ctx := context.Background()
-	
+
 	task, err := mgr.GetTask(ctx, taskID)
 	require.NoError(t, err)
 	require.Equal(t, expectedState, task.State)
@@ -136,7 +136,7 @@ func AssertTaskState(t *testing.T, mgr manager.ProjectManager, taskID uuid.UUID,
 // AssertTaskCount asserts the number of tasks in a project
 func AssertTaskCount(t *testing.T, mgr manager.ProjectManager, projectID uuid.UUID, expectedCount int) {
 	ctx := context.Background()
-	
+
 	tasks, err := mgr.ListTasksForProject(ctx, projectID)
 	require.NoError(t, err)
 	require.Len(t, tasks, expectedCount)
@@ -146,10 +146,10 @@ func AssertTaskCount(t *testing.T, mgr manager.ProjectManager, projectID uuid.UU
 func WaitForCondition(t *testing.T, condition func() bool, timeout time.Duration, message string) {
 	ctx, cancel := context.WithTimeout(context.Background(), timeout)
 	defer cancel()
-	
+
 	ticker := time.NewTicker(10 * time.Millisecond)
 	defer ticker.Stop()
-	
+
 	for {
 		select {
 		case <-ctx.Done():
@@ -166,17 +166,17 @@ func WaitForCondition(t *testing.T, condition func() bool, timeout time.Duration
 func TempFile(t *testing.T, content string) string {
 	tmpFile, err := os.CreateTemp("", "knot_test_*.tmp")
 	require.NoError(t, err)
-	
+
 	_, err = tmpFile.WriteString(content)
 	require.NoError(t, err)
-	
+
 	err = tmpFile.Close()
 	require.NoError(t, err)
-	
+
 	t.Cleanup(func() {
 		os.Remove(tmpFile.Name())
 	})
-	
+
 	return tmpFile.Name()
 }
 
@@ -184,11 +184,11 @@ func TempFile(t *testing.T, content string) string {
 func TempDir(t *testing.T) string {
 	dir, err := os.MkdirTemp("", "knot_test_*")
 	require.NoError(t, err)
-	
+
 	t.Cleanup(func() {
 		os.RemoveAll(dir)
 	})
-	
+
 	return dir
 }
 

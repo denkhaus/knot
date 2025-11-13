@@ -13,9 +13,9 @@ func WrapWithSuggestion(err error, operation string) error {
 	if err == nil {
 		return nil
 	}
-	
+
 	errStr := err.Error()
-	
+
 	// UUID parsing errors
 	if strings.Contains(errStr, "invalid UUID") {
 		if strings.Contains(operation, "project") {
@@ -25,7 +25,7 @@ func WrapWithSuggestion(err error, operation string) error {
 			return InvalidUUIDError("task-id", extractValueFromError(errStr))
 		}
 	}
-	
+
 	// Not found errors
 	if strings.Contains(errStr, "not found") {
 		if strings.Contains(operation, "project") {
@@ -39,24 +39,24 @@ func WrapWithSuggestion(err error, operation string) error {
 			}
 		}
 	}
-	
+
 	// Database connection errors
 	if strings.Contains(errStr, "database") || strings.Contains(errStr, "connection") {
 		return DatabaseConnectionError(operation, err)
 	}
-	
+
 	// State validation errors
 	if strings.Contains(errStr, "invalid.*state") || strings.Contains(operation, "state") {
 		if state := extractValueFromError(errStr); state != "" {
 			return InvalidTaskStateError(state)
 		}
 	}
-	
+
 	// Circular dependency errors
 	if strings.Contains(errStr, "circular") || strings.Contains(errStr, "cycle") {
 		return CircularDependencyError(uuid.Nil, uuid.Nil) // Generic circular dependency error
 	}
-	
+
 	// Return original error if no enhancement is available
 	return err
 }
@@ -66,14 +66,14 @@ func HandleCLIError(c *cli.Context, err error, operation string) error {
 	if err == nil {
 		return nil
 	}
-	
+
 	// Check for missing required flags
 	if strings.Contains(err.Error(), "Required flag") {
 		flagName := extractFlagNameFromError(err.Error())
 		commandContext := buildCommandContext(c)
 		return MissingRequiredFlagError(flagName, commandContext)
 	}
-	
+
 	// Wrap with context-aware suggestions
 	return WrapWithSuggestion(err, operation)
 }
@@ -119,22 +119,22 @@ func extractFlagNameFromError(errStr string) string {
 // buildCommandContext builds a command context string for help messages
 func buildCommandContext(c *cli.Context) string {
 	var parts []string
-	
+
 	// Add command hierarchy
 	if c.Command != nil {
 		parts = append(parts, c.Command.Name)
 	}
-	
+
 	// Add parent command if available
 	if c.Command != nil && c.Command.Category != "" {
 		parts = append([]string{c.Command.Category}, parts...)
 	}
-	
+
 	// Fallback to app name
 	if len(parts) == 0 && c.App != nil {
 		parts = append(parts, c.App.Name)
 	}
-	
+
 	return strings.Join(parts, " ")
 }
 
@@ -155,7 +155,7 @@ func ValidateTaskState(state string) error {
 		"blocked":     true,
 		"cancelled":   true,
 	}
-	
+
 	if !validStates[state] {
 		return InvalidTaskStateError(state)
 	}
@@ -167,13 +167,13 @@ func FormatSuggestionList(title string, suggestions []string) string {
 	if len(suggestions) == 0 {
 		return ""
 	}
-	
+
 	var parts []string
 	parts = append(parts, fmt.Sprintf("💡 %s:", title))
-	
+
 	for i, suggestion := range suggestions {
 		parts = append(parts, fmt.Sprintf("   %d. %s", i+1, suggestion))
 	}
-	
+
 	return strings.Join(parts, "\n")
 }

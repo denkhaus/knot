@@ -24,12 +24,12 @@ type Config struct {
 // DefaultConfig returns a default configuration optimized for SQLite
 func DefaultConfig() *Config {
 	return &Config{
-		DatabasePath:     "",
+		DatabasePath: "",
 		// SQLite optimized connection pool settings:
 		// SQLite works best with limited concurrent connections due to file locking
-		MaxOpenConns:     1,  // SQLite is single-writer, multiple readers - limit to 1 for writes
-		MaxIdleConns:     1,  // Keep 1 idle connection to avoid reconnection overhead
-		ConnMaxLifetime:  0,  // No connection lifetime limit for SQLite (file-based)
+		MaxOpenConns:     1,                // SQLite is single-writer, multiple readers - limit to 1 for writes
+		MaxIdleConns:     1,                // Keep 1 idle connection to avoid reconnection overhead
+		ConnMaxLifetime:  0,                // No connection lifetime limit for SQLite (file-based)
 		ConnMaxIdleTime:  time.Minute * 30, // Longer idle time for file-based DB
 		AutoMigrate:      true,
 		MigrationTimeout: time.Minute * 5,

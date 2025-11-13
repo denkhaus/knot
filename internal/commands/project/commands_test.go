@@ -79,11 +79,11 @@ func TestCreateAction(t *testing.T) {
 			flagSet.String("title", "", "")
 			flagSet.String("description", "", "")
 			flagSet.String("actor", "", "")
-			
+
 			_ = flagSet.Set("title", tt.title)
 			_ = flagSet.Set("description", tt.description)
 			_ = flagSet.Set("actor", tt.actor)
-			
+
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Create app context
@@ -193,7 +193,7 @@ func TestGetAction(t *testing.T) {
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.String("id", "", "")
 			_ = flagSet.Set("id", tt.projectID)
-			
+
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
@@ -234,11 +234,11 @@ func TestProjectCommandsIntegration(t *testing.T) {
 		flagSet.String("title", "", "")
 		flagSet.String("description", "", "")
 		flagSet.String("actor", "", "")
-		
+
 		_ = flagSet.Set("title", "Integration Test Project")
 		_ = flagSet.Set("description", "Created during integration test")
 		_ = flagSet.Set("actor", "integration-test")
-		
+
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		createActionFunc := createAction(appCtx)
@@ -261,7 +261,7 @@ func TestProjectCommandsIntegration(t *testing.T) {
 		getFlagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		getFlagSet.String("id", "", "")
 		_ = getFlagSet.Set("id", projects[0].ID.String())
-		
+
 		getCtx := cli.NewContext(app, getFlagSet, nil)
 
 		getActionFunc := getAction(appCtx)

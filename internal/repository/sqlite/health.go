@@ -92,7 +92,7 @@ func (r *sqliteRepository) ValidateConnection(ctx context.Context) error {
 
 	// Additional validations
 	if health.PingLatency > time.Second {
-		r.config.Logger.Warn("High database latency detected", 
+		r.config.Logger.Warn("High database latency detected",
 			zap.Duration("latency", health.PingLatency))
 	}
 

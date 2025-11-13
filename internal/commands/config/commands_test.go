@@ -264,8 +264,8 @@ func TestResetAction(t *testing.T) {
 
 	// Verify initial modified values
 	config := appCtx.ProjectManager.GetConfig()
-assert.Equal(t, 99, config.ComplexityThreshold)
-assert.Equal(t, 99, config.MaxDepth)
+	assert.Equal(t, 99, config.ComplexityThreshold)
+	assert.Equal(t, 99, config.MaxDepth)
 	assert.Equal(t, true, config.AutoReduceComplexity)
 
 	actionFunc := ResetAction(appCtx)

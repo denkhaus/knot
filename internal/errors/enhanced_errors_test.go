@@ -57,9 +57,9 @@ func TestEnhancedErrorWithoutCause(t *testing.T) {
 func TestInvalidUUIDError(t *testing.T) {
 	fieldName := "task-id"
 	value := "invalid-uuid"
-	
+
 	err := InvalidUUIDError(fieldName, value)
-	
+
 	assert.Equal(t, "parsing task-id", err.Operation)
 	assert.Contains(t, err.Cause.Error(), "invalid task-id format")
 	assert.Contains(t, err.Suggestion, "Ensure task-id is a valid UUID")
@@ -69,9 +69,9 @@ func TestInvalidUUIDError(t *testing.T) {
 
 func TestTaskNotFoundError(t *testing.T) {
 	taskID := uuid.New()
-	
+
 	err := TaskNotFoundError(taskID)
-	
+
 	assert.Equal(t, "finding task", err.Operation)
 	assert.Contains(t, err.Cause.Error(), taskID.String())
 	assert.Contains(t, err.Suggestion, "Verify the task ID exists")
@@ -81,9 +81,9 @@ func TestTaskNotFoundError(t *testing.T) {
 
 func TestProjectNotFoundError(t *testing.T) {
 	projectID := uuid.New()
-	
+
 	err := ProjectNotFoundError(projectID)
-	
+
 	assert.Equal(t, "finding project", err.Operation)
 	assert.Contains(t, err.Cause.Error(), projectID.String())
 	assert.Contains(t, err.Suggestion, "Check if the project exists")
@@ -93,9 +93,9 @@ func TestProjectNotFoundError(t *testing.T) {
 
 func TestInvalidTaskStateError(t *testing.T) {
 	state := "invalid-state"
-	
+
 	err := InvalidTaskStateError(state)
-	
+
 	assert.Equal(t, "validating task state", err.Operation)
 	assert.Contains(t, err.Cause.Error(), "invalid task state")
 	assert.Contains(t, err.Suggestion, "Use one of the valid states")
@@ -107,9 +107,9 @@ func TestInvalidTaskStateError(t *testing.T) {
 func TestCircularDependencyError(t *testing.T) {
 	taskID := uuid.New()
 	dependsOnID := uuid.New()
-	
+
 	err := CircularDependencyError(taskID, dependsOnID)
-	
+
 	assert.Equal(t, "adding task dependency", err.Operation)
 	assert.Contains(t, err.Cause.Error(), taskID.String())
 	assert.Contains(t, err.Cause.Error(), dependsOnID.String())
@@ -121,9 +121,9 @@ func TestCircularDependencyError(t *testing.T) {
 func TestDatabaseConnectionError(t *testing.T) {
 	operation := "database operation"
 	cause := fmt.Errorf("connection failed")
-	
+
 	err := DatabaseConnectionError(operation, cause)
-	
+
 	assert.Equal(t, operation, err.Operation)
 	assert.Equal(t, cause, err.Cause)
 	assert.Contains(t, err.Suggestion, "Check if the .knot directory exists")
@@ -133,27 +133,27 @@ func TestDatabaseConnectionError(t *testing.T) {
 
 func TestMissingRequiredFlagError(t *testing.T) {
 	tests := []struct {
-		name        string
-		flagName    string
-		context     string
+		name                 string
+		flagName             string
+		context              string
 		expectProjectContext bool
 	}{
 		{
-			name:        "project-id flag",
-			flagName:    "project-id",
-			context:     "",
+			name:                 "project-id flag",
+			flagName:             "project-id",
+			context:              "",
 			expectProjectContext: true,
 		},
 		{
-			name:        "task-id flag",
-			flagName:    "task-id",
-			context:     "task update",
+			name:                 "task-id flag",
+			flagName:             "task-id",
+			context:              "task update",
 			expectProjectContext: false,
 		},
 		{
-			name:        "other flag",
-			flagName:    "other-flag",
-			context:     "command",
+			name:                 "other flag",
+			flagName:             "other-flag",
+			context:              "command",
 			expectProjectContext: false,
 		},
 	}
@@ -161,7 +161,7 @@ func TestMissingRequiredFlagError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := MissingRequiredFlagError(tt.flagName, tt.context)
-			
+
 			if tt.expectProjectContext {
 				// For project-id, it uses project context logic
 				assert.Equal(t, "project context resolution", err.Operation)
@@ -178,9 +178,9 @@ func TestMissingRequiredFlagError(t *testing.T) {
 
 func TestComplexityOutOfRangeError(t *testing.T) {
 	complexity := 15
-	
+
 	err := ComplexityOutOfRangeError(complexity)
-	
+
 	assert.Equal(t, "validating task complexity", err.Operation)
 	assert.Contains(t, err.Cause.Error(), "complexity 15 is out of range")
 	assert.Contains(t, err.Suggestion, "Use a complexity value between 1 and 10")
@@ -192,9 +192,9 @@ func TestTooManyTasksError(t *testing.T) {
 	currentCount := 50
 	maxAllowed := 20
 	depth := 3
-	
+
 	err := TooManyTasksError(currentCount, maxAllowed, depth)
-	
+
 	assert.Equal(t, "creating task", err.Operation)
 	assert.Contains(t, err.Cause.Error(), "maximum tasks per depth exceeded: 50/20 at depth 3")
 	assert.Contains(t, err.Suggestion, "Break down existing complex tasks")
@@ -205,9 +205,9 @@ func TestTooManyTasksError(t *testing.T) {
 func TestNewValidationError(t *testing.T) {
 	message := "validation failed"
 	cause := fmt.Errorf("field error")
-	
+
 	err := NewValidationError(message, cause)
-	
+
 	assert.Equal(t, "input validation", err.Operation)
 	assert.Equal(t, cause, err.Cause)
 	assert.Contains(t, err.Suggestion, "Check your input")
@@ -217,33 +217,33 @@ func TestNewValidationError(t *testing.T) {
 
 func TestEmptyResultError(t *testing.T) {
 	tests := []struct {
-		name      string
-		operation string
-		context   string
+		name               string
+		operation          string
+		context            string
 		expectedSuggestion string
 	}{
 		{
-			name:      "list tasks",
-			operation: "list tasks",
-			context:   "tasks",
+			name:               "list tasks",
+			operation:          "list tasks",
+			context:            "tasks",
 			expectedSuggestion: "Create some tasks first",
 		},
 		{
-			name:      "list projects",
-			operation: "list projects",
-			context:   "projects",
+			name:               "list projects",
+			operation:          "list projects",
+			context:            "projects",
 			expectedSuggestion: "Create a project first",
 		},
 		{
-			name:      "find actionable tasks",
-			operation: "find actionable tasks",
-			context:   "actionable tasks",
+			name:               "find actionable tasks",
+			operation:          "find actionable tasks",
+			context:            "actionable tasks",
 			expectedSuggestion: "Check if all tasks are completed",
 		},
 		{
-			name:      "other operation",
-			operation: "other operation",
-			context:   "other",
+			name:               "other operation",
+			operation:          "other operation",
+			context:            "other",
 			expectedSuggestion: "Check your query parameters",
 		},
 	}
@@ -251,7 +251,7 @@ func TestEmptyResultError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := EmptyResultError(tt.operation, tt.context)
-			
+
 			assert.Equal(t, tt.operation, err.Operation)
 			assert.Contains(t, err.Cause.Error(), "no results found")
 			assert.Contains(t, err.Suggestion, tt.expectedSuggestion)
@@ -262,7 +262,7 @@ func TestEmptyResultError(t *testing.T) {
 
 func TestNoProjectContextError(t *testing.T) {
 	err := NoProjectContextError()
-	
+
 	assert.Equal(t, "project context resolution", err.Operation)
 	assert.Contains(t, err.Cause.Error(), "no project is currently selected")
 	assert.Contains(t, err.Suggestion, "Select a project first")
@@ -277,7 +277,7 @@ func TestEnhancedErrorWithEmptyFields(t *testing.T) {
 		Cause:     fmt.Errorf("test error"),
 		// All other fields are empty
 	}
-	
+
 	result := err.Error()
 	assert.Contains(t, result, "test error")
 	// Should not contain suggestion/example/help sections since they're empty
@@ -292,7 +292,7 @@ func TestEnhancedErrorErrorWithMultilineError(t *testing.T) {
 		Cause:      errors.New("line1\nline2\nline3"),
 		Suggestion: "try again",
 	}
-	
+
 	result := err.Error()
 	assert.Contains(t, result, "line1")
 	assert.Contains(t, result, "line2")
@@ -306,7 +306,7 @@ func TestEnhancedErrorWithNilCause(t *testing.T) {
 		Cause:      nil,
 		Suggestion: "try again",
 	}
-	
+
 	result := err.Error()
 	assert.Contains(t, result, "Error in test operation")
 	assert.Contains(t, result, "Suggestion: try again")
@@ -321,10 +321,10 @@ func TestEnhancedErrorFormatting(t *testing.T) {
 		Example:     "example text",
 		HelpCommand: "help command",
 	}
-	
+
 	result := err.Error()
 	parts := strings.Split(result, "\n")
-	
+
 	assert.Len(t, parts, 4) // 4 parts: cause, suggestion, example, help
 	assert.Contains(t, parts[0], "cause error")
 	assert.Contains(t, parts[1], "Suggestion: suggestion text")
@@ -336,7 +336,7 @@ func TestEnhancedErrorUnwrapNil(t *testing.T) {
 	err := &EnhancedError{
 		Cause: nil,
 	}
-	
+
 	unwrapped := err.Unwrap()
 	assert.Nil(t, unwrapped)
 }

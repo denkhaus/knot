@@ -32,10 +32,10 @@ func SetLogLevel(logLevel string) {
 	case "info", "warn", "error":
 		// For CLI usage, we want human-readable console output
 		config := zap.NewDevelopmentConfig()
-		config.EncoderConfig.TimeKey = ""     // Remove timestamp for cleaner CLI output
-		config.EncoderConfig.CallerKey = ""   // Remove caller info for cleaner CLI output
+		config.EncoderConfig.TimeKey = ""                                   // Remove timestamp for cleaner CLI output
+		config.EncoderConfig.CallerKey = ""                                 // Remove caller info for cleaner CLI output
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder // Colored level names
-		config.OutputPaths = []string{"stderr"} // Send to stderr to not interfere with CLI output
+		config.OutputPaths = []string{"stderr"}                             // Send to stderr to not interfere with CLI output
 
 		// Set log level
 		switch logLevel {

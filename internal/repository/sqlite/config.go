@@ -7,8 +7,8 @@ import (
 )
 
 const (
-	ProjectDirName    = ".knot"
-	DatabaseName      = "knot.db"
+	ProjectDirName     = ".knot"
+	DatabaseName       = "knot.db"
 	LegacyDatabaseName = "projects.db"
 )
 
@@ -18,7 +18,7 @@ func GetProjectDir() (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("failed to get current working directory: %w", err)
 	}
-	
+
 	projectDir := filepath.Join(cwd, ProjectDirName)
 	return projectDir, nil
 }
@@ -67,21 +67,21 @@ func GetDatabasePath() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	dbPath := filepath.Join(projectDir, DatabaseName)
 	legacyDbPath := filepath.Join(projectDir, LegacyDatabaseName)
-	
+
 	// Check if legacy database exists and current doesn't
 	if _, err := os.Stat(legacyDbPath); err == nil {
 		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
 			// Migrate legacy database to new name
 			if err := os.Rename(legacyDbPath, dbPath); err != nil {
-				return "", fmt.Errorf("failed to migrate legacy database from %s to %s: %w", 
+				return "", fmt.Errorf("failed to migrate legacy database from %s to %s: %w",
 					LegacyDatabaseName, DatabaseName, err)
 			}
 		}
 	}
-	
+
 	return dbPath, nil
 }
 
@@ -91,7 +91,7 @@ func GetSQLiteConnectionString() (string, error) {
 	if err != nil {
 		return "", err
 	}
-	
+
 	// SQLite connection string - simple path format
 	return dbPath, nil
 }

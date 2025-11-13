@@ -14,7 +14,7 @@ import (
 // TestDeletionPendingStateValidation tests the deletion-pending state validation rules
 func TestDeletionPendingStateValidation(t *testing.T) {
 	validator := NewStateValidator()
-	
+
 	// Create a test task in deletion-pending state
 	task := &types.Task{
 		ID:          uuid.New(),
@@ -29,11 +29,11 @@ func TestDeletionPendingStateValidation(t *testing.T) {
 	}
 
 	tests := []struct {
-		name           string
-		fromState      types.TaskState
-		toState        types.TaskState
-		expectError    bool
-		errorContains  []string
+		name          string
+		fromState     types.TaskState
+		toState       types.TaskState
+		expectError   bool
+		errorContains []string
 	}{
 		{
 			name:          "deletion-pending to pending - should fail",
@@ -71,10 +71,10 @@ func TestDeletionPendingStateValidation(t *testing.T) {
 			errorContains: []string{"invalid state transition", "deletion-pending"},
 		},
 		{
-			name:          "deletion-pending to deletion-pending - should succeed (no-op)",
-			fromState:     types.TaskStateDeletionPending,
-			toState:       types.TaskStateDeletionPending,
-			expectError:   false,
+			name:        "deletion-pending to deletion-pending - should succeed (no-op)",
+			fromState:   types.TaskStateDeletionPending,
+			toState:     types.TaskStateDeletionPending,
+			expectError: false,
 		},
 	}
 
@@ -83,22 +83,22 @@ func TestDeletionPendingStateValidation(t *testing.T) {
 			// Update task state for the test
 			testTask := *task
 			testTask.State = tt.fromState
-			
+
 			err := validator.ValidateTransition(tt.fromState, tt.toState, &testTask)
-			
+
 			if tt.expectError {
 				require.Error(t, err, "Expected error for transition %s -> %s", tt.fromState, tt.toState)
-				
+
 				// Check if it's an EnhancedError with helpful message
 				enhancedErr, ok := err.(*errors.EnhancedError)
 				require.True(t, ok, "Expected EnhancedError, got %T", err)
-				
+
 				// Verify error contains expected strings
 				for _, contains := range tt.errorContains {
-					assert.Contains(t, enhancedErr.Error(), contains, 
+					assert.Contains(t, enhancedErr.Error(), contains,
 						"Error message should contain '%s'", contains)
 				}
-				
+
 				// Verify EnhancedError has helpful fields
 				assert.NotEmpty(t, enhancedErr.Operation, "EnhancedError should have Operation")
 				assert.NotEmpty(t, enhancedErr.Suggestion, "EnhancedError should have Suggestion")
@@ -113,7 +113,7 @@ func TestDeletionPendingStateValidation(t *testing.T) {
 // TestTransitionsToDeletionPending tests transitions TO deletion-pending state
 func TestTransitionsToDeletionPending(t *testing.T) {
 	validator := NewStateValidator()
-	
+
 	task := &types.Task{
 		ID:          uuid.New(),
 		ProjectID:   uuid.New(),
@@ -140,7 +140,7 @@ func TestTransitionsToDeletionPending(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			testTask := *task
 			testTask.State = tt.fromState
-			
+
 			err := validator.ValidateTransition(tt.fromState, types.TaskStateDeletionPending, &testTask)
 			assert.NoError(t, err, "Transition %s -> deletion-pending should be valid", tt.fromState)
 		})
@@ -150,23 +150,23 @@ func TestTransitionsToDeletionPending(t *testing.T) {
 // TestDeletionPendingValidationRule tests the specific validation rule
 func TestDeletionPendingValidationRule(t *testing.T) {
 	validator := NewStateValidator()
-	
+
 	task := &types.Task{
-		ID:          uuid.New(),
-		ProjectID:   uuid.New(),
-		Title:       "Deletion Pending Task",
-		State:       types.TaskStateDeletionPending,
-		Complexity:  4,
+		ID:         uuid.New(),
+		ProjectID:  uuid.New(),
+		Title:      "Deletion Pending Task",
+		State:      types.TaskStateDeletionPending,
+		Complexity: 4,
 	}
 
 	t.Run("deletion_pending_protection rule", func(t *testing.T) {
 		// Test that transitions from deletion-pending are blocked
 		err := validator.ValidateTransition(types.TaskStateDeletionPending, types.TaskStatePending, task)
 		require.Error(t, err)
-		
+
 		enhancedErr, ok := err.(*errors.EnhancedError)
 		require.True(t, ok, "Should return EnhancedError")
-		
+
 		// Check that it's blocked at the transition matrix level
 		assert.Contains(t, enhancedErr.Error(), "invalid state transition", "Should mention invalid transition")
 		assert.Contains(t, enhancedErr.Error(), "deletion-pending", "Should mention deletion-pending state")
@@ -184,23 +184,23 @@ func TestDeletionPendingValidationRule(t *testing.T) {
 // TestDeletionPendingStateMatrix tests the complete state transition matrix
 func TestDeletionPendingStateMatrix(t *testing.T) {
 	validator := NewStateValidator()
-	
+
 	matrix := validator.GetStateTransitionMatrix()
-	
+
 	t.Run("deletion-pending has no outgoing transitions", func(t *testing.T) {
 		deletionPendingTransitions := matrix["deletion-pending"]
-		
+
 		// Should only allow self-transition (which is filtered out in getValidTransitionsFrom)
-		assert.Len(t, deletionPendingTransitions, 0, 
+		assert.Len(t, deletionPendingTransitions, 0,
 			"deletion-pending should have no valid outgoing transitions (except self)")
 	})
 
 	t.Run("all states can transition to deletion-pending", func(t *testing.T) {
 		allStates := []string{"pending", "in-progress", "completed", "blocked", "cancelled"}
-		
+
 		for _, state := range allStates {
 			transitions := matrix[state]
-			assert.Contains(t, transitions, "deletion-pending", 
+			assert.Contains(t, transitions, "deletion-pending",
 				"State %s should allow transition to deletion-pending", state)
 		}
 	})
@@ -224,7 +224,7 @@ func TestDeletionPendingEdgeCases(t *testing.T) {
 		// Should still prevent transitions even with dependencies
 		err := validator.ValidateTransition(types.TaskStateDeletionPending, types.TaskStatePending, taskWithDeps)
 		require.Error(t, err, "Should prevent transition even for tasks with dependencies")
-		
+
 		enhancedErr, ok := err.(*errors.EnhancedError)
 		require.True(t, ok, "Should return EnhancedError")
 		assert.Contains(t, enhancedErr.Error(), "invalid state transition")
@@ -263,23 +263,23 @@ func TestDeletionPendingEdgeCases(t *testing.T) {
 // TestDeletionPendingLenientValidation tests lenient validation for deletion-pending
 func TestDeletionPendingLenientValidation(t *testing.T) {
 	validator := NewStateValidator()
-	
+
 	task := &types.Task{
-		ID:        uuid.New(),
-		ProjectID: uuid.New(),
-		Title:     "Test Task",
-		State:     types.TaskStateDeletionPending,
+		ID:         uuid.New(),
+		ProjectID:  uuid.New(),
+		Title:      "Test Task",
+		State:      types.TaskStateDeletionPending,
 		Complexity: 5,
 	}
 
 	t.Run("lenient validation still prevents invalid transitions", func(t *testing.T) {
 		// Even in lenient mode, deletion-pending protection should be enforced
 		err, warnings := validator.ValidateTransitionLenient(types.TaskStateDeletionPending, types.TaskStatePending, task)
-		
+
 		// Should still error (not just warn) because this is a security/data integrity rule
 		assert.Error(t, err, "Lenient validation should still prevent deletion-pending transitions")
 		assert.Empty(t, warnings, "Should error, not warn, for deletion-pending violations")
-		
+
 		enhancedErr, ok := err.(*errors.EnhancedError)
 		require.True(t, ok, "Should return EnhancedError even in lenient mode")
 		assert.Contains(t, enhancedErr.Error(), "invalid state transition")
@@ -288,10 +288,10 @@ func TestDeletionPendingLenientValidation(t *testing.T) {
 	t.Run("lenient validation allows valid transitions to deletion-pending", func(t *testing.T) {
 		// Valid transitions should work in lenient mode
 		pendingTask := &types.Task{
-			ID:        uuid.New(),
-			ProjectID: uuid.New(),
-			Title:     "Pending Task",
-			State:     types.TaskStatePending,
+			ID:         uuid.New(),
+			ProjectID:  uuid.New(),
+			Title:      "Pending Task",
+			State:      types.TaskStatePending,
 			Complexity: 5,
 		}
 

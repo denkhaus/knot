@@ -3,7 +3,7 @@ package shared
 import (
 	"context"
 	"fmt"
-	
+
 	"github.com/denkhaus/knot/internal/errors"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
@@ -15,7 +15,7 @@ func ResolveProjectID(c *cli.Context, appCtx *AppContext) (uuid.UUID, error) {
 	if contextProjectID, err := appCtx.ProjectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
 		return *contextProjectID, nil
 	}
-	
+
 	// No project available
 	return uuid.Nil, errors.NoProjectContextError()
 }
@@ -27,19 +27,19 @@ func ShowProjectContext(c *cli.Context, appCtx *AppContext) bool {
 	if c.Bool("json") {
 		return false
 	}
-	
+
 	// Get selected project
 	selectedProjectID, err := appCtx.ProjectManager.GetSelectedProject(c.Context)
 	if err != nil || selectedProjectID == nil {
 		return false
 	}
-	
+
 	// Get project details
 	project, err := appCtx.ProjectManager.GetProject(context.Background(), *selectedProjectID)
 	if err != nil {
 		return false
 	}
-	
+
 	// Display context indicator
 	fmt.Printf("[Project: %s]\n", project.Title)
 	return true
@@ -53,4 +53,3 @@ func ShowProjectContextWithSeparator(c *cli.Context, appCtx *AppContext) bool {
 	}
 	return false
 }
-
