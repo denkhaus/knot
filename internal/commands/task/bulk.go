@@ -68,7 +68,9 @@ func BulkUpdateAction(appCtx *shared.AppContext) cli.ActionFunc {
 			zap.Int("taskCount", len(taskIDs)),
 			zap.Any("updates", updates))
 
-		err := appCtx.ProjectManager.BulkUpdateTasks(context.Background(), taskIDs, updates)
+		actor := shared.GetActorFromContext(c)
+
+		err := appCtx.ProjectManager.BulkUpdateTasks(context.Background(), taskIDs, updates, actor)
 		if err != nil {
 			appCtx.Logger.Error("Failed to bulk update tasks", zap.Error(err))
 			return fmt.Errorf("failed to bulk update tasks: %w", err)
@@ -217,13 +219,7 @@ func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return fmt.Errorf("no tasks found in input file")
 		}
 
-		actor := c.String("actor")
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor := shared.GetActorFromContext(c)
 
 		appCtx.Logger.Info("Bulk creating tasks",
 			zap.Int("taskCount", len(taskInputs)),
@@ -352,13 +348,7 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Get actor for deletion
-		actor := c.String("actor")
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor := shared.GetActorFromContext(c)
 
 		// Delete tasks
 		var deletedCount int

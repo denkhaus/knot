@@ -264,6 +264,7 @@ func (s *service) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state t
 		return nil, fmt.Errorf("invalid state transition from '%s' to '%s'", task.State, state)
 	}
 
+	oldState := task.State
 	task.State = state
 	task.UpdatedBy = actor
 	task.UpdatedAt = time.Now()
@@ -281,7 +282,116 @@ func (s *service) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state t
 		return nil, fmt.Errorf("failed to update task state: %w", err)
 	}
 
+	// Trigger parent task re-evaluation if this task has a parent and state changed
+	if task.ParentID != nil && oldState != state {
+		if err := s.evaluateAndUpdateParentTask(ctx, *task.ParentID, actor); err != nil {
+			// Log error but don't fail the task update
+			fmt.Printf("Warning: Failed to evaluate parent task: %v\n", err)
+		}
+	}
+
 	return s.repo.GetTask(ctx, taskID)
+}
+
+// evaluateAndUpdateParentTask calculates the appropriate state for a parent task based on its children and updates it
+func (s *service) evaluateAndUpdateParentTask(ctx context.Context, parentID uuid.UUID, actor string) error {
+	// Get the parent task
+	parentTask, err := s.repo.GetTask(ctx, parentID)
+	if err != nil {
+		return fmt.Errorf("failed to get parent task: %w", err)
+	}
+
+	// Get all direct children of the parent
+	children, err := s.repo.GetTasksByParent(ctx, parentID)
+	if err != nil {
+		return fmt.Errorf("failed to get child tasks: %w", err)
+	}
+
+	// If no children, don't auto-evaluate (tasks without children should be managed manually)
+	if len(children) == 0 {
+		return nil
+	}
+
+	// Calculate the appropriate parent state based on children
+	newState := s.calculateParentTaskState(children, parentTask.State)
+
+	// Only update if the state should change
+	if newState != parentTask.State {
+		// Validate the state transition
+		if !isValidTaskStateTransition(parentTask.State, newState) {
+			return fmt.Errorf("invalid parent task state transition from '%s' to '%s'", parentTask.State, newState)
+		}
+
+		// Update parent task state
+		parentTask.State = newState
+		parentTask.UpdatedBy = actor
+		parentTask.UpdatedAt = time.Now()
+
+		// Handle completion timestamp
+		if newState == types.TaskStateCompleted && parentTask.CompletedAt == nil {
+			now := time.Now()
+			parentTask.CompletedAt = &now
+		} else if newState != types.TaskStateCompleted && parentTask.CompletedAt != nil {
+			parentTask.CompletedAt = nil
+		}
+
+		if err := s.repo.UpdateTask(ctx, parentTask); err != nil {
+			return fmt.Errorf("failed to update parent task state: %w", err)
+		}
+
+		// Recursively evaluate grandparent if this parent also has a parent
+		if parentTask.ParentID != nil {
+			if err := s.evaluateAndUpdateParentTask(ctx, *parentTask.ParentID, actor); err != nil {
+				// Log error but don't fail the current update
+				fmt.Printf("Warning: Failed to evaluate grandparent task: %v\n", err)
+			}
+		}
+	}
+
+	return nil
+}
+
+// calculateParentTaskState determines the appropriate state for a parent task based on its children
+func (s *service) calculateParentTaskState(children []*types.Task, currentState types.TaskState) types.TaskState {
+	if len(children) == 0 {
+		return currentState // No change if no children
+	}
+
+	// Count children by state
+	stateCounts := make(map[types.TaskState]int)
+	for _, child := range children {
+		stateCounts[child.State]++
+	}
+
+	totalChildren := len(children)
+	completedCount := stateCounts[types.TaskStateCompleted]
+	inProgressCount := stateCounts[types.TaskStateInProgress]
+	pendingCount := stateCounts[types.TaskStatePending]
+	blockedCount := stateCounts[types.TaskStateBlocked]
+
+	// Rule 1: If ALL children are completed → Parent becomes completed
+	if completedCount == totalChildren {
+		return types.TaskStateCompleted
+	}
+
+	// Rule 2: If ANY child is in-progress → Parent becomes in-progress (if not already completed)
+	if inProgressCount > 0 {
+		return types.TaskStateInProgress
+	}
+
+	// Rule 3: If ALL children are pending → Parent becomes pending
+	if pendingCount == totalChildren {
+		return types.TaskStatePending
+	}
+
+	// Rule 4: If children are mixed (pending + blocked + cancelled but no in-progress)
+	// Use the most "active" state among remaining children
+	if blockedCount > 0 {
+		return types.TaskStateBlocked
+	}
+
+	// Default to pending for any other mixed scenarios
+	return types.TaskStatePending
 }
 
 func (s *service) UpdateTask(ctx context.Context, taskID uuid.UUID, title, description string, complexity int, state types.TaskState, actor string) (*types.Task, error) {
@@ -414,7 +524,7 @@ func (s *service) ListTasksForProject(ctx context.Context, projectID uuid.UUID) 
 }
 
 // BulkUpdateTasks updates multiple tasks with the same updates
-func (s *service) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, updates types.TaskUpdates) error {
+func (s *service) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, updates types.TaskUpdates, actor string) error {
 	if len(taskIDs) == 0 {
 		return nil // Nothing to update
 	}
@@ -429,12 +539,17 @@ func (s *service) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, upda
 		return fmt.Errorf("complexity is %d but must be between 1 and 10", *updates.Complexity)
 	}
 
+	// Track parent tasks that need re-evaluation
+	parentTasksToEvaluate := make(map[uuid.UUID]bool)
+
 	// Update each task
 	for _, taskID := range taskIDs {
 		task, err := s.repo.GetTask(ctx, taskID)
 		if err != nil {
 			return fmt.Errorf("failed to get task %s: %w", taskID, err)
 		}
+
+		oldState := task.State
 
 		// Apply updates
 		if updates.State != nil {
@@ -450,10 +565,24 @@ func (s *service) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, upda
 			task.Complexity = *updates.Complexity
 		}
 
+		task.UpdatedBy = actor
 		task.UpdatedAt = time.Now()
 
 		if err := s.repo.UpdateTask(ctx, task); err != nil {
 			return fmt.Errorf("failed to update task %s: %w", taskID, err)
+		}
+
+		// Track parent for re-evaluation if state changed
+		if task.ParentID != nil && updates.State != nil && oldState != *updates.State {
+			parentTasksToEvaluate[*task.ParentID] = true
+		}
+	}
+
+	// Re-evaluate all affected parent tasks
+	for parentID := range parentTasksToEvaluate {
+		if err := s.evaluateAndUpdateParentTask(ctx, parentID, actor); err != nil {
+			// Log error but don't fail the bulk update
+			fmt.Printf("Warning: Failed to evaluate parent task %s: %v\n", parentID, err)
 		}
 	}
 

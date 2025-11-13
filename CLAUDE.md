@@ -122,3 +122,88 @@ Update task description with memory references:
 6. **Workflow Continuity**: Seamless transition between knowledge and action
 
 This creates a powerful integrated system where knowledge management (Brain Tools) and task execution (KNOT) work together with full bidirectional reference capabilities.
+
+## Development Workflow Guidelines
+
+### Critical Development Requirements
+
+#### 1. Code Changes Installation Protocol
+**MANDATORY**: After any code changes in KNOT, you MUST run `mage build:install` to rebuild and update the globally installed KNOT binary. This ensures that the testing environment uses the updated code with all changes.
+
+**Process**:
+```bash
+# After making code changes
+mage build:install
+
+# This will:
+# 1. Compile the latest code
+# 2. Install it globally to $GOPATH/bin
+# 3. Replace the previous KNOT binary
+# 4. Make new functionality available for testing
+```
+
+**Why**: The CLI commands you test (`knot task ...`, `knot project ...`, etc.) use the globally installed binary. Without rebuilding, you would be testing the old version without your changes.
+
+#### 2. Tool Usage Policy
+**KNOT as Todo Tool Replacement**:
+- KNOT Tool is the official drop-in replacement for Todo Tool in Claude Code environments
+- Todo Tool should NOT be used for task management anymore
+- All task operations should use KNOT commands
+- KNOT provides superior hierarchical task management, state tracking, and auto-parent completion
+
+#### 3. Cross-Reference Documentation System
+**Task ID and Memory ID References in Code**:
+- Always include relevant Task IDs and Memory IDs in code comments
+- This creates direct links between implementation and detailed documentation
+- Enables quick navigation from code to task context and technical specifications
+- Maintains traceability between implementation decisions and requirements
+
+**Comment Examples**:
+```go
+// Auto-parent completion logic (Task ID: 06afc996-9a4e-4e75-a03d-8289d13042e3)
+// See brain memory: 4bd7bc0a-4382-4fb3-8601-4facbbf1abc6 for technical specifications
+func (s *service) evaluateAndUpdateParentTask(ctx context.Context, parentID uuid.UUID, actor string) error {
+    // Implementation details...
+}
+
+// TODO: Use shared actor resolution function from task a42c4861-f7f7-4d03-9a29-53b965a7ee1e
+actor := c.String("actor")
+if actor == "" {
+    actor = os.Getenv("USER")
+    if actor == "" {
+        actor = "unknown"
+    }
+}
+```
+
+#### 4. Code Artifact Management
+**No Build Artifacts in Codebase**:
+- All image operations, compilations, and build artifacts must use temporary directories
+- Codebase must remain clean from compiled artifacts, images, and temporary files
+- Use system temp directories or build-specific output directories
+- This keeps the repository clean and focused on source code
+
+**Best Practices**:
+```bash
+# Use temporary directories for build operations
+TEMP_DIR=$(mktemp -d)
+# Perform operations in $TEMP_DIR
+# Clean up afterwards with rm -rf $TEMP_DIR
+```
+
+### Implementation Quality Standards
+
+#### Code Documentation Requirements
+- Every significant function should reference related tasks/memories
+- Technical decisions should link to brain memories with full specifications
+- TODO comments should reference specific task IDs for follow-up
+- This creates maintainable code with full context preservation
+
+#### Testing Protocol
+1. Make code changes
+2. Run `mage build:install` to rebuild KNOT
+3. Test functionality with updated binary
+4. Update related tasks with test results
+5. Store learnings in brain memories for future reference
+
+This workflow ensures that all development work is properly tracked, documented, and maintains high quality standards with full context preservation.

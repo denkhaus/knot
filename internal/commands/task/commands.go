@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 	"sort"
 	"strings"
 
@@ -244,12 +243,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Default to $USER if actor is not provided
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor = shared.ResolveActor(actor)
 
 		// Validate complexity
 		if err := errors.ValidateComplexity(complexity); err != nil {
@@ -391,12 +385,7 @@ func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 		actor := c.String("actor")
 
 		// Default to $USER if actor is not provided
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor = shared.ResolveActor(actor)
 
 		// Basic state validation
 		if err := errors.ValidateTaskState(stateStr); err != nil {
@@ -494,12 +483,7 @@ func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Default to $USER if actor is not provided
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor = shared.ResolveActor(actor)
 
 		appCtx.Logger.Info("Updating task title",
 			zap.String("taskID", taskID.String()),
@@ -541,12 +525,7 @@ func updateDescriptionAction(appCtx *shared.AppContext) cli.ActionFunc {
 		actor := c.String("actor")
 
 		// Default to $USER if actor is not provided
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor = shared.ResolveActor(actor)
 
 		appCtx.Logger.Info("Updating task description",
 			zap.String("taskID", taskID.String()),
@@ -592,12 +571,7 @@ func updatePriorityAction(appCtx *shared.AppContext) cli.ActionFunc {
 		actor := c.String("actor")
 
 		// Default to $USER if actor is not provided
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor = shared.ResolveActor(actor)
 
 		// Validate priority
 		validator := validation.NewInputValidator()

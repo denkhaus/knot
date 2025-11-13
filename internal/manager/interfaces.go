@@ -71,7 +71,7 @@ type ProjectManager interface {
 	FindTasksNeedingBreakdown(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error)
 	GetProjectProgress(ctx context.Context, projectID uuid.UUID) (*types.ProjectProgress, error)
 	ListTasksByState(ctx context.Context, projectID uuid.UUID, state types.TaskState) ([]*types.Task, error)
-	BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, updates types.TaskUpdates) error
+	BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, updates types.TaskUpdates, actor string) error
 	DuplicateTask(ctx context.Context, taskID uuid.UUID, newProjectID uuid.UUID) (*types.Task, error)
 	SetTaskEstimate(ctx context.Context, taskID uuid.UUID, estimate int64) (*types.Task, error)
 

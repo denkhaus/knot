@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/denkhaus/knot/internal/errors"
 	"github.com/denkhaus/knot/internal/shared"
@@ -125,12 +124,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Default to $USER if actor is not provided
-		if actor == "" {
-			actor = os.Getenv("USER")
-			if actor == "" {
-				actor = "unknown"
-			}
-		}
+		actor = shared.ResolveActor(actor)
 
 		appCtx.Logger.Info("Creating project", zap.String("title", title), zap.String("description", description), zap.String("actor", actor))
 
