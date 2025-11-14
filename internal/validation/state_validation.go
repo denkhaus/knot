@@ -128,6 +128,23 @@ func (sv *StateValidator) addValidationRules() {
 			},
 		},
 		{
+			Name:        "high_complexity_requires_breakdown",
+			Description: "High complexity tasks must be broken down before starting work",
+			Validate: func(from, to types.TaskState, task *types.Task) error {
+				// Block transition from pending to in-progress for complex tasks
+				if from == types.TaskStatePending && to == types.TaskStateInProgress && task.Complexity >= 8 {
+					return &errors.EnhancedError{
+						Operation:   "validating state transition",
+						Cause:       fmt.Errorf("cannot start high complexity task (complexity: %d) without breakdown", task.Complexity),
+						Suggestion:  "Break down this task into smaller subtasks before starting work",
+						Example:     fmt.Sprintf("knot breakdown --threshold 7  # to see tasks needing breakdown"),
+						HelpCommand: "knot breakdown --help",
+					}
+				}
+				return nil
+			},
+		},
+		{
 			Name:        "high_complexity_warning",
 			Description: "High complexity tasks should be broken down before completion",
 			Validate: func(from, to types.TaskState, task *types.Task) error {
