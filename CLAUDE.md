@@ -1,7 +1,7 @@
 # Brain Tools Usage Guide
 
 ## Project Setup
-Always load the project UUID from `.project` file when starting work. The current project ID is: `556a7f4f-e31a-4656-af1a-d1e44da032fa`
+Always load the project UUID from `.project` file when starting work.
 
 ## Workflow Overview
 

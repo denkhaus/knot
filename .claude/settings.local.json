@@ -9,7 +9,8 @@
       "Bash(gh run view:*)",
       "mcp__brain__store_memory",
       "mcp__brain__update_memory",
-      "mcp__brain__get_memory"
+      "mcp__brain__get_memory",
+      "mcp__brain__list_memories"
     ],
     "deny": [],
     "ask": []
