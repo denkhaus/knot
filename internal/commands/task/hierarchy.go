@@ -63,6 +63,7 @@ func HierarchyCommands(appCtx *shared.AppContext) []*cli.Command {
 			Action: TreeAction(appCtx),
 			Flags: []cli.Flag{
 				shared.NewJSONFlag(),
+				shared.NewQuietFlag(),
 				&cli.IntFlag{
 					Name:  "max-depth",
 					Usage: "Maximum depth to show (0 = no limit)",

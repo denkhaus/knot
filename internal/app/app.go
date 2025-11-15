@@ -214,6 +214,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Action: task.ActionableAction(appCtx),
 				Flags: []cli.Flag{
 					shared.NewJSONFlag(),
+					shared.NewQuietFlag(),
 				},
 			},
 			{
@@ -223,6 +224,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Flags: []cli.Flag{
 					shared.NewTaskLimitFlag(),
 					shared.NewJSONFlag(),
+					shared.NewQuietFlag(),
 					&cli.IntFlag{
 						Name:    "threshold",
 						Aliases: []string{"t"},

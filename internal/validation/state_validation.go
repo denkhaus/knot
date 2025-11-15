@@ -44,36 +44,32 @@ func NewStateValidator() *StateValidator {
 
 // defineAllowedTransitions sets up the allowed state transition matrix
 func (sv *StateValidator) defineAllowedTransitions() {
-	// Valid transitions from each state
+	// Valid transitions from each state - logical workflow only
 	transitions := []StateTransition{
-		// From pending
-		{types.TaskStatePending, types.TaskStateInProgress},
-		{types.TaskStatePending, types.TaskStateBlocked},
-		{types.TaskStatePending, types.TaskStateCancelled},
-		{types.TaskStatePending, types.TaskStateDeletionPending},
+		// From pending - normal starting point
+		{types.TaskStatePending, types.TaskStateInProgress}, // Start work
+		{types.TaskStatePending, types.TaskStateBlocked},    // Block before starting
+		{types.TaskStatePending, types.TaskStateCancelled},  // Cancel before starting
+		{types.TaskStatePending, types.TaskStateDeletionPending}, // Mark for deletion
 
-		// From in-progress
-		{types.TaskStateInProgress, types.TaskStateCompleted},
-		{types.TaskStateInProgress, types.TaskStateBlocked},
-		{types.TaskStateInProgress, types.TaskStatePending},
-		{types.TaskStateInProgress, types.TaskStateCancelled},
-		{types.TaskStateInProgress, types.TaskStateDeletionPending},
+		// From in-progress - work has been started, cannot go back to pending
+		{types.TaskStateInProgress, types.TaskStateCompleted}, // Finish work
+		{types.TaskStateInProgress, types.TaskStateBlocked},   // Block during work
+		{types.TaskStateInProgress, types.TaskStateCancelled}, // Cancel during work
+		{types.TaskStateInProgress, types.TaskStateDeletionPending}, // Mark for deletion
 
-		// From completed
-		{types.TaskStateCompleted, types.TaskStateInProgress}, // Reopen for fixes
-		{types.TaskStateCompleted, types.TaskStatePending},    // Reset if needed
-		{types.TaskStateCompleted, types.TaskStateDeletionPending},
+		// From completed - work is finished, cannot be reopened
+		{types.TaskStateCompleted, types.TaskStateDeletionPending}, // Only deletion allowed after completion
 
-		// From blocked
-		{types.TaskStateBlocked, types.TaskStatePending},
-		{types.TaskStateBlocked, types.TaskStateInProgress},
-		{types.TaskStateBlocked, types.TaskStateCancelled},
-		{types.TaskStateBlocked, types.TaskStateDeletionPending},
+		// From blocked - work was blocked, can be resumed or cancelled
+		{types.TaskStateBlocked, types.TaskStatePending},     // Reset to pending (unblock)
+		{types.TaskStateBlocked, types.TaskStateInProgress}, // Resume work directly
+		{types.TaskStateBlocked, types.TaskStateCancelled},  // Cancel while blocked
+		{types.TaskStateBlocked, types.TaskStateDeletionPending}, // Mark for deletion
 
-		// From cancelled
-		{types.TaskStateCancelled, types.TaskStatePending},    // Restore
-		{types.TaskStateCancelled, types.TaskStateInProgress}, // Resume
-		{types.TaskStateCancelled, types.TaskStateDeletionPending},
+		// From cancelled - task was cancelled, can be restored to pending
+		{types.TaskStateCancelled, types.TaskStatePending},    // Restore to pending (reactivate)
+		{types.TaskStateCancelled, types.TaskStateDeletionPending}, // Mark for deletion
 
 		// From deletion-pending - NO TRANSITIONS ALLOWED except delete operation
 		// This ensures only the delete command can proceed from this state

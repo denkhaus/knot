@@ -63,11 +63,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			Usage:  "List tasks with advanced filtering options",
 			Action: listAction(appCtx),
 			Flags: []cli.Flag{
-				&cli.BoolFlag{
-					Name:    "json",
-					Aliases: []string{"j"},
-					Usage:   "Output in JSON format",
-				},
+				shared.NewJSONFlag(),
+				shared.NewQuietFlag(),
 				&cli.StringFlag{
 					Name:    "state",
 					Aliases: []string{"s"},

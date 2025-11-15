@@ -23,8 +23,8 @@ func ResolveProjectID(c *cli.Context, appCtx *AppContext) (uuid.UUID, error) {
 // ShowProjectContext displays the current project context if one is selected
 // Returns true if context was shown, false if no project is selected
 func ShowProjectContext(c *cli.Context, appCtx *AppContext) bool {
-	// Skip context display for JSON output
-	if c.Bool("json") {
+	// Skip context display for JSON output or quiet mode
+	if c.Bool("json") || c.Bool("quiet") {
 		return false
 	}
 

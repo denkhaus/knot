@@ -11,6 +11,14 @@ func NewJSONFlag() cli.Flag {
 	}
 }
 
+// NewQuietFlag creates a consistent quiet flag for all commands
+func NewQuietFlag() cli.Flag {
+	return &cli.BoolFlag{
+		Name:  "quiet",
+		Usage: "Suppress project context display",
+	}
+}
+
 func NewTaskLimitFlag() cli.Flag {
 	return &cli.IntFlag{
 		Name:    "limit",

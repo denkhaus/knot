@@ -71,8 +71,8 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return startingTasks[i].Title < startingTasks[j].Title
 		})
 
-		// Show headers for non-JSON mode
-		if !c.Bool("json") {
+		// Show headers for non-JSON mode (skip if quiet)
+		if !c.Bool("json") && !c.Bool("quiet") {
 			if rootTaskIDStr != "" {
 				fmt.Printf("Task tree starting from '%s':\n\n", startingTasks[0].Title)
 			} else {

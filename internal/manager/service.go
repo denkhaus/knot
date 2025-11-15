@@ -366,31 +366,31 @@ func (s *service) calculateParentTaskState(children []*types.Task, currentState 
 	totalChildren := len(children)
 	completedCount := stateCounts[types.TaskStateCompleted]
 	inProgressCount := stateCounts[types.TaskStateInProgress]
-	pendingCount := stateCounts[types.TaskStatePending]
 	blockedCount := stateCounts[types.TaskStateBlocked]
 
-	// Rule 1: If ALL children are completed → Parent becomes completed
+	// Special rule: Only set parent to completed if ALL children are completed
 	if completedCount == totalChildren {
 		return types.TaskStateCompleted
 	}
 
-	// Rule 2: If ANY child is in-progress → Parent becomes in-progress (if not already completed)
+	// Rule: If ANY child is in-progress → Parent becomes in-progress
 	if inProgressCount > 0 {
 		return types.TaskStateInProgress
 	}
 
-	// Rule 3: If ALL children are pending → Parent becomes pending
-	if pendingCount == totalChildren {
-		return types.TaskStatePending
-	}
-
-	// Rule 4: If children are mixed (pending + blocked + cancelled but no in-progress)
-	// Use the most "active" state among remaining children
+	// Rule: If ANY child is blocked → Parent becomes blocked
 	if blockedCount > 0 {
 		return types.TaskStateBlocked
 	}
 
-	// Default to pending for any other mixed scenarios
+	// Progressive state logic - prevent regression when parent has been in-progress
+	// If parent was in-progress and some children are completed but none are in-progress,
+	// keep parent in-progress if there's still work pending
+	if currentState == types.TaskStateInProgress && completedCount > 0 && completedCount < totalChildren {
+		return types.TaskStateInProgress // Continue in progress if work was started but not all completed
+	}
+
+	// If all remaining children are pending → Parent becomes pending
 	return types.TaskStatePending
 }
 
@@ -1076,34 +1076,39 @@ func (s *service) autoReduceParentComplexity(ctx context.Context, parentID uuid.
 
 // isValidTaskStateTransition checks if a task state transition is valid
 func isValidTaskStateTransition(from, to types.TaskState) bool {
-	// Define valid transitions
+	// Define valid transitions - logical workflow only
 	validTransitions := map[types.TaskState][]types.TaskState{
+		// From pending - normal starting point
 		types.TaskStatePending: {
 			types.TaskStateInProgress,
 			types.TaskStateBlocked,
 			types.TaskStateCancelled,
 			types.TaskStateDeletionPending,
 		},
+		// From in-progress - work has been started, cannot go back to pending
 		types.TaskStateInProgress: {
 			types.TaskStateCompleted,
 			types.TaskStateBlocked,
 			types.TaskStateCancelled,
 			types.TaskStateDeletionPending,
 		},
+		// From blocked - work was blocked, can be resumed or cancelled
 		types.TaskStateBlocked: {
 			types.TaskStatePending,
 			types.TaskStateInProgress,
 			types.TaskStateCancelled,
 			types.TaskStateDeletionPending,
 		},
+		// From completed - work is finished, cannot be reopened
 		types.TaskStateCompleted: {
-			types.TaskStateDeletionPending,
-			// Generally, completed tasks shouldn't transition back, but allow for corrections
+			types.TaskStateDeletionPending, // Only deletion allowed after completion
 		},
+		// From cancelled - task was cancelled, can be restored to pending
 		types.TaskStateCancelled: {
 			types.TaskStatePending,
 			types.TaskStateDeletionPending,
 		},
+		// From deletion-pending - no transitions allowed
 		types.TaskStateDeletionPending: {
 			// No transitions allowed from deletion pending
 		},
