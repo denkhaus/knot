@@ -158,6 +158,12 @@ knot task update-title --id <task-uuid> --title "New Title"
 knot task update-description --id <task-uuid> --description "New desc"
 knot task update-priority --id <task-uuid> --priority high
 
+# Get detailed task information
+knot task get --id <task-uuid>
+
+# Get task information as JSON
+knot task get --id <task-uuid> --json
+
 # List with filtering
 knot task list --state pending --complexity-min 5 --search "feature"
 
@@ -393,6 +399,7 @@ knot project select --id <project-uuid>
 
 # Get JSON output for tasks and analysis
 knot task list --json
+knot task get --id <task-uuid> --json
 knot ready --json
 knot project list --json
 ```
