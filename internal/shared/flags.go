@@ -29,6 +29,14 @@ func NewTaskLimitFlag() cli.Flag {
 	}
 }
 
+func NewTaskIDFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:     "id",
+		Usage:    "Task ID",
+		Required: true,
+	}
+}
+
 func NewLogLevelFlag() cli.Flag {
 	return &cli.StringFlag{
 		Name:  "log-level",

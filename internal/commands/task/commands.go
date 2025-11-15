@@ -59,6 +59,16 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			},
 		},
 		{
+			Name:   "get",
+			Usage:  "Get a task by ID",
+			Action: getAction(appCtx),
+			Flags: []cli.Flag{
+				shared.NewJSONFlag(),
+				shared.NewQuietFlag(),
+				shared.NewTaskIDFlag(),
+			},
+		},
+		{
 			Name:   "list",
 			Usage:  "List tasks with advanced filtering options",
 			Action: listAction(appCtx),
@@ -602,6 +612,68 @@ func updatePriorityAction(appCtx *shared.AppContext) cli.ActionFunc {
 		fmt.Printf("  Updated by: %s\n", actor)
 		return nil
 	}
+}
+
+func getAction(appCtx *shared.AppContext) cli.ActionFunc {
+	return func(c *cli.Context) error {
+		taskIDStr := c.String("id")
+		taskID, err := uuid.Parse(taskIDStr)
+		if err != nil {
+			return errors.InvalidUUIDError("task-id", taskIDStr)
+		}
+
+		appCtx.Logger.Info("Getting task", zap.String("taskID", taskID.String()))
+
+		// Get the task
+		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
+		if err != nil {
+			appCtx.Logger.Error("Failed to get task", zap.Error(err))
+			return errors.TaskNotFoundError(taskID)
+		}
+
+		// Check if JSON output is requested
+		if c.Bool("json") {
+			return outputSingleTaskAsJSON(task)
+		}
+
+		// Show project context indicator
+		shared.ShowProjectContextWithSeparator(c, appCtx)
+
+		// Display task details
+		fmt.Printf("Task Details:\n")
+		fmt.Printf("  ID: %s\n", task.ID)
+		fmt.Printf("  Title: %s\n", task.Title)
+		if task.Description != "" {
+			fmt.Printf("  Description: %s\n", task.Description)
+		}
+		fmt.Printf("  State: %s\n", task.State)
+		fmt.Printf("  Priority: %s\n", task.Priority)
+		fmt.Printf("  Complexity: %d\n", task.Complexity)
+		fmt.Printf("  Depth: %d\n", task.Depth)
+		fmt.Printf("  Created: %s\n", task.CreatedAt.Format("2006-01-02 15:04:05"))
+		fmt.Printf("  Updated: %s\n", task.UpdatedAt.Format("2006-01-02 15:04:05"))
+		fmt.Printf("  Created By: %s\n", task.CreatedBy)
+
+		if task.ParentID != nil {
+			fmt.Printf("  Parent ID: %s\n", *task.ParentID)
+		}
+
+		if task.CompletedAt != nil {
+			fmt.Printf("  Completed At: %s\n", task.CompletedAt.Format("2006-01-02 15:04:05"))
+		}
+
+		return nil
+	}
+}
+
+// outputSingleTaskAsJSON outputs a single task in JSON format
+func outputSingleTaskAsJSON(task *types.Task) error {
+	jsonData, err := json.MarshalIndent(task, "", "  ")
+	if err != nil {
+		return fmt.Errorf("failed to marshal task to JSON: %w", err)
+	}
+	fmt.Println(string(jsonData))
+	return nil
 }
 
 // Helper functions for task filtering, sorting, and limiting

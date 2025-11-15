@@ -48,6 +48,9 @@ knot task create --title "<task-title>" --description "<task-description>" --com
 # List tasks in the selected project
 knot task list
 
+# Get a specific task by ID
+knot task get --id <task-id>
+
 # Update a task state
 knot task update-state --id <task-id> --state in-progress
 ```
