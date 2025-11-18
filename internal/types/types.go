@@ -66,18 +66,32 @@ const (
 
 // TaskPriority represents the priority level of a task.
 // Priority helps determine which tasks should be worked on first when multiple tasks are available.
-type TaskPriority string
+// Lower numbers indicate higher priority (1=high, 2=medium, 3=low).
+type TaskPriority int
 
 const (
-	// TaskPriorityLow indicates the task has low priority and can be deferred.
-	TaskPriorityLow TaskPriority = "low"
+	// TaskPriorityHigh indicates the task has high priority and should be completed soon.
+	TaskPriorityHigh TaskPriority = 1
 
 	// TaskPriorityMedium indicates the task has normal priority.
-	TaskPriorityMedium TaskPriority = "medium"
+	TaskPriorityMedium TaskPriority = 2
 
-	// TaskPriorityHigh indicates the task has high priority and should be completed soon.
-	TaskPriorityHigh TaskPriority = "high"
+	// TaskPriorityLow indicates the task has low priority and can be deferred.
+	TaskPriorityLow TaskPriority = 3
 )
+
+func (p TaskPriority) ToExternalString() string {
+	switch p {
+	case TaskPriorityLow:
+		return "low"
+	case TaskPriorityMedium:
+		return "medium"
+	case TaskPriorityHigh:
+		return "high"
+	}
+
+	return "n/a"
+}
 
 // Task represents a single task in the project hierarchy.
 //
@@ -107,7 +121,7 @@ type Task struct {
 	Title         string       `json:"title"`
 	Description   string       `json:"description"`
 	State         TaskState    `json:"state"`
-	Priority      TaskPriority `json:"priority"`                 // Task priority level
+	Priority      TaskPriority `json:"priority"`                 // Task priority level (1=high, 2=medium, 3=low)
 	Complexity    int          `json:"complexity"`               // Used for breakdown decisions
 	Depth         int          `json:"depth"`                    // 0 for root tasks
 	Estimate      *int64       `json:"estimate,omitempty"`       // Time estimate in minutes

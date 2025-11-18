@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -172,6 +173,10 @@ func TestTaskUpdateStateAction(t *testing.T) {
 		ProjectManager: mgr,
 		Logger:         config.Logger,
 	}
+
+	// Set selected project context for the CLI
+	err := mgr.SetSelectedProject(context.Background(), project.ID, "test-user")
+	require.NoError(t, err)
 
 	tests := []struct {
 		name        string

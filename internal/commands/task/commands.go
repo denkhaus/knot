@@ -273,7 +273,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 			zap.String("priority", priority),
 			zap.String("actor", actor))
 
-		task, err := appCtx.ProjectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, types.TaskPriority(priority), actor)
+		task, err := appCtx.ProjectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, parsePriority(priority), actor)
 		if err != nil {
 			appCtx.Logger.Error("Failed to create task", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "creating task")
@@ -287,7 +287,8 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 			fmt.Printf("  Description: %s\n", task.Description)
 		}
 		fmt.Printf("  Complexity: %d\n", task.Complexity)
-		fmt.Printf("  Priority: %s\n", task.Priority)
+
+		fmt.Printf("  Priority: %s\n", task.Priority.ToExternalString())
 		fmt.Printf("  State: %s\n", task.State)
 		if parentID != nil {
 			fmt.Printf("  Parent: %s\n", *parentID)
@@ -373,7 +374,8 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 			if task.Description != "" {
 				fmt.Printf("%s  %s\n", indent, task.Description)
 			}
-			fmt.Printf("%s  State: %s | Priority: %s | Complexity: %d | Depth: %d\n", indent, task.State, task.Priority, task.Complexity, task.Depth)
+
+			fmt.Printf("%s  State: %s | Priority: %s | Complexity: %d | Depth: %d\n", indent, task.State, task.Priority.ToExternalString(), task.Complexity, task.Depth)
 			fmt.Println()
 		}
 		return nil
@@ -601,14 +603,14 @@ func updatePriorityAction(appCtx *shared.AppContext) cli.ActionFunc {
 		oldPriority := task.Priority
 
 		// Update task priority using the service method
-		updatedTask, err := appCtx.ProjectManager.UpdateTaskPriority(context.Background(), taskID, types.TaskPriority(priority), actor)
+		updatedTask, err := appCtx.ProjectManager.UpdateTaskPriority(context.Background(), taskID, parsePriority(priority), actor)
 		if err != nil {
 			appCtx.Logger.Error("Failed to update task priority", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task priority")
 		}
 
 		appCtx.Logger.Info("Task priority updated successfully", zap.String("actor", actor))
-		fmt.Printf("Updated task priority: \"%s\" -> \"%s\"\n", oldPriority, updatedTask.Priority)
+		fmt.Printf("Updated task priority: \"%s\" -> \"%s\"\n", oldPriority.ToExternalString(), updatedTask.Priority.ToExternalString())
 		fmt.Printf("  Updated by: %s\n", actor)
 		return nil
 	}
@@ -647,7 +649,7 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 			fmt.Printf("  Description: %s\n", task.Description)
 		}
 		fmt.Printf("  State: %s\n", task.State)
-		fmt.Printf("  Priority: %s\n", task.Priority)
+		fmt.Printf("  Priority: %s\n", task.Priority.ToExternalString())
 		fmt.Printf("  Complexity: %d\n", task.Complexity)
 		fmt.Printf("  Depth: %d\n", task.Depth)
 		fmt.Printf("  Created: %s\n", task.CreatedAt.Format("2006-01-02 15:04:05"))
@@ -692,7 +694,7 @@ func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task {
 
 		// Priority filter
 		if priority := c.String("priority"); priority != "" {
-			if string(task.Priority) != priority {
+			if task.Priority.ToExternalString() != priority {
 				continue
 			}
 		}
@@ -760,7 +762,7 @@ func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task {
 		case "priority":
 			// Sort by priority: high -> medium -> low
 			priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
-			less = priorityOrder[string(sorted[i].Priority)] < priorityOrder[string(sorted[j].Priority)]
+			less = priorityOrder[sorted[i].Priority.ToExternalString()] < priorityOrder[sorted[j].Priority.ToExternalString()]
 		case "depth":
 			less = sorted[i].Depth < sorted[j].Depth
 		case "hierarchy":
@@ -807,4 +809,18 @@ func hasFiltersApplied(c *cli.Context) bool {
 		c.Int("limit") > 0 ||
 		c.String("sort") != "created" ||
 		c.Bool("reverse")
+}
+
+// parsePriority converts string priority to TaskPriority int
+func parsePriority(priority string) types.TaskPriority {
+	switch priority {
+	case "high":
+		return 1
+	case "medium":
+		return 2
+	case "low":
+		return 3
+	default:
+		return 2 // Default to medium
+	}
 }

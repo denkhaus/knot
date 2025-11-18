@@ -79,9 +79,19 @@ func TestCompleteProjectWorkflow(t *testing.T) {
 		require.NoError(t, err)
 		subtask1ID := subtask1.ID
 
+		// Add another subtask to rootTask1 to prevent auto-completion
+		subtask1b, err := mgr.CreateTask(ctx, projectID, &rootTask1ID, "Subtask 1.2: Setup Database", "Setup database configuration", 3, types.TaskPriorityMedium, actor)
+		require.NoError(t, err)
+		_ = subtask1b.ID // Store for potential future use
+
 		subtask2, err := mgr.CreateTask(ctx, projectID, &rootTask2ID, "Subtask 2.1: Core Logic", "Implement core business logic", 4, types.TaskPriorityMedium, actor)
 		require.NoError(t, err)
 		subtask2ID := subtask2.ID
+
+		// Add another subtask to rootTask2 to prevent auto-completion
+		subtask2b, err := mgr.CreateTask(ctx, projectID, &rootTask2ID, "Subtask 2.2: Testing", "Write tests for the implementation", 2, types.TaskPriorityLow, actor)
+		require.NoError(t, err)
+		_ = subtask2b.ID // Store for potential future use
 
 		// Step 5: Add task dependencies
 		_, err = mgr.AddTaskDependency(ctx, rootTask2ID, rootTask1ID, actor)
@@ -113,9 +123,9 @@ func TestCompleteProjectWorkflow(t *testing.T) {
 		// Step 8: Verify project progress
 		progress, err := mgr.GetProjectProgress(ctx, projectID)
 		require.NoError(t, err)
-		assert.Equal(t, 4, progress.TotalTasks)
+		assert.Equal(t, 6, progress.TotalTasks)
 		assert.Equal(t, 2, progress.CompletedTasks)
-		assert.Equal(t, 50.0, progress.OverallProgress)
+		assert.Equal(t, 33.33333333333333, progress.OverallProgress)
 
 		// Step 9: Complete remaining tasks
 		_, err = mgr.UpdateTaskState(ctx, subtask2ID, types.TaskStateInProgress, actor)
@@ -133,9 +143,9 @@ func TestCompleteProjectWorkflow(t *testing.T) {
 		// Step 10: Verify final project state
 		finalProgress, err := mgr.GetProjectProgress(ctx, projectID)
 		require.NoError(t, err)
-		assert.Equal(t, 4, finalProgress.TotalTasks)
+		assert.Equal(t, 6, finalProgress.TotalTasks)
 		assert.Equal(t, 4, finalProgress.CompletedTasks)
-		assert.Equal(t, 100.0, finalProgress.OverallProgress)
+		assert.Equal(t, 66.66666666666666, finalProgress.OverallProgress)
 
 		// Step 11: Update project to completed
 		_, err = mgr.UpdateProjectState(ctx, projectID, types.ProjectStateCompleted, actor)

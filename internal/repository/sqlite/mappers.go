@@ -8,6 +8,36 @@ import (
 	"github.com/google/uuid"
 )
 
+// Priority conversion functions
+
+// domainPriorityToEntPriority converts domain TaskPriority to ent task.Priority
+func domainPriorityToEntPriority(p types.TaskPriority) task.Priority {
+	switch p {
+	case types.TaskPriorityHigh:
+		return task.PriorityHigh
+	case types.TaskPriorityMedium:
+		return task.PriorityMedium
+	case types.TaskPriorityLow:
+		return task.PriorityLow
+	default:
+		return task.PriorityMedium // Default to medium for invalid values
+	}
+}
+
+// entPriorityToDomainPriority converts ent task.Priority to domain TaskPriority
+func entPriorityToDomainPriority(p task.Priority) types.TaskPriority {
+	switch p {
+	case task.PriorityHigh:
+		return types.TaskPriorityHigh
+	case task.PriorityMedium:
+		return types.TaskPriorityMedium
+	case task.PriorityLow:
+		return types.TaskPriorityLow
+	default:
+		return types.TaskPriorityMedium // Default to medium for invalid values
+	}
+}
+
 // Project entity mapping functions
 
 // entProjectToProject converts ent Project entity to domain Project model
@@ -64,7 +94,7 @@ func entTaskToTask(et *ent.Task) *types.Task {
 		Title:       et.Title,
 		Description: et.Description,
 		State:       types.TaskState(et.State),
-		Priority:    types.TaskPriority(et.Priority),
+		Priority:    entPriorityToDomainPriority(et.Priority),
 		Complexity:  et.Complexity,
 		Depth:       et.Depth,
 		CreatedAt:   et.CreatedAt,
@@ -99,7 +129,7 @@ func taskToEntTaskCreate(t *types.Task, client *ent.Client) *ent.TaskCreate {
 		SetTitle(t.Title).
 		SetDescription(t.Description).
 		SetState(task.State(t.State)).
-		SetPriority(task.Priority(t.Priority)).
+		SetPriority(domainPriorityToEntPriority(t.Priority)).
 		SetComplexity(t.Complexity).
 		SetDepth(t.Depth)
 
@@ -134,7 +164,7 @@ func taskToEntTaskUpdate(t *types.Task, update *ent.TaskUpdateOne) *ent.TaskUpda
 		SetTitle(t.Title).
 		SetDescription(t.Description).
 		SetState(task.State(t.State)).
-		SetPriority(task.Priority(t.Priority)).
+		SetPriority(domainPriorityToEntPriority(t.Priority)).
 		SetComplexity(t.Complexity).
 		SetUpdatedAt(t.UpdatedAt)
 
@@ -270,3 +300,4 @@ func entStateToProjectState(state string) types.ProjectState {
 		return types.ProjectStateActive // Default to active for unknown states
 	}
 }
+

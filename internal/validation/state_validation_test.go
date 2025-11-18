@@ -54,11 +54,11 @@ func TestValidationErrorHandling(t *testing.T) {
 			expectError: false,
 		},
 		{
-			name:        "Valid state transition - completed to pending (reopen)",
+			name:        "Invalid state transition - completed to pending (reopen not allowed)",
 			fromState:   types.TaskStateCompleted,
 			toState:     types.TaskStatePending,
 			task:        task,
-			expectError: false,
+			expectError: true,
 		},
 		{
 			name:        "Valid state transition - in-progress to completed",

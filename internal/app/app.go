@@ -208,15 +208,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 					shared.NewJSONFlag(),
 				},
 			},
-			{
-				Name:   "actionable",
-				Usage:  "Find the next actionable task in a project",
-				Action: task.ActionableAction(appCtx),
-				Flags: []cli.Flag{
-					shared.NewJSONFlag(),
-					shared.NewQuietFlag(),
-				},
-			},
+			task.NewActionableCommand(appCtx),
 			{
 				Name:   "breakdown",
 				Usage:  "Find tasks that need breakdown based on complexity",
