@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/denkhaus/knot/internal/commands/dependency/visualization"
 	"github.com/denkhaus/knot/internal/manager"
 	"github.com/denkhaus/knot/internal/shared"
 	"github.com/denkhaus/knot/internal/types"
@@ -15,6 +16,8 @@ import (
 
 // EnhancedCommands returns enhanced dependency-related CLI commands
 func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
+	factory := visualization.NewCommandFactory()
+
 	return []*cli.Command{
 		{
 			Name:   "dependents",
@@ -59,12 +62,22 @@ func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
 			Name:   "cycles",
 			Usage:  "Detect circular dependencies in project",
 			Action: cyclesAction(appCtx),
+			Flags: []cli.Flag{
+				shared.NewJSONFlag(),
+				&cli.BoolFlag{
+					Name:    "fix",
+					Usage:   "Attempt to automatically fix detected cycles",
+					Aliases: []string{"f"},
+				},
+			},
 		},
 		{
 			Name:   "validate",
 			Usage:  "Validate all dependencies in project",
 			Action: validateAction(appCtx),
 		},
+		// New enhanced visualization command
+		factory.CreateCommand(appCtx),
 	}
 }
 

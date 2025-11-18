@@ -8,21 +8,13 @@ import (
 	"strings"
 
 	"github.com/denkhaus/knot/internal/shared"
+	"github.com/denkhaus/knot/internal/utils"
 
 	"github.com/denkhaus/knot/internal/types"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
-
-// bulk.go contains bulk operations on tasks
-// - bulk-update: update multiple tasks at once
-// - duplicate: duplicate tasks
-// - state filtering and bulk operations
-
-// TODO: Implement bulk operations
-// REFERENCE: pkg/tools/project/main.go line 133 (bulkUpdateTasksTool)
-// REFERENCE: pkg/tools/project/main.go line 134 (duplicateTaskTool)
 
 // BulkUpdateAction updates multiple tasks simultaneously
 func BulkUpdateAction(appCtx *shared.AppContext) cli.ActionFunc {
@@ -164,7 +156,7 @@ func ListByStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Check if JSON output is requested
 		if c.Bool("json") {
-			return outputTasksAsJSON(tasks)
+			return utils.OutputTasksAsJSON(tasks)
 		}
 
 		fmt.Printf("Tasks with state '%s' (%d found):\n\n", state, len(tasks))

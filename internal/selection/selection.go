@@ -173,34 +173,3 @@ func FormatTaskSelection(task *types.Task, reason string, verbose bool) string {
 
 	return utils.FormatSelectionResult(result, verbose)
 }
-
-// GetBuiltinConfigTemplates returns available configuration templates
-func GetBuiltinConfigTemplates() []ConfigTemplate {
-	return GetBuiltinTemplates()
-}
-
-// ApplyConfigTemplate applies a configuration template
-func ApplyConfigTemplate(templateName string, configPath string) error {
-	provider := NewConfigProvider(configPath)
-	return provider.ApplyTemplate(templateName)
-}
-
-// Version information
-const (
-	Version = "1.0.0"
-	Name    = "knot-task-selection"
-)
-
-// GetVersion returns the package version
-func GetVersion() string {
-	return Version
-}
-
-// GetPackageInfo returns package information
-func GetPackageInfo() map[string]string {
-	return map[string]string{
-		"name":        Name,
-		"version":     Version,
-		"description": "Dependency-aware task selection for knot project management",
-	}
-}

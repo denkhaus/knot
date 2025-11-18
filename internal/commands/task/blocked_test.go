@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/knot/internal/manager"
 	"github.com/denkhaus/knot/internal/repository/inmemory"
 	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/internal/utils"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -73,19 +74,19 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 	// Test isTaskReady function
 	t.Run("Test isTaskReady function", func(t *testing.T) {
 		// Task A should be ready (completed, no dependencies)
-		assert.True(t, isTaskReady(taskMap[taskA.ID], taskMap), "Task A should be ready")
+		assert.True(t, utils.IsTaskReady(taskMap[taskA.ID], taskMap), "Task A should be ready")
 
 		// Task B should be ready (depends on completed A)
-		assert.True(t, isTaskReady(taskMap[taskB.ID], taskMap), "Task B should be ready")
+		assert.True(t, utils.IsTaskReady(taskMap[taskB.ID], taskMap), "Task B should be ready")
 
 		// Task C should NOT be ready (depends on in-progress B)
-		assert.False(t, isTaskReady(taskMap[taskC.ID], taskMap), "Task C should be blocked")
+		assert.False(t, utils.IsTaskReady(taskMap[taskC.ID], taskMap), "Task C should be blocked")
 
 		// Task D should NOT be ready (depends on in-progress B)
-		assert.False(t, isTaskReady(taskMap[taskD.ID], taskMap), "Task D should be blocked")
+		assert.False(t, utils.IsTaskReady(taskMap[taskD.ID], taskMap), "Task D should be blocked")
 
 		// Task E should be ready (no dependencies)
-		assert.True(t, isTaskReady(taskMap[taskE.ID], taskMap), "Task E should be ready")
+		assert.True(t, utils.IsTaskReady(taskMap[taskE.ID], taskMap), "Task E should be ready")
 	})
 
 	// Test blocked task identification
@@ -93,7 +94,7 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 		var blockedTasks []*types.Task
 		for _, task := range allTasks {
 			if task.State == types.TaskStatePending || task.State == types.TaskStateInProgress {
-				if !isTaskReady(task, taskMap) && len(task.Dependencies) > 0 {
+				if !utils.IsTaskReady(task, taskMap) && len(task.Dependencies) > 0 {
 					blockedTasks = append(blockedTasks, task)
 				}
 			}
@@ -168,7 +169,7 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 		// This should not panic
 		for _, task := range allTasks {
 			if task.State == types.TaskStatePending || task.State == types.TaskStateInProgress {
-				if !isTaskReady(task, taskMap) && len(task.Dependencies) > 0 {
+				if !utils.IsTaskReady(task, taskMap) && len(task.Dependencies) > 0 {
 					blockedTasks = append(blockedTasks, task)
 				}
 			}
@@ -204,7 +205,7 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 		}
 
 		// Task with missing dependency should not be ready
-		assert.False(t, isTaskReady(taskWithMissingDep, taskMap), "Task with missing dependency should not be ready")
+		assert.False(t, utils.IsTaskReady(taskWithMissingDep, taskMap), "Task with missing dependency should not be ready")
 	})
 
 	t.Run("Task with self-dependency", func(t *testing.T) {
@@ -225,7 +226,7 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 		}
 
 		// Self-dependent task should not be ready (depends on itself which is not completed)
-		assert.False(t, isTaskReady(selfDepTask, taskMap), "Self-dependent task should not be ready")
+		assert.False(t, utils.IsTaskReady(selfDepTask, taskMap), "Self-dependent task should not be ready")
 	})
 
 	t.Run("Completed tasks should not be considered blocked", func(t *testing.T) {
@@ -258,7 +259,7 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 		var blockedTasks []*types.Task
 		for _, task := range allTasks {
 			if task.State == types.TaskStatePending || task.State == types.TaskStateInProgress {
-				if !isTaskReady(task, taskMap) && len(task.Dependencies) > 0 {
+				if !utils.IsTaskReady(task, taskMap) && len(task.Dependencies) > 0 {
 					blockedTasks = append(blockedTasks, task)
 				}
 			}
@@ -319,16 +320,16 @@ func TestBlockedCommandDependencyChains(t *testing.T) {
 
 	t.Run("Test dependency chain blocking", func(t *testing.T) {
 		// Task A: completed, no dependencies -> ready
-		assert.True(t, isTaskReady(taskMap[taskA.ID], taskMap), "Task A should be ready")
+		assert.True(t, utils.IsTaskReady(taskMap[taskA.ID], taskMap), "Task A should be ready")
 
 		// Task B: in-progress, depends on completed A -> ready
-		assert.True(t, isTaskReady(taskMap[taskB.ID], taskMap), "Task B should be ready")
+		assert.True(t, utils.IsTaskReady(taskMap[taskB.ID], taskMap), "Task B should be ready")
 
 		// Task C: pending, depends on in-progress B -> blocked
-		assert.False(t, isTaskReady(taskMap[taskC.ID], taskMap), "Task C should be blocked")
+		assert.False(t, utils.IsTaskReady(taskMap[taskC.ID], taskMap), "Task C should be blocked")
 
 		// Task D: pending, depends on pending C -> blocked
-		assert.False(t, isTaskReady(taskMap[taskD.ID], taskMap), "Task D should be blocked")
+		assert.False(t, utils.IsTaskReady(taskMap[taskD.ID], taskMap), "Task D should be blocked")
 	})
 
 	t.Run("Test chain unblocking", func(t *testing.T) {
@@ -346,10 +347,10 @@ func TestBlockedCommandDependencyChains(t *testing.T) {
 		}
 
 		// Now Task C should be ready
-		assert.True(t, isTaskReady(taskMap[taskC.ID], taskMap), "Task C should be ready after B is completed")
+		assert.True(t, utils.IsTaskReady(taskMap[taskC.ID], taskMap), "Task C should be ready after B is completed")
 
 		// But Task D should still be blocked (depends on pending C)
-		assert.False(t, isTaskReady(taskMap[taskD.ID], taskMap), "Task D should still be blocked")
+		assert.False(t, utils.IsTaskReady(taskMap[taskD.ID], taskMap), "Task D should still be blocked")
 
 		// Complete task C
 		_, err = projectManager.UpdateTaskState(ctx, taskC.ID, types.TaskStateInProgress, "TestUser")
@@ -365,6 +366,6 @@ func TestBlockedCommandDependencyChains(t *testing.T) {
 		}
 
 		// Now Task D should be ready
-		assert.True(t, isTaskReady(taskMap[taskD.ID], taskMap), "Task D should be ready after C is completed")
+		assert.True(t, utils.IsTaskReady(taskMap[taskD.ID], taskMap), "Task D should be ready after C is completed")
 	})
 }

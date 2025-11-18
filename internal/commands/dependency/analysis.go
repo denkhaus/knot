@@ -2,6 +2,7 @@ package dependency
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 
 	"github.com/denkhaus/knot/internal/manager"
@@ -126,13 +127,18 @@ func showDownstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID
 // cyclesAction detects circular dependencies in a project
 func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectIDStr := c.String("project-id")
-		projectID, err := uuid.Parse(projectIDStr)
+		projectID, err := shared.ResolveProjectID(c, appCtx)
 		if err != nil {
-			return fmt.Errorf("invalid project ID: %w", err)
+			return err
 		}
 
-		appCtx.Logger.Info("Detecting dependency cycles", zap.String("projectID", projectID.String()))
+		jsonOutput := c.Bool("json")
+		autoFix := c.Bool("fix")
+
+		appCtx.Logger.Info("Detecting dependency cycles",
+			zap.String("projectID", projectID.String()),
+			zap.Bool("json", jsonOutput),
+			zap.Bool("autoFix", autoFix))
 
 		// Get all tasks in the project
 		tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
@@ -142,18 +148,71 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		cycles := detectCycles(tasks)
+		result := map[string]interface{}{
+			"project_id":     projectID,
+			"total_tasks":    len(tasks),
+			"cycles_found":   len(cycles),
+			"has_cycles":     len(cycles) > 0,
+			"cycles":         cycles,
+		}
 
+		if jsonOutput {
+			// Convert cycles to detailed output
+			var detailedCycles []map[string]interface{}
+			for _, cycle := range cycles {
+				var detailedCycle []map[string]interface{}
+				for _, taskID := range cycle {
+					// Find task details
+					var task *types.Task
+					for _, t := range tasks {
+						if t.ID == taskID {
+							task = t
+							break
+						}
+					}
+
+					taskInfo := map[string]interface{}{
+						"id": taskID,
+					}
+					if task != nil {
+						taskInfo["title"] = task.Title
+						taskInfo["state"] = task.State
+					} else {
+						taskInfo["title"] = "Unknown task"
+						taskInfo["state"] = "unknown"
+					}
+					detailedCycle = append(detailedCycle, taskInfo)
+				}
+				detailedCycles = append(detailedCycles, map[string]interface{}{
+					"cycle": detailedCycle,
+					"length": len(cycle),
+				})
+			}
+			result["cycles"] = detailedCycles
+
+			data, err := json.MarshalIndent(result, "", "  ")
+			if err != nil {
+				return fmt.Errorf("failed to marshal JSON result: %w", err)
+			}
+			fmt.Println(string(data))
+			return nil
+		}
+
+		// Text output
+		shared.ShowProjectContextWithSeparator(c, appCtx)
 		fmt.Printf("Circular dependency analysis for project %s:\n\n", projectID)
 
 		if len(cycles) == 0 {
 			fmt.Println("✅ No circular dependencies detected!")
+			fmt.Printf("📊 Analyzed %d tasks with %d total dependencies\n",
+				len(tasks), countTotalDependencies(tasks))
 			return nil
 		}
 
 		fmt.Printf("⚠️  Found %d circular dependency cycle(s):\n\n", len(cycles))
 
 		for i, cycle := range cycles {
-			fmt.Printf("Cycle %d:\n", i+1)
+			fmt.Printf("Cycle %d (%d tasks):\n", i+1, len(cycle))
 			for j, taskID := range cycle {
 				// Find task details
 				var task *types.Task
@@ -165,16 +224,37 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 				}
 
 				if task != nil {
-					fmt.Printf("  %d. %s (ID: %s)\n", j+1, task.Title, taskID)
+					arrow := "├─"
+					if j == len(cycle)-1 {
+						arrow = "└─"
+					}
+					fmt.Printf("  %s %s (ID: %s) [%s]\n", arrow, task.Title, taskID, task.State)
 				} else {
-					fmt.Printf("  %d. Unknown task (ID: %s)\n", j+1, taskID)
+					fmt.Printf("  ├─ Unknown task (ID: %s)\n", taskID)
 				}
 			}
 			fmt.Printf("  └─ Back to: %s\n\n", cycle[0])
 		}
 
+		fmt.Printf("💡 Recommendations:\n")
+		fmt.Printf("  1. Review the cycles above and remove unnecessary dependencies\n")
+		fmt.Printf("  2. Consider breaking circular dependencies by creating intermediate tasks\n")
+		fmt.Printf("  3. Use 'knot dependency validate' for more detailed analysis\n")
+		if autoFix {
+			fmt.Printf("  4. Auto-fix requested - this feature is not yet implemented\n")
+		}
+
 		return nil
 	}
+}
+
+// countTotalDependencies counts the total number of dependencies across all tasks
+func countTotalDependencies(tasks []*types.Task) int {
+	total := 0
+	for _, task := range tasks {
+		total += len(task.Dependencies)
+	}
+	return total
 }
 
 // detectCycles uses DFS to detect circular dependencies

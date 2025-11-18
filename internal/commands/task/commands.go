@@ -2,12 +2,12 @@ package task
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"sort"
 	"strings"
 
 	"github.com/denkhaus/knot/internal/shared"
+	"github.com/denkhaus/knot/internal/utils"
 
 	"github.com/denkhaus/knot/internal/errors"
 	"github.com/denkhaus/knot/internal/types"
@@ -273,7 +273,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 			zap.String("priority", priority),
 			zap.String("actor", actor))
 
-		task, err := appCtx.ProjectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, parsePriority(priority), actor)
+		task, err := appCtx.ProjectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, utils.ParsePriority(priority), actor)
 		if err != nil {
 			appCtx.Logger.Error("Failed to create task", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "creating task")
@@ -345,7 +345,7 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Check if JSON output is requested
 		if c.Bool("json") {
-			return outputTasksAsJSON(finalTasks)
+			return utils.OutputTasksAsJSON(finalTasks)
 		}
 
 		// Show project context indicator
@@ -455,27 +455,6 @@ func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 		return nil
 	}
 }
-
-// outputTasksAsJSON outputs tasks in JSON format
-func outputTasksAsJSON(tasks []*types.Task) error {
-	jsonData, err := json.MarshalIndent(tasks, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal tasks to JSON: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
-}
-
-// outputSingleTaskAsJSON outputs a single task in JSON format
-// Currently unused but kept for potential future use
-// func outputSingleTaskAsJSON(task *types.Task) error {
-// 	jsonData, err := json.MarshalIndent(task, "", "  ")
-// 	if err != nil {
-// 		return fmt.Errorf("failed to marshal task to JSON: %w", err)
-// 	}
-// 	fmt.Println(string(jsonData))
-// 	return nil
-// }
 
 func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
@@ -603,7 +582,7 @@ func updatePriorityAction(appCtx *shared.AppContext) cli.ActionFunc {
 		oldPriority := task.Priority
 
 		// Update task priority using the service method
-		updatedTask, err := appCtx.ProjectManager.UpdateTaskPriority(context.Background(), taskID, parsePriority(priority), actor)
+		updatedTask, err := appCtx.ProjectManager.UpdateTaskPriority(context.Background(), taskID, utils.ParsePriority(priority), actor)
 		if err != nil {
 			appCtx.Logger.Error("Failed to update task priority", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task priority")
@@ -635,7 +614,7 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Check if JSON output is requested
 		if c.Bool("json") {
-			return outputSingleTaskAsJSON(task)
+			return utils.OutputTaskAsJSON(task)
 		}
 
 		// Show project context indicator
@@ -666,16 +645,6 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		return nil
 	}
-}
-
-// outputSingleTaskAsJSON outputs a single task in JSON format
-func outputSingleTaskAsJSON(task *types.Task) error {
-	jsonData, err := json.MarshalIndent(task, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal task to JSON: %w", err)
-	}
-	fmt.Println(string(jsonData))
-	return nil
 }
 
 // Helper functions for task filtering, sorting, and limiting
@@ -809,18 +778,4 @@ func hasFiltersApplied(c *cli.Context) bool {
 		c.Int("limit") > 0 ||
 		c.String("sort") != "created" ||
 		c.Bool("reverse")
-}
-
-// parsePriority converts string priority to TaskPriority int
-func parsePriority(priority string) types.TaskPriority {
-	switch priority {
-	case "high":
-		return 1
-	case "medium":
-		return 2
-	case "low":
-		return 3
-	default:
-		return 2 // Default to medium
-	}
 }

@@ -189,12 +189,6 @@ func TestValidateConfig(t *testing.T) {
 	}
 }
 
-func TestValidateConfigNil(t *testing.T) {
-	// Test that nil config would panic - this is expected behavior
-	// We can't easily test this without causing a panic, so we skip this test
-	t.Skip("Nil config test skipped - would cause panic which is expected behavior")
-}
-
 func TestConfigIntegration(t *testing.T) {
 	// Integration test to verify the whole config workflow
 	t.Run("config path and validation workflow", func(t *testing.T) {

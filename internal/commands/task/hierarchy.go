@@ -254,4 +254,4 @@ func RootsAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		return nil
 	}
-} // getAllDescendants and other missing functions
+}

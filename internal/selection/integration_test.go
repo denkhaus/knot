@@ -147,28 +147,6 @@ func TestPackageIntegration(t *testing.T) {
 		t.Logf("Number of unique task selections: %d", len(uniqueSelections))
 	})
 
-	t.Run("ConfigurationManagement", func(t *testing.T) {
-		// Test configuration templates
-		templates := GetBuiltinConfigTemplates()
-		assert.GreaterOrEqual(t, len(templates), 5, "Should have several built-in templates")
-
-		// Test each template
-		tasks := createComplexDependencyGraph()
-
-		for _, template := range templates {
-			t.Run(template.Name, func(t *testing.T) {
-				selector, err := NewTaskSelector(template.Config.Strategy, template.Config)
-				require.NoError(t, err)
-
-				selectedTask, err := selector.SelectNextActionableTask(tasks)
-				require.NoError(t, err)
-				require.NotNil(t, selectedTask)
-
-				t.Logf("Template %s selected: %s", template.Name, selectedTask.Title)
-			})
-		}
-	})
-
 	t.Run("ErrorHandling", func(t *testing.T) {
 		// Test various error conditions
 
