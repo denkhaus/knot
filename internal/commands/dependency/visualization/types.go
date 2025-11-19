@@ -8,17 +8,17 @@ import (
 type TaskIcon string
 
 const (
-	IconCompleted    TaskIcon = "✅"
-	IconInProgress   TaskIcon = "🔄"
-	IconReady        TaskIcon = "⭕"
-	IconBlocked      TaskIcon = "⏸"
-	IconCycle        TaskIcon = "⊕"
-	IconUnknown      TaskIcon = "❓"
-	IconDependency   TaskIcon = "→"
-	IconBlocks       TaskIcon = "⟶"
-	IconFolder       TaskIcon = "📁"
-	IconFile         TaskIcon = "📄"
-	IconWarning      TaskIcon = "⚠️"
+	IconCompleted    TaskIcon = "[DONE]"
+	IconInProgress   TaskIcon = "[WORK]"
+	IconReady        TaskIcon = "[READY]"
+	IconBlocked      TaskIcon = "[BLOCK]"
+	IconCycle        TaskIcon = "[CYCLE]"
+	IconUnknown      TaskIcon = "[UNKNOWN]"
+	IconDependency   TaskIcon = "->"
+	IconBlocks       TaskIcon = "=>"
+	IconFolder       TaskIcon = "+"
+	IconFile         TaskIcon = "-"
+	IconWarning      TaskIcon = "[!]"
 )
 
 // VisualizationMode represents different visualization types

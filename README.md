@@ -206,13 +206,19 @@ knot dependency remove --task-id <task-uuid> --depends-on <other-task-uuid>
 # List dependencies
 knot dependency list --task-id <task-uuid>
 
+# Enhanced dependency visualization with character-based indicators
+knot dependency show --project                    # Show project overview
+knot dependency show --task-id <id>              # Show specific task dependencies
+knot dependency show --tree                     # Show dependency tree structure
+knot dependency show --graph                    # Show dependency graph with all connections
+
 # Show dependency chain
 knot dependency chain --task-id <task-uuid> --upstream --downstream
 
 # Find dependent tasks
 knot dependency dependents --task-id <task-uuid> --recursive
 
-# Detect circular dependencies
+# Detect circular dependencies with enhanced cycle detection
 knot dependency cycles
 
 # Validate all dependencies
@@ -231,8 +237,15 @@ knot ready --limit 5
 # Find blocked tasks
 knot blocked --limit 10
 
-# Get next actionable task
-knot actionable
+# Get next actionable task with intelligent strategy selection
+knot actionable                                   # Use auto-recommended strategy
+knot actionable --strategy dependency-aware     # Prioritize tasks that unblock others
+knot actionable --strategy depth-first          # Complete subtasks before moving to other branches
+knot actionable --strategy priority             # Focus on high-priority tasks first
+knot actionable --strategy creation-order       # Original knot behavior (oldest first)
+knot actionable --strategy critical-path        # Focus on tasks affecting project timeline
+knot actionable --verbose                      # Show detailed selection reasoning and alternatives
+knot actionable --json                         # Output result as JSON
 
 # Find tasks needing breakdown
 knot breakdown --threshold 8
@@ -586,6 +599,29 @@ tasks:
 - **auto-reduce-complexity**: Automatically reduce parent complexity when subtasks added (default: true)
 
 ## Recent Enhancements
+
+### v2.2+ Major Architectural Improvements
+
+#### **🔧 Enhanced Actionable Command with Intelligent Strategies**
+- **5 Selection Strategies**: `dependency-aware`, `depth-first`, `priority`, `creation-order`, `critical-path`
+- **Auto-Recommendation**: Intelligent strategy analysis based on project characteristics
+- **Performance Caching**: Thread-safe caching layer for dependency graphs and task scores
+- **Enhanced Error Context**: Rich error messages with task IDs and recovery suggestions
+- **Modular Architecture**: Refactored into focused components following single responsibility principle
+- **Detailed Reasoning**: Verbose mode showing selection alternatives and scoring details
+
+#### **📊 Improved Dependency Visualization**
+- **Character-Based Display**: Clean text indicators instead of emoji (`[READY]`, `[WORK]`, `[DONE]`, `[BLOCK]`)
+- **Enhanced Show Command**: Multiple visualization modes (`--project`, `--tree`, `--graph`, `--blocks`)
+- **Task Status First**: Status indicators displayed before task names for immediate recognition
+- **Circular Dependency Detection**: Advanced cycle detection with detailed analysis
+- **Dependency Tree Views**: Hierarchical tree structures with clear parent-child relationships
+
+#### **⚡ Architecture & Performance Refactoring**
+- **Modular Component Design**: Split large analyzer.go (473 lines) into focused files <500 lines
+- **Task Map Utilities**: Centralized task lookup eliminating code duplication
+- **Performance Caching**: Intelligent caching for dependency graphs and computations
+- **Enhanced Error Handling**: Context-rich errors with actionable recovery suggestions
 
 ### v2.1+ Improvements
 

@@ -25,8 +25,8 @@ func NewRenderer(config *VisualizationConfig) *Renderer {
 
 // RenderProjectOverview renders project overview
 func (r *Renderer) RenderProjectOverview(result *ProjectAnalysisResult) error {
-	r.addLine("🔗 PROJECT DEPENDENCY OVERVIEW")
-	r.addLine("─" + strings.Repeat("─", 50))
+	r.addLine("[LINK] PROJECT DEPENDENCY OVERVIEW")
+	r.addLine(strings.Repeat("-", 55))
 
 	// Statistics section
 	r.renderStatistics(result)
@@ -49,8 +49,8 @@ func (r *Renderer) RenderProjectOverview(result *ProjectAnalysisResult) error {
 
 // RenderTaskAnalysis renders task-specific analysis
 func (r *Renderer) RenderTaskAnalysis(result *TaskAnalysisResult) error {
-	r.addLine(fmt.Sprintf("🔗 DEPENDENCY ANALYSIS: %s", result.Task.Title))
-	r.addLine("─" + strings.Repeat("─", 60))
+	r.addLine(fmt.Sprintf("[LINK] DEPENDENCY ANALYSIS: %s", result.Task.Title))
+	r.addLine(strings.Repeat("-", 65))
 	r.addLine(fmt.Sprintf("Task ID: %s | State: %s | Priority: %d",
 		result.Task.ID, result.Task.State, result.Task.Priority))
 	r.addLine("")
@@ -74,17 +74,17 @@ func (r *Renderer) RenderTaskAnalysis(result *TaskAnalysisResult) error {
 
 // RenderTree renders dependency tree
 func (r *Renderer) RenderTree(result *ProjectAnalysisResult) error {
-	r.addLine("🌳 DEPENDENCY TREE")
-	r.addLine("─" + strings.Repeat("─", 40))
+	r.addLine("[TREE] DEPENDENCY TREE")
+	r.addLine(strings.Repeat("-", 45))
 
 	if len(result.RootTasks) == 0 {
 		r.addLine("  No root tasks found (possible circular dependencies)")
 		return nil
 	}
 
-	r.addLine("📂 Root tasks (no dependencies):")
+	r.addLine("[ROOT] Root tasks (no dependencies):")
 	for _, root := range result.RootTasks {
-		r.addLine(fmt.Sprintf("  📁 %s (ID: %s)", root.Title, root.ID))
+		r.addLine(fmt.Sprintf("  %s %s (ID: %s)", IconFolder, root.Title, root.ID))
 		r.renderTaskTree(root, result.AllRelationships, 1)
 	}
 
@@ -93,8 +93,8 @@ func (r *Renderer) RenderTree(result *ProjectAnalysisResult) error {
 
 // RenderGraph renders dependency graph
 func (r *Renderer) RenderGraph(result *ProjectAnalysisResult) error {
-	r.addLine("🕸️  DEPENDENCY GRAPH")
-	r.addLine("─" + strings.Repeat("─", 40))
+	r.addLine("[GRAPH] DEPENDENCY GRAPH")
+	r.addLine(strings.Repeat("-", 45))
 
 	r.addLine("Task relationships:")
 	for _, rel := range result.AllRelationships {
@@ -149,41 +149,42 @@ func (r *Renderer) RenderJSON(taskResult *TaskAnalysisResult, projectResult *Pro
 // Private helper methods
 
 func (r *Renderer) renderStatistics(result *ProjectAnalysisResult) {
-	r.addLine("📊 Statistics:")
-	r.addLine(fmt.Sprintf("  • Total tasks: %d", result.TotalTasks))
-	r.addLine(fmt.Sprintf("  • Tasks with dependencies: %d", result.TasksWithDeps))
-	r.addLine(fmt.Sprintf("  • Blocked tasks: %d", result.BlockedTasks))
-	r.addLine(fmt.Sprintf("  • Completed: %d", result.CompletedTasks))
-	r.addLine(fmt.Sprintf("  • In Progress: %d", result.InProgressTasks))
-	r.addLine(fmt.Sprintf("  • Pending: %d", result.PendingTasks))
-	r.addLine(fmt.Sprintf("  • Circular dependencies: %d", len(result.Cycles)))
+	r.addLine("[STATS] Statistics:")
+	r.addLine(fmt.Sprintf("  * Total tasks: %d", result.TotalTasks))
+	r.addLine(fmt.Sprintf("  * Tasks with dependencies: %d", result.TasksWithDeps))
+	r.addLine(fmt.Sprintf("  * Blocked tasks: %d", result.BlockedTasks))
+	r.addLine(fmt.Sprintf("  * Completed: %d", result.CompletedTasks))
+	r.addLine(fmt.Sprintf("  * In Progress: %d", result.InProgressTasks))
+	r.addLine(fmt.Sprintf("  * Pending: %d", result.PendingTasks))
+	r.addLine(fmt.Sprintf("  * Circular dependencies: %d", len(result.Cycles)))
 	r.addLine("")
 }
 
 func (r *Renderer) renderCycles(cycles [][]string) {
 	if len(cycles) > 0 {
-		r.addLine("⚠️  Circular Dependencies:")
+		r.addLine("[!] Circular Dependencies:")
 		for i, cycle := range cycles {
-			r.addLine(fmt.Sprintf("  Cycle %d: %s", i+1, strings.Join(cycle, " → ")))
+			r.addLine(fmt.Sprintf("  Cycle %d: %s", i+1, strings.Join(cycle, " -> ")))
 		}
 		r.addLine("")
 	} else {
-		r.addLine("✅ No circular dependencies detected")
+		r.addLine("[OK] No circular dependencies detected")
 		r.addLine("")
 	}
 }
 
 func (r *Renderer) renderRootTasks(roots []*types.Task) {
-	r.addLine("🌱 Root Tasks (no dependencies):")
+	r.addLine("[ROOT] Root Tasks (no dependencies):")
 	for i, root := range roots {
-		r.addLine(fmt.Sprintf("  %d. %s (ID: %s) [%s]",
-			i+1, root.Title, root.ID, root.State))
+		statusIcon := r.getTaskIcon(root, root.ID)
+		r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s)",
+			i+1, statusIcon, root.Title, root.ID))
 	}
 	r.addLine("")
 }
 
 func (r *Renderer) renderBlockedTasks(result *ProjectAnalysisResult) error {
-	r.addLine("🚫 Blocked Tasks:")
+	r.addLine("[BLOCKED] Blocked Tasks:")
 	r.addLine("")
 
 	blockedCount := 0
@@ -191,8 +192,8 @@ func (r *Renderer) renderBlockedTasks(result *ProjectAnalysisResult) error {
 		if r.isTaskBlocked(task) {
 			blockedCount++
 			if blockedCount <= 10 { // Limit to first 10 for display
-				r.addLine(fmt.Sprintf("  %d. 🚫 %s (ID: %s) [Priority: %d]",
-					blockedCount, task.Title, task.ID, task.Priority))
+				r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s) [Priority: %d]",
+					blockedCount, IconBlocked, task.Title, task.ID, task.Priority))
 			}
 		}
 	}
@@ -218,38 +219,38 @@ func (r *Renderer) renderTaskStatus(result *TaskAnalysisResult) {
 
 func (r *Renderer) renderUpstreamDependencies(result *TaskAnalysisResult) {
 	if len(result.UpstreamTasks) > 0 {
-		r.addLine("📈 Upstream Dependencies (what this task depends on):")
+		r.addLine("[UP] Upstream Dependencies (what this task depends on):")
 		for i, dep := range result.UpstreamTasks {
 			icon := r.getTaskIcon(dep, dep.ID)
-			r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s) [%s]",
-				i+1, icon, dep.Title, dep.ID, dep.State))
+			r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s)",
+				i+1, icon, dep.Title, dep.ID))
 		}
 	} else {
-		r.addLine("📈 No upstream dependencies")
+		r.addLine("[UP] No upstream dependencies")
 	}
 	r.addLine("")
 }
 
 func (r *Renderer) renderDownstreamDependents(result *TaskAnalysisResult) {
 	if len(result.DownstreamTasks) > 0 {
-		r.addLine("📉 Downstream Dependents (tasks that depend on this):")
+		r.addLine("[DOWN] Downstream Dependents (tasks that depend on this):")
 		for i, dep := range result.DownstreamTasks {
 			icon := r.getTaskIcon(dep, dep.ID)
-			r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s) [%s]",
-				i+1, icon, dep.Title, dep.ID, dep.State))
+			r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s)",
+				i+1, icon, dep.Title, dep.ID))
 		}
 	} else {
-		r.addLine("📉 No downstream dependents")
+		r.addLine("[DOWN] No downstream dependents")
 	}
 	r.addLine("")
 }
 
 func (r *Renderer) renderBlockingTasks(blockingTasks []*types.Task) {
-	r.addLine("🚫 Blocking Tasks (preventing this task from starting):")
+	r.addLine("[BLOCKING] Blocking Tasks (preventing this task from starting):")
 	for i, task := range blockingTasks {
 		icon := r.getTaskIcon(task, task.ID)
-		r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s) [%s]",
-			i+1, icon, task.Title, task.ID, task.State))
+		r.addLine(fmt.Sprintf("  %d. %s %s (ID: %s)",
+			i+1, icon, task.Title, task.ID))
 	}
 	r.addLine("")
 }
@@ -265,7 +266,8 @@ func (r *Renderer) renderTaskTree(task *types.Task, relationships []TaskRelation
 	dependents := r.findDirectDependents(task.ID, relationships)
 
 	if len(dependents) == 0 {
-		r.addLine(fmt.Sprintf("%s  📄 %s", indent, task.Title))
+		icon := r.getTaskIcon(task, task.ID)
+		r.addLine(fmt.Sprintf("%s  %s %s", indent, icon, task.Title))
 		return
 	}
 
@@ -276,18 +278,20 @@ func (r *Renderer) renderTaskTree(task *types.Task, relationships []TaskRelation
 
 	for i, dependent := range dependents {
 		isLast := i == len(dependents)-1
-		connector := "├─"
+		connector := "+-"
 		if isLast {
-			connector = "└─"
+			connector += "-"
+		} else {
+			connector += "-"
 		}
 
 		icon := r.getTaskIcon(dependent, dependent.ID)
-		r.addLine(fmt.Sprintf("%s  %s %s %s", indent, connector, icon, dependent.Title))
+		r.addLine(fmt.Sprintf("%s  %s%s %s", indent, icon, connector, dependent.Title))
 		r.renderTaskTree(dependent, relationships, depth+1)
 	}
 }
 
-func (r *Renderer) getTaskIcon(task *types.Task, taskID interface{}) TaskIcon {
+func (r *Renderer) getTaskIcon(task *types.Task, _ interface{}) TaskIcon {
 	switch task.State {
 	case "completed":
 		return IconCompleted

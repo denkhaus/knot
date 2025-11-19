@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/internal/types"
+	"github.com/google/uuid"
 )
 
 // TaskSelector is the main coordinator for task selection
@@ -65,11 +66,19 @@ func (ts *DefaultTaskSelector) SelectNextActionableTask(tasks []*types.Task) (*t
 		return nil, fmt.Errorf("failed to build dependency graph: %w", err)
 	}
 
-	// Handle cycles if they exist
+	// Handle cycles if they exist with enhanced error
 	if graph.HasCycles {
+		taskTitles := make(map[uuid.UUID]string)
+		for _, taskID := range graph.CyclicTasks {
+			if node, exists := graph.Nodes[taskID]; exists {
+				taskTitles[taskID] = node.Task.Title
+			}
+		}
+
+		enhancedErr := NewCircularDependencyError(graph.CyclicTasks, taskTitles)
 		return nil, &SelectionError{
 			Type:    ErrorTypeCircularDep,
-			Message: fmt.Sprintf("circular dependencies detected in tasks: %v", graph.CyclicTasks),
+			Message: enhancedErr.Error(),
 		}
 	}
 
@@ -80,9 +89,11 @@ func (ts *DefaultTaskSelector) SelectNextActionableTask(tasks []*types.Task) (*t
 	}
 
 	if len(actionableTasks) == 0 {
+		// Use enhanced error with suggestions
+		enhancedErr := NewNoActionableTasksError(uuid.UUID{}, len(tasks))
 		return nil, &SelectionError{
 			Type:    ErrorTypeNoActionable,
-			Message: "no actionable tasks found",
+			Message: enhancedErr.Error(),
 		}
 	}
 

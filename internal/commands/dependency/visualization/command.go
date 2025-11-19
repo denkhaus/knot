@@ -23,13 +23,15 @@ func (f *CommandFactory) CreateCommand(appCtx *shared.AppContext) *cli.Command {
 	return &cli.Command{
 		Name:  "show",
 		Usage: "Show enhanced dependency visualization with arrows and clear relationships",
-		Description: `Display dependency relationships with visual indicators:
+		Description: `Display dependency relationships with character-based indicators:
 
-  →  : Direct dependency relationship
-  ⟶  : Blocked by dependency (task waiting for completion)
-  ⊕   : Circular dependency detected
-  ⏸   : Task blocked by dependencies
-  ✅   : Task ready to work on
+  ->  : Direct dependency relationship
+  =>  : Blocked by dependency (task waiting for completion)
+  [CYCLE] : Circular dependency detected
+  [BLOCK] : Task blocked by dependencies
+  [READY] : Task ready to work on
+  [WORK]  : Task currently in progress
+  [DONE]  : Task completed
 
 Examples:
   knot dependency show --task-id <id>          # Show specific task dependencies
