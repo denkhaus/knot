@@ -5,9 +5,9 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/internal/shared"
-	"github.com/denkhaus/knot/internal/testutil"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"

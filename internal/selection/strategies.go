@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"math"
 
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // priorityToScore converts priority to scoring value

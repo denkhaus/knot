@@ -7,7 +7,7 @@ import (
 
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/predicate"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/predicate"
 	"github.com/google/uuid"
 )
 

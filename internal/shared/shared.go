@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )

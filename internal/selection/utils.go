@@ -5,7 +5,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // TaskSelectionUtils provides utility functions for task selection

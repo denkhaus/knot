@@ -4,7 +4,7 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
 )
 

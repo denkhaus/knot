@@ -1,4 +1,4 @@
-module github.com/denkhaus/knot
+module github.com/denkhaus/knot/v2
 
 go 1.24.0
 

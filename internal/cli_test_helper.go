@@ -9,7 +9,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/denkhaus/knot/internal/app"
+	"github.com/denkhaus/knot/v2/internal/app"
 	"github.com/stretchr/testify/require"
 )
 

@@ -11,11 +11,11 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/predicate"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/predicate"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/project"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/projectcontext"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/task"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/taskdependency"
 	"github.com/google/uuid"
 )
 

@@ -31,7 +31,7 @@ package selection
 import (
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // Package-level convenience functions for easy integration

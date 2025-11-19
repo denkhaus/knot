@@ -6,12 +6,12 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/denkhaus/knot/internal/shared"
-	"github.com/denkhaus/knot/internal/utils"
+	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/utils"
 
-	"github.com/denkhaus/knot/internal/errors"
-	"github.com/denkhaus/knot/internal/types"
-	"github.com/denkhaus/knot/internal/validation"
+	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"

@@ -12,10 +12,10 @@ import (
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/project"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/projectcontext"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/task"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/taskdependency"
 )
 
 // ent aliases to avoid import conflicts in user's code.

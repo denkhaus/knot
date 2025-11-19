@@ -4,8 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/manager"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
 

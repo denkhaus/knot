@@ -1,8 +1,8 @@
 package manager
 
 import (
-	"github.com/denkhaus/knot/internal/repository/inmemory"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // NewManager creates a new project task manager with default in-memory repository

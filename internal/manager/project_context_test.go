@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/denkhaus/knot/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/google/uuid"
 )
 

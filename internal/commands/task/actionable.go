@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/selection"
-	"github.com/denkhaus/knot/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/selection"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )

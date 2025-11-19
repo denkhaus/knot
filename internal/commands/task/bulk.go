@@ -7,10 +7,10 @@ import (
 	"os"
 	"strings"
 
-	"github.com/denkhaus/knot/internal/shared"
-	"github.com/denkhaus/knot/internal/utils"
+	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/utils"
 
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"

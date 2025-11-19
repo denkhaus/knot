@@ -2,7 +2,7 @@ package selection
 
 import (
 	"testing"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 func TestBasicDependencyAnalyzer(t *testing.T) {

@@ -9,8 +9,8 @@ import (
 
 	"entgo.io/ent"
 	"entgo.io/ent/dialect/sql"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/project"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/projectcontext"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/project"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/projectcontext"
 	"github.com/google/uuid"
 )
 

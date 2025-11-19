@@ -5,12 +5,12 @@ package enttest
 import (
 	"context"
 
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent"
 	// required by schema hooks.
-	_ "github.com/denkhaus/knot/internal/repository/sqlite/ent/runtime"
+	_ "github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/runtime"
 
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/migrate"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/migrate"
 )
 
 type (

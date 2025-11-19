@@ -5,7 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/denkhaus/knot/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/manager"
 )
 
 // ConfigFile provides file-based configuration management for Knot

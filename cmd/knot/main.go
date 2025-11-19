@@ -4,7 +4,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/denkhaus/knot/internal/app"
+	"github.com/denkhaus/knot/v2/internal/app"
 )
 
 // Version, commit, and build date are set by ldflags during build

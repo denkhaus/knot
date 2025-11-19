@@ -6,7 +6,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent"
 )
 
 // The ProjectFunc type is an adapter to allow the use of ordinary

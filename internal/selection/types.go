@@ -3,7 +3,7 @@ package selection
 import (
 	"time"
 
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
 

@@ -1,7 +1,7 @@
 package shared
 
 import (
-	"github.com/denkhaus/knot/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"go.uber.org/zap"
 )
 

@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/denkhaus/knot/internal/manager"
-	"github.com/denkhaus/knot/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"

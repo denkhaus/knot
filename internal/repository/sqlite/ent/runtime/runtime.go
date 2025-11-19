@@ -2,7 +2,7 @@
 
 package runtime
 
-// The schema-stitching logic is generated in github.com/denkhaus/knot/internal/repository/sqlite/ent/runtime.go
+// The schema-stitching logic is generated in github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/runtime.go
 
 const (
 	Version = "v0.14.5"                                         // Version of ent codegen.

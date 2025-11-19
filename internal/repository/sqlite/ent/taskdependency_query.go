@@ -11,9 +11,9 @@ import (
 	"entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"entgo.io/ent/schema/field"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/predicate"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/task"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent/taskdependency"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/predicate"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/task"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/taskdependency"
 	"github.com/google/uuid"
 )
 

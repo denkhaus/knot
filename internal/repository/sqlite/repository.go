@@ -10,8 +10,8 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"entgo.io/ent/dialect/sql/schema"
-	"github.com/denkhaus/knot/internal/repository/sqlite/ent"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"go.uber.org/zap"
 	_ "modernc.org/sqlite"
 )

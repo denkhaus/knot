@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/denkhaus/knot/internal/manager"
-	"github.com/denkhaus/knot/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 
-	"github.com/denkhaus/knot/internal/errors"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"

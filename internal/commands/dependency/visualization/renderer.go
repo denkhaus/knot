@@ -6,7 +6,7 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // Renderer handles output rendering for different formats

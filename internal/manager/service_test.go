@@ -7,9 +7,9 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/denkhaus/knot/internal/repository/inmemory"
-	"github.com/denkhaus/knot/internal/repository/sqlite"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"

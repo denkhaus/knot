@@ -1,6 +1,6 @@
 package selection
 
-import "github.com/denkhaus/knot/internal/types"
+import "github.com/denkhaus/knot/v2/internal/types"
 
 // TaskSelector defines the interface for task selection strategies
 type TaskSelector interface {

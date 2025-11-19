@@ -3,8 +3,8 @@ package validation
 import (
 	"fmt"
 
-	"github.com/denkhaus/knot/internal/errors"
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // StateTransition represents a valid state transition

@@ -9,8 +9,8 @@ import (
 	"path/filepath"
 	"time"
 
-	knoterrors "github.com/denkhaus/knot/internal/errors"
-	"github.com/denkhaus/knot/internal/types"
+	knoterrors "github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
 

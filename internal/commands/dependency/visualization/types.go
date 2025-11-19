@@ -1,7 +1,7 @@
 package visualization
 
 import (
-	"github.com/denkhaus/knot/internal/types"
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // TaskIcon represents visual indicators for tasks
