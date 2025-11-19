@@ -133,7 +133,7 @@ func (sv *StateValidator) addValidationRules() {
 						Operation:   "validating state transition",
 						Cause:       fmt.Errorf("cannot start high complexity task (complexity: %d) without breakdown", task.Complexity),
 						Suggestion:  "Break down this task into smaller subtasks before starting work",
-						Example:     fmt.Sprintf("knot breakdown --threshold 7  # to see tasks needing breakdown"),
+						Example:     "knot breakdown --threshold 7  # to see tasks needing breakdown",
 						HelpCommand: "knot breakdown --help",
 					}
 				}

@@ -41,7 +41,9 @@ func (r *Renderer) RenderProjectOverview(result *ProjectAnalysisResult) error {
 
 	// Blocked tasks section
 	if result.BlockedTasks > 0 {
-		r.renderBlockedTasks(result)
+		if err := r.renderBlockedTasks(result); err != nil {
+			return fmt.Errorf("failed to render blocked tasks: %w", err)
+		}
 	}
 
 	return nil

@@ -472,7 +472,10 @@ func BenchmarkTaskSelector_Selection(b *testing.B) {
 		tasks := createLargeProjectTasks(10)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			selector.SelectNextActionableTask(tasks)
+			_, err := selector.SelectNextActionableTask(tasks)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 
@@ -480,7 +483,10 @@ func BenchmarkTaskSelector_Selection(b *testing.B) {
 		tasks := createLargeProjectTasks(50)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			selector.SelectNextActionableTask(tasks)
+			_, err := selector.SelectNextActionableTask(tasks)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 
@@ -488,7 +494,10 @@ func BenchmarkTaskSelector_Selection(b *testing.B) {
 		tasks := createLargeProjectTasks(100)
 		b.ResetTimer()
 		for i := 0; i < b.N; i++ {
-			selector.SelectNextActionableTask(tasks)
+			_, err := selector.SelectNextActionableTask(tasks)
+			if err != nil {
+				b.Fatal(err)
+			}
 		}
 	})
 }

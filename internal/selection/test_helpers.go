@@ -128,43 +128,8 @@ func testTaskID(id string) uuid.UUID {
 	}
 }
 
-// uuidPtr returns a pointer to a UUID for testing
-func uuidPtr(id string) *uuid.UUID {
-	uid := testTaskID(id)
-	return &uid
-}
 
-// createLinearDependencyChain creates tasks A -> B -> C -> ... (A depends on B, B depends on C, etc.)
-func createLinearDependencyChain(count int) []*types.Task {
-	tasks := make([]*types.Task, count)
-	for i := 0; i < count; i++ {
-		var deps []uuid.UUID
-		if i < count-1 {
-			// Each task depends on the next one (except the last)
-			deps = []uuid.UUID{testTaskID(taskIDFromIndex(i + 1))}
-		}
-		tasks[i] = createTestTask(
-			taskIDFromIndex(i),
-			taskNameFromIndex(i),
-			types.TaskStatePending,
-			2,
-			nil,
-			deps,
-		)
-	}
-	return tasks
-}
 
-// createHierarchicalTasks creates a parent-child hierarchy
-func createHierarchicalTasks() []*types.Task {
-	parentID := testTaskID("parent")
-	return []*types.Task{
-		createTestTask("parent", "Parent Task", types.TaskStatePending, 2, nil, nil),
-		createTestTask("child1", "Child Task 1", types.TaskStatePending, 2, &parentID, nil),
-		createTestTask("child2", "Child Task 2", types.TaskStatePending, 2, &parentID, nil),
-		createTestTask("independent", "Independent Task", types.TaskStatePending, 2, nil, nil),
-	}
-}
 
 // createComplexDependencyGraph creates a more complex dependency scenario
 func createComplexDependencyGraph() []*types.Task {
@@ -269,25 +234,6 @@ func taskNameFromIndex(i int) string {
 	return fmt.Sprintf("Task %d", i+1)
 }
 
-// createTestConfig creates a test configuration with specified parameters
-func createTestConfig(strategy Strategy, weights Weights) *Config {
-	return &Config{
-		Strategy: strategy,
-		Weights:  weights,
-		Behavior: BehaviorConfig{
-			AllowParentWithSubtasks: false,
-			PreferInProgress:        true,
-			BreakTiesByCreation:     true,
-			StrictDependencies:      true,
-		},
-		Advanced: AdvancedConfig{
-			MaxDependencyDepth: 10,
-			ScoreThreshold:     0.0,
-			CacheGraphs:        true,
-			CacheDuration:      5 * time.Minute,
-		},
-	}
-}
 
 // assertTaskSelected verifies that the expected task was selected (stub for compilation)
 func assertTaskSelected(t interface{}, expectedTaskName string, selectedTask *types.Task, err error) {

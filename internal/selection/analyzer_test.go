@@ -16,6 +16,7 @@ func TestBasicDependencyAnalyzer(t *testing.T) {
 		}
 		if graph == nil {
 			t.Error("Expected graph, got nil")
+			return
 		}
 		if len(graph.Nodes) != 0 {
 			t.Errorf("Expected 0 nodes, got %d", len(graph.Nodes))
