@@ -67,3 +67,12 @@ func ParsePriority(priority string) types.TaskPriority {
 		return 2 // Default to medium
 	}
 }
+
+// Helper function to convert UUID slice to strings for logging
+func ConvertUUIDsToStrings(uuids []uuid.UUID) []string {
+	result := make([]string, len(uuids))
+	for i, u := range uuids {
+		result[i] = u.String()
+	}
+	return result
+}

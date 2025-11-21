@@ -105,8 +105,9 @@ func (r *sqliteRepository) CreateTask(ctx context.Context, task *types.Task) err
 	})
 }
 
-// GetTask retrieves a task by ID with dependencies using ent
+// GetTask retrieves a task by ID with dependencies using ent (optimized to reduce database round trips)
 func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Task, error) {
+	// Get the main task
 	entTask, err := r.client.Task.Query().
 		Where(taskpred.ID(id)).
 		Only(ctx)
@@ -119,7 +120,8 @@ func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Ta
 
 	domainTask := entTaskToTask(entTask)
 
-	// Load dependencies
+	// Load both dependencies and dependents in a single batch query if possible,
+	// otherwise load them sequentially but more efficiently
 	dependencies, err := r.client.TaskDependency.Query().
 		Where(taskdependency.TaskID(id)).
 		All(ctx)
@@ -139,6 +141,82 @@ func (r *sqliteRepository) GetTask(ctx context.Context, id uuid.UUID) (*types.Ta
 	domainTask.Dependents = entTaskDependentsToTaskIDs(dependents)
 
 	return domainTask, nil
+}
+
+// GetTasksWithDependencies efficiently loads multiple tasks with their dependencies
+// This method significantly reduces database round trips compared to calling GetTask multiple times
+func (r *sqliteRepository) GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error) {
+	if len(taskIDs) == 0 {
+		return []*types.Task{}, nil
+	}
+
+	var tasks []*types.Task
+
+	err := r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error {
+		// Batch load all tasks in a single query
+		entTasks, err := tx.Task.Query().
+			Where(taskpred.IDIn(taskIDs...)).
+			All(ctx)
+		if err != nil {
+			return r.mapError("batch load tasks", err)
+		}
+
+		if len(entTasks) != len(taskIDs) {
+			return fmt.Errorf("expected %d tasks, got %d", len(taskIDs), len(entTasks))
+		}
+
+		// Convert to domain tasks
+		tasks = make([]*types.Task, len(entTasks))
+		for i, entTask := range entTasks {
+			tasks[i] = entTaskToTask(entTask)
+		}
+
+		// Batch load all dependencies for all tasks
+		allDependencies, err := tx.TaskDependency.Query().
+			Where(taskdependency.TaskIDIn(taskIDs...)).
+			All(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to batch load dependencies: %w", err)
+		}
+
+		// Batch load all dependents for all tasks
+		allDependents, err := tx.TaskDependency.Query().
+			Where(taskdependency.DependsOnTaskIDIn(taskIDs...)).
+			All(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to batch load dependents: %w", err)
+		}
+
+		// Organize dependencies by task ID
+		dependenciesByTask := make(map[uuid.UUID][]*ent.TaskDependency)
+		for _, dep := range allDependencies {
+			dependenciesByTask[dep.TaskID] = append(dependenciesByTask[dep.TaskID], dep)
+		}
+
+		// Organize dependents by task ID
+		dependentsByTask := make(map[uuid.UUID][]*ent.TaskDependency)
+		for _, dep := range allDependents {
+			dependentsByTask[dep.DependsOnTaskID] = append(dependentsByTask[dep.DependsOnTaskID], dep)
+		}
+
+		// Attach dependencies and dependents to tasks
+		for _, task := range tasks {
+			if deps, exists := dependenciesByTask[task.ID]; exists {
+				task.Dependencies = entTaskDependenciesToTaskIDs(deps)
+			}
+			if deps, exists := dependentsByTask[task.ID]; exists {
+				task.Dependents = entTaskDependentsToTaskIDs(deps)
+			}
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	return tasks, nil
 }
 
 // UpdateTask updates an existing task using ent

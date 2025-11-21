@@ -4,6 +4,7 @@ go 1.24.0
 
 require (
 	entgo.io/ent v0.14.5
+	github.com/denkhaus/knot v0.0.0-20251119080649-a266d6e0d7b3
 	github.com/google/uuid v1.6.0
 	github.com/magefile/mage v1.15.0
 	github.com/stretchr/testify v1.11.1

@@ -127,6 +127,10 @@ func (s *service) UpdateProjectState(ctx context.Context, projectID uuid.UUID, s
 	return s.repo.GetProject(ctx, projectID)
 }
 
+func (s *service) GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error) {
+	return s.repo.GetTasksWithDependencies(ctx, taskIDs)
+}
+
 func (s *service) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
 	return s.repo.DeleteProject(ctx, projectID)
 }
@@ -415,7 +419,8 @@ func (s *service) UpdateTask(ctx context.Context, taskID uuid.UUID, title, descr
 		return nil, fmt.Errorf("failed to update task: %w", err)
 	}
 
-	return s.repo.GetTask(ctx, taskID)
+	// Return the updated task directly (avoiding redundant GetTask call)
+	return task, nil
 }
 
 func (s *service) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error) {
@@ -436,7 +441,8 @@ func (s *service) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, d
 		return nil, fmt.Errorf("failed to update task description: %w", err)
 	}
 
-	return s.repo.GetTask(ctx, taskID)
+	// Return the updated task directly (avoiding redundant GetTask call)
+	return task, nil
 }
 
 func (s *service) UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error) {
@@ -644,7 +650,8 @@ func (s *service) SetTaskEstimate(ctx context.Context, taskID uuid.UUID, estimat
 		return nil, fmt.Errorf("failed to update task estimate: %w", err)
 	}
 
-	return s.repo.GetTask(ctx, taskID)
+	// Return the updated task directly (avoiding redundant GetTask call)
+	return task, nil
 }
 
 // Agent assignment methods
@@ -663,7 +670,8 @@ func (s *service) AssignTaskToAgent(ctx context.Context, taskID uuid.UUID, agent
 		return nil, fmt.Errorf("failed to assign task to agent: %w", err)
 	}
 
-	return s.repo.GetTask(ctx, taskID)
+	// Return the updated task directly (avoiding redundant GetTask call)
+	return task, nil
 }
 
 // UnassignTaskFromAgent removes agent assignment from a task
@@ -680,7 +688,8 @@ func (s *service) UnassignTaskFromAgent(ctx context.Context, taskID uuid.UUID) (
 		return nil, fmt.Errorf("failed to unassign task from agent: %w", err)
 	}
 
-	return s.repo.GetTask(ctx, taskID)
+	// Return the updated task directly (avoiding redundant GetTask call)
+	return task, nil
 }
 
 // ListTasksByAgent returns all tasks assigned to a specific agent in a project
@@ -944,7 +953,7 @@ func (s *service) SaveConfigToFile() error {
 
 	// Ensure .knot directory exists
 	knotDir := filepath.Dir(configPath)
-	if err := os.MkdirAll(knotDir, 0755); err != nil {
+	if err := os.MkdirAll(knotDir, 0o755); err != nil {
 		return fmt.Errorf("failed to create config directory: %w", err)
 	}
 
@@ -955,7 +964,7 @@ func (s *service) SaveConfigToFile() error {
 	}
 
 	// Write config file
-	if err := os.WriteFile(configPath, data, 0644); err != nil {
+	if err := os.WriteFile(configPath, data, 0o644); err != nil {
 		return fmt.Errorf("failed to write config file: %w", err)
 	}
 

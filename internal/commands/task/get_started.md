@@ -88,6 +88,27 @@ knot dependency list --task-id <task-id>
 knot actionable
 ```
 
+### Task Deletion
+
+Tasks can be deleted with a two-step confirmation process:
+
+```
+# Delete a single task (two-step confirmation)
+knot task delete --id <task-id>          # Mark for deletion
+knot task delete --id <task-id>          # Confirm deletion
+
+# Delete task and all children recursively
+knot task delete --id <task-id> --all    # Mark entire hierarchy for deletion
+knot task delete --id <task-id> --all    # Confirm deletion
+
+# Dry run to see what would be deleted
+knot task delete --id <task-id> --dry-run
+knot task delete --id <task-id> --all --dry-run
+
+# Cancel deletion (if marked for deletion)
+knot task update-state --id <task-id> --state pending
+```
+
 ### Project Structure
 
 Projects can have hierarchical tasks. Tasks with complexity ≥ 8 should be broken down:

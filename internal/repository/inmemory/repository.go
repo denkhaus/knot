@@ -136,6 +136,20 @@ func (r *simpleMemoryRepository) GetTask(ctx context.Context, id uuid.UUID) (*ty
 	return task, nil
 }
 
+func (r *simpleMemoryRepository) GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	tasks := make([]*types.Task, 0, len(taskIDs))
+	for _, id := range taskIDs {
+		task, exists := r.tasks[id]
+		if exists {
+			tasks = append(tasks, task)
+		}
+	}
+	return tasks, nil
+}
+
 func (r *simpleMemoryRepository) UpdateTask(ctx context.Context, task *types.Task) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

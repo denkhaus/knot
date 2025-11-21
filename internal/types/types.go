@@ -236,6 +236,7 @@ type Repository interface {
 	// Task operations
 	CreateTask(ctx context.Context, task *Task) error
 	GetTask(ctx context.Context, id uuid.UUID) (*Task, error)
+	GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*Task, error)
 	UpdateTask(ctx context.Context, task *Task) error
 	DeleteTask(ctx context.Context, id uuid.UUID) error
 

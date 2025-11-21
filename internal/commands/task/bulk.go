@@ -302,15 +302,11 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 			zap.Bool("dryRun", dryRun),
 			zap.Bool("force", force))
 
-		// Get task details for confirmation
-		var tasksToDelete []types.Task
-		for _, taskID := range taskIDs {
-			task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
-			if err != nil {
-				appCtx.Logger.Error("Failed to get task", zap.Error(err), zap.String("taskID", taskID.String()))
-				return fmt.Errorf("failed to get task %s: %w", taskID, err)
-			}
-			tasksToDelete = append(tasksToDelete, *task)
+		// Get task details for confirmation using optimized batch loading
+		tasksToDelete, err := appCtx.ProjectManager.GetTasksWithDependencies(context.Background(), taskIDs)
+		if err != nil {
+			appCtx.Logger.Error("Failed to get tasks", zap.Error(err), zap.Strings("taskIDs", utils.ConvertUUIDsToStrings(taskIDs)))
+			return fmt.Errorf("failed to get tasks: %w", err)
 		}
 
 		// Show what will be deleted

@@ -172,7 +172,7 @@ knot task delete --id <task-uuid>  # Mark for deletion
 knot task delete --id <task-uuid>  # Confirm deletion
 
 # Delete task with all children
-knot task delete-subtree --id <task-uuid>
+knot task delete --id <task-uuid> --all
 ```
 
 ### Hierarchy Navigation

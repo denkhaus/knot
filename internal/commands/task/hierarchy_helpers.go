@@ -46,12 +46,16 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 				return fmt.Errorf("invalid root task ID: %w", err)
 			}
 
-			task, err := appCtx.ProjectManager.GetTask(context.Background(), rootTaskID)
+			// Use batch loading for consistency with other optimizations
+			tasks, err := appCtx.ProjectManager.GetTasksWithDependencies(context.Background(), []uuid.UUID{rootTaskID})
 			if err != nil {
 				return fmt.Errorf("failed to get root task: %w", err)
 			}
-			startingTasks = []*types.Task{task}
-			fmt.Printf("Task tree starting from '%s':\n\n", task.Title)
+			if len(tasks) == 0 {
+				return fmt.Errorf("root task not found")
+			}
+			startingTasks = tasks
+			fmt.Printf("Task tree starting from '%s':\n\n", tasks[0].Title)
 		} else {
 			// Start from project roots
 			roots, err := appCtx.ProjectManager.GetRootTasks(context.Background(), projectID)

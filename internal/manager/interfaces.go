@@ -54,6 +54,7 @@ type ProjectManager interface {
 	// Task operations
 	CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error)
 	GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error)
+	GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error)
 	UpdateTask(ctx context.Context, taskID uuid.UUID, title, description string, complexity int, state types.TaskState, actor string) (*types.Task, error)
 	UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error)
 	UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error)
