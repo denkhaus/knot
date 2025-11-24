@@ -4,8 +4,10 @@ import (
 	"context"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/treeformatter"
 
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -78,6 +80,124 @@ func HierarchyCommands(appCtx *shared.AppContext) []*cli.Command {
 	}
 }
 
+// wrapText wraps text at the specified width and returns a slice of lines
+func wrapText(text string, width int) []string {
+	if len(text) <= width {
+		return []string{text}
+	}
+
+	var lines []string
+	for len(text) > width {
+		// Find the last space before width to avoid breaking words
+		breakPoint := width
+		for i := width; i > 0; i-- {
+			if text[i] == ' ' {
+				breakPoint = i
+				break
+			}
+		}
+
+		if breakPoint == 0 {
+			// No space found, break at width
+			breakPoint = width
+		}
+
+		lines = append(lines, text[:breakPoint])
+		text = strings.TrimSpace(text[breakPoint:])
+	}
+
+	if len(text) > 0 {
+		lines = append(lines, text)
+	}
+
+	return lines
+}
+
+// printChildrenUsingTreeFormat displays child tasks using the unified tree format
+// Task Reference: bf1b0a75-3f12-49dd-9391-26d2e632fc2b | Brain Reference: e4bea247-7f1f-4712-8188-b9b0b4ecb3ea
+func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task, recursive bool) {
+	// Create tree formatter with emoji support for visual hierarchy
+	formatter := treeformatter.NewFormatter(&treeformatter.Config{
+		ShowEmojis:   true,
+		CompactMode:  false,
+		IndentSize:   2,
+	})
+
+	// Display children using proper tree structure
+	for i, child := range children {
+		isLast := i == len(children)-1
+		var prefix string
+
+		if recursive {
+			// Calculate relative depth for proper indentation
+			relativeDepth := child.Depth - parentTask.Depth - 1
+			if relativeDepth > 0 {
+				// For nested children, build the prefix with proper ancestors
+				// We need to show the tree structure up to this depth
+				prefix = ""
+				for d := 0; d < relativeDepth; d++ {
+					if d == relativeDepth-1 {
+						// This is the level where our child is
+						if isLast {
+							prefix += "└── "
+						} else {
+							prefix += "├── "
+						}
+					} else {
+						// For levels above, assume they have more children (use │)
+						prefix += "│  "
+					}
+				}
+			} else {
+				// Direct children of parent
+				if isLast {
+					prefix = "└── "
+				} else {
+					prefix = "├── "
+				}
+			}
+		} else {
+			// Non-recursive mode: all are direct children at same level
+			if isLast {
+				prefix = "└── "
+			} else {
+				prefix = "├── "
+			}
+		}
+
+		// Print task line using unified format
+		taskLine := formatter.FormatTaskLine(child)
+		fmt.Printf("%s%s\n", prefix, taskLine)
+
+		// Add description if available with proper continuation and text wrapping
+		if child.Description != "" {
+			// Build description prefix that maintains tree continuity
+			var descPrefix string
+			if isLast {
+				// Last task: └── becomes spaces for proper alignment
+				descPrefix = strings.Replace(prefix, "└── ", "   ", -1)
+			} else {
+				// Non-last tasks: ├── becomes │ for continuity
+				descPrefix = strings.Replace(prefix, "├── ", "│  ", -1)
+			}
+
+			// Wrap description at 120 characters
+			wrappedLines := wrapText(child.Description, 120)
+			for _, line := range wrappedLines {
+				fmt.Printf("%s%s\n", descPrefix, line)
+			}
+		}
+
+		// Add separator line with box drawing continuity (except for last task)
+		if !isLast {
+			// Build separator prefix that maintains vertical line
+			separatorPrefix := strings.Replace(prefix, "├── ", "│", -1)
+			separatorPrefix = strings.Replace(separatorPrefix, "└── ", "│", -1)
+			fmt.Printf("%s\n", separatorPrefix)
+		}
+	}
+}
+
 // ChildrenAction gets direct children of a task
 func ChildrenAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
@@ -112,12 +232,12 @@ func ChildrenAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return fmt.Errorf("failed to get child tasks: %w", err)
 		}
 
-		fmt.Printf("Children of '%s' (ID: %s):\n\n", parentTask.Title, taskID)
-
 		if len(children) == 0 {
-			fmt.Println("No child tasks found.")
+			fmt.Printf("No child tasks found for '%s' (ID: %s).\n", parentTask.Title, taskID)
 			return nil
 		}
+
+		fmt.Printf("\n┌── Children of '%s' (ID: %s):\n│\n", parentTask.Title, taskID)
 
 		// Sort by depth first, then by title
 		sort.Slice(children, func(i, j int) bool {
@@ -127,24 +247,11 @@ func ChildrenAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return children[i].Title < children[j].Title
 		})
 
-		for i, child := range children {
-			indent := ""
-			if recursive {
-				// Show indentation based on relative depth
-				relativeDepth := child.Depth - parentTask.Depth - 1
-				for d := 0; d < relativeDepth; d++ {
-					indent += "  "
-				}
-			}
+		// Display children using unified tree format with emojis and box drawing
+		printChildrenUsingTreeFormat(children, parentTask, recursive)
 
-			fmt.Printf("%s%d. %s (ID: %s)\n", indent, i+1, child.Title, child.ID)
-			if child.Description != "" {
-				fmt.Printf("%s   %s\n", indent, child.Description)
-			}
-			fmt.Printf("%s   State: %s | Complexity: %d | Depth: %d\n",
-				indent, child.State, child.Complexity, child.Depth)
-			fmt.Println()
-		}
+		// Add empty line before total count
+		fmt.Println()
 
 		if recursive {
 			fmt.Printf("Total: %d descendants\n", len(children))

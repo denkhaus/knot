@@ -7,9 +7,8 @@ import (
 )
 
 const (
-	ProjectDirName     = ".knot"
-	DatabaseName       = "knot.db"
-	LegacyDatabaseName = "projects.db"
+	ProjectDirName = ".knot"
+	DatabaseName   = "knot.db"
 )
 
 // GetProjectDir returns the .knot directory path in the current working directory
@@ -31,7 +30,7 @@ func EnsureProjectDir() (string, error) {
 	}
 
 	// Create directory if it doesn't exist with secure permissions (owner only)
-	if err := os.MkdirAll(projectDir, 0700); err != nil {
+	if err := os.MkdirAll(projectDir, 0o700); err != nil {
 		return "", fmt.Errorf("failed to create project directory: %w", err)
 	}
 
@@ -48,7 +47,7 @@ func ensureSecureDirectory(dirPath string) (string, error) {
 	}
 
 	currentPerms := info.Mode().Perm()
-	securePerms := os.FileMode(0700)
+	securePerms := os.FileMode(0o700)
 
 	// If permissions are not secure, fix them
 	if currentPerms != securePerms {
@@ -69,19 +68,6 @@ func GetDatabasePath() (string, error) {
 	}
 
 	dbPath := filepath.Join(projectDir, DatabaseName)
-	legacyDbPath := filepath.Join(projectDir, LegacyDatabaseName)
-
-	// Check if legacy database exists and current doesn't
-	if _, err := os.Stat(legacyDbPath); err == nil {
-		if _, err := os.Stat(dbPath); os.IsNotExist(err) {
-			// Migrate legacy database to new name
-			if err := os.Rename(legacyDbPath, dbPath); err != nil {
-				return "", fmt.Errorf("failed to migrate legacy database from %s to %s: %w",
-					LegacyDatabaseName, DatabaseName, err)
-			}
-		}
-	}
-
 	return dbPath, nil
 }
 

@@ -8,6 +8,7 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/treeformatter"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 
@@ -182,28 +183,38 @@ func getAllDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) 
 	return result, nil
 }
 
-// printTaskTree recursively prints a task and its children as a tree
+// printTaskTree recursively prints a task and its children as a tree using unified formatting
+// Task Reference: 4eaf63a8-5a5c-4572-ad63-0c039f2943ac | Brain Reference: e4bea247-7f1f-4712-8188-b9b0b4ecb3ea
 func printTaskTree(projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int, prefix string) error {
 	// Check depth limit
 	if maxDepth > 0 && currentDepth >= maxDepth {
 		return nil
 	}
 
-	// Print current task
-	fmt.Printf("%s+- %s (ID: %s) - %s\n", prefix, task.Title, task.ID, task.State)
+	// Create tree formatter with emoji support for visual hierarchy
+	formatter := treeformatter.NewFormatter(&treeformatter.Config{
+		ShowEmojis:   true,
+		CompactMode:  false,
+		IndentSize:   2,
+	})
 
-	// Get children
+	// Print current task using the new formatter instead of the old format
+	// Old: fmt.Printf("%s+- %s (ID: %s) - %s\n", prefix, task.Title, task.ID, task.State)
+	taskLine := formatter.FormatTaskLine(task)
+	fmt.Printf("%s%s\n", prefix, taskLine)
+
+	// Get children (maintaining existing logic)
 	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
 	if err != nil {
 		return err
 	}
 
-	// Sort children
+	// Sort children (maintaining existing logic)
 	sort.Slice(children, func(i, j int) bool {
 		return children[i].Title < children[j].Title
 	})
 
-	// Print children
+	// Print children recursively (maintaining existing tree structure logic)
 	for i, child := range children {
 		childPrefix := prefix
 		if i == len(children)-1 {

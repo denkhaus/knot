@@ -3,10 +3,11 @@ package task
 import (
 	"context"
 	"fmt"
-	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/treeformatter"
+	"github.com/denkhaus/knot/v2/internal/utils"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -14,6 +15,74 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
+
+// printDeletionTree displays tasks using the unified tree format for deletion operations
+// Task Reference: 12a4b5a6-908d-411d-959a-462cb3d3d1c2 | Brain Reference: e4bea247-7f1f-4712-8188-b9b0b4ecb3ea
+func printDeletionTree(header string, rootTask *types.Task, descendants []*types.Task, showState bool) {
+	// Create tree formatter with emoji support
+	formatter := treeformatter.NewFormatter(&treeformatter.Config{
+		ShowEmojis:   true,
+		CompactMode:  false,
+		IndentSize:   2,
+	})
+
+	fmt.Printf("\n┌── %s\n│\n", header)
+
+	// Display root task
+	rootLine := formatter.FormatTaskLine(rootTask)
+	if showState {
+		fmt.Printf("└── %s [ROOT]\n", rootLine)
+	} else {
+		fmt.Printf("└── %s [ROOT]\n", rootLine)
+	}
+
+	// Add root task description if available
+	if rootTask.Description != "" {
+		wrappedDesc := utils.WrapText(rootTask.Description, 120)
+		for _, line := range wrappedDesc {
+			fmt.Printf("   %s\n", line)
+		}
+	}
+
+	// Display descendants if any
+	if len(descendants) > 0 {
+		fmt.Printf("│\n├── %d descendant task(s):\n│\n", len(descendants))
+
+		for i, desc := range descendants {
+			isLast := i == len(descendants)-1
+			var prefix string
+
+			if isLast {
+				prefix = "└── "
+			} else {
+				prefix = "├── "
+			}
+
+			// Format task line
+			taskLine := formatter.FormatTaskLine(desc)
+			fmt.Printf("%s%s\n", prefix, taskLine)
+
+			// Add description if available
+			if desc.Description != "" {
+				wrappedLines := utils.WrapText(desc.Description, 120)
+				for _, line := range wrappedLines {
+					if isLast {
+						fmt.Printf("   %s\n", line)
+					} else {
+						fmt.Printf("│  %s\n", line)
+					}
+				}
+			}
+
+			// Add separator line except for last task
+			if !isLast {
+				fmt.Printf("│\n")
+			}
+		}
+	}
+
+	fmt.Printf("│\n")
+}
 
 // DeletionCommands returns task deletion related CLI commands
 func DeletionCommands(appCtx *shared.AppContext) []*cli.Command {
@@ -102,19 +171,10 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 			// Show what will be deleted
 			if deleteAll {
-				fmt.Printf("Final deletion of task subtree:\n")
-				fmt.Printf("  %s (ID: %s) [ROOT]\n", task.Title, task.ID)
-
-				if len(descendants) > 0 {
-					fmt.Printf("  └── %d descendant task(s):\n", len(descendants))
-					for _, desc := range descendants {
-						indent := strings.Repeat("  ", desc.Depth-task.Depth+1)
-						fmt.Printf("  %s├─ %s (ID: %s)\n", indent, desc.Title, desc.ID)
-					}
-				}
+				printDeletionTree("Final deletion of task subtree:", task, descendants, false)
 
 				totalTasks := 1 + len(descendants)
-				fmt.Printf("\nTotal tasks to delete: %d\n", totalTasks)
+				fmt.Printf("Total tasks to delete: %d\n", totalTasks)
 
 				// Perform subtree deletion
 				err = appCtx.ProjectManager.DeleteTaskSubtree(context.Background(), taskID, appCtx.Actor)
@@ -126,11 +186,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 				appCtx.Logger.Info("Task subtree deleted successfully", zap.Int("totalDeleted", totalTasks))
 				fmt.Printf("Task subtree permanently deleted: %d task(s) removed\n", totalTasks)
 			} else {
-				fmt.Printf("Final deletion of task:\n")
-				fmt.Printf("  • %s (ID: %s)\n", task.Title, task.ID)
-				if task.Description != "" {
-					fmt.Printf("    %s\n", task.Description)
-				}
+				printDeletionTree("Final deletion of task:", task, nil, false)
 
 				// Perform single task deletion
 				err = appCtx.ProjectManager.DeleteTask(context.Background(), taskID, appCtx.Actor)
@@ -160,23 +216,10 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 			// Show what will be marked for deletion
 			if deleteAll {
-				fmt.Printf("Task subtree to be marked for deletion:\n")
-				fmt.Printf("  %s (ID: %s) [ROOT]\n", task.Title, task.ID)
-				if task.Description != "" {
-					fmt.Printf("    %s\n", task.Description)
-				}
-				fmt.Printf("    Current State: %s | Complexity: %d\n", task.State, task.Complexity)
-
-				if len(descendants) > 0 {
-					fmt.Printf("  └── %d descendant task(s):\n", len(descendants))
-					for _, desc := range descendants {
-						indent := strings.Repeat("  ", desc.Depth-task.Depth+1)
-						fmt.Printf("  %s├─ %s (ID: %s) - State: %s\n", indent, desc.Title, desc.ID, desc.State)
-					}
-				}
+				printDeletionTree("Task subtree to be marked for deletion:", task, descendants, true)
 
 				totalTasks := 1 + len(descendants)
-				fmt.Printf("\nTotal tasks to mark for deletion: %d\n", totalTasks)
+				fmt.Printf("Total tasks to mark for deletion: %d\n", totalTasks)
 
 				// Check for dependencies on any task in the subtree
 				err = checkSubtreeDependencies(appCtx, task, descendants)
@@ -187,12 +230,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 				fmt.Printf("\nTask subtree marked for deletion. To confirm deletion, run the same command again:\n")
 				fmt.Printf("    knot task delete --id %s --all\n", taskID)
 			} else {
-				fmt.Printf("Task to be marked for deletion:\n")
-				fmt.Printf("  • %s (ID: %s)\n", task.Title, task.ID)
-				if task.Description != "" {
-					fmt.Printf("    %s\n", task.Description)
-				}
-				fmt.Printf("    Current State: %s | Complexity: %d\n", task.State, task.Complexity)
+				printDeletionTree("Task to be marked for deletion:", task, nil, true)
 
 				// Check for dependencies
 				dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), taskID)

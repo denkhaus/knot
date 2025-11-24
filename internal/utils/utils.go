@@ -3,6 +3,7 @@ package utils
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -75,4 +76,38 @@ func ConvertUUIDsToStrings(uuids []uuid.UUID) []string {
 		result[i] = u.String()
 	}
 	return result
+}
+
+// WrapText wraps text at the specified width and returns a slice of lines
+// It respects word boundaries to avoid breaking words mid-sentence
+func WrapText(text string, width int) []string {
+	if len(text) <= width {
+		return []string{text}
+	}
+
+	var lines []string
+	for len(text) > width {
+		// Find the last space before width to avoid breaking words
+		breakPoint := width
+		for i := width; i > 0; i-- {
+			if text[i] == ' ' {
+				breakPoint = i
+				break
+			}
+		}
+
+		if breakPoint == 0 {
+			// No space found, break at width
+			breakPoint = width
+		}
+
+		lines = append(lines, text[:breakPoint])
+		text = strings.TrimSpace(text[breakPoint:])
+	}
+
+	if len(text) > 0 {
+		lines = append(lines, text)
+	}
+
+	return lines
 }
