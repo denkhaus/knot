@@ -372,7 +372,12 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 			fmt.Printf("%s* %s (ID: %s)%s\n", indent, task.Title, task.ID, parentInfo)
 			if task.Description != "" {
-				fmt.Printf("%s  %s\n", indent, task.Description)
+				fmt.Printf("%s%s\n", indent, strings.Repeat("═", 120))
+				wrappedDesc := utils.WrapText(task.Description, 120)
+				for _, line := range wrappedDesc {
+					fmt.Printf("%s  %s\n", indent, line)
+				}
+				fmt.Printf("%s%s\n", indent, strings.Repeat("═", 120))
 			}
 
 			fmt.Printf("%s  State: %s | Priority: %s | Complexity: %d | Depth: %d\n", indent, task.State, task.Priority.ToExternalString(), task.Complexity, task.Depth)
@@ -625,7 +630,13 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 		fmt.Printf("  ID: %s\n", task.ID)
 		fmt.Printf("  Title: %s\n", task.Title)
 		if task.Description != "" {
-			fmt.Printf("  Description: %s\n", task.Description)
+			fmt.Printf("  Description:\n")
+			fmt.Printf("  %s\n", strings.Repeat("═", 120))
+			wrappedDesc := utils.WrapText(task.Description, 116) // Leave space for indent
+			for _, line := range wrappedDesc {
+				fmt.Printf("    %s\n", line)
+			}
+			fmt.Printf("  %s\n", strings.Repeat("═", 120))
 		}
 		fmt.Printf("  State: %s\n", task.State)
 		fmt.Printf("  Priority: %s\n", task.Priority.ToExternalString())

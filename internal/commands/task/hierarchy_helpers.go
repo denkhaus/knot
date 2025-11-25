@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"sort"
+	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
@@ -198,10 +199,14 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 		IndentSize:   2,
 	})
 
-	// Print current task using the new formatter instead of the old format
-	// Old: fmt.Printf("%s+- %s (ID: %s) - %s\n", prefix, task.Title, task.ID, task.State)
+	// Print current task with proper tree prefix
 	taskLine := formatter.FormatTaskLine(task)
-	fmt.Printf("%s%s\n", prefix, taskLine)
+	if currentDepth == 0 {
+		// Root task - no prefix
+		fmt.Printf("┌─ %s\n", taskLine)
+	} else {
+		fmt.Printf("%s%s\n", prefix, taskLine)
+	}
 
 	// Get children (maintaining existing logic)
 	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
@@ -214,17 +219,174 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 		return children[i].Title < children[j].Title
 	})
 
-	// Print children recursively (maintaining existing tree structure logic)
+	// If root task has children, add structural line
+	if currentDepth == 0 && len(children) > 0 {
+		fmt.Printf("│\n")
+	}
+
+	// Print children recursively with proper tree structure
 	for i, child := range children {
-		childPrefix := prefix
-		if i == len(children)-1 {
-			childPrefix += "   "
+		isLast := i == len(children)-1
+
+		var childPrefix string
+		var structuralPrefix string
+
+		if currentDepth == 0 {
+			// First level children
+			if isLast {
+				childPrefix = "└─── "
+				structuralPrefix = "    "
+			} else {
+				childPrefix = "├─── "
+				structuralPrefix = "│   "
+			}
 		} else {
-			childPrefix += "|  "
+			// Deeper levels
+			if isLast {
+				childPrefix = prefix + "└── "
+				structuralPrefix = prefix + "    "
+			} else {
+				childPrefix = prefix + "├── "
+				structuralPrefix = prefix + "│   "
+			}
 		}
 
-		if err := printTaskTree(projectManager, child, currentDepth+1, maxDepth, childPrefix); err != nil {
+		// Check if this child has its own children
+		grandchildren, err := projectManager.GetChildTasks(context.Background(), child.ID)
+		if err == nil && len(grandchildren) > 0 {
+			// Parent task with children - use special formatting
+			fmt.Printf("%s┬─ %s\n", strings.TrimSuffix(childPrefix, " "), formatter.FormatTaskLine(child))
+			// Add structural line after parent with children
+			fmt.Printf("%s│\n", structuralPrefix)
+
+			// Print grandchildren with enhanced structure
+			if err := printTaskTreeWithStructure(projectManager, child, currentDepth+1, maxDepth, structuralPrefix); err != nil {
+				return err
+			}
+		} else {
+			// Leaf task
+			if err := printTaskTreeWithPrefix(projectManager, child, currentDepth+1, maxDepth, childPrefix, structuralPrefix); err != nil {
+				return err
+			}
+		}
+
+		// Add structural line between siblings (except after last one)
+		if !isLast && currentDepth == 0 {
+			fmt.Printf("│\n")
+		}
+	}
+
+	return nil
+}
+
+// printTaskTreeWithPrefix is a helper that prints tasks with explicit tree prefixes
+func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int, treePrefix, continuationPrefix string) error {
+	// Check depth limit
+	if maxDepth > 0 && currentDepth >= maxDepth {
+		return nil
+	}
+
+	// Create tree formatter
+	formatter := treeformatter.NewFormatter(&treeformatter.Config{
+		ShowEmojis:   true,
+		CompactMode:  false,
+		IndentSize:   2,
+	})
+
+	// Print current task with its tree prefix
+	taskLine := formatter.FormatTaskLine(task)
+	fmt.Printf("%s%s\n", treePrefix, taskLine)
+
+	// Get children
+	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
+	if err != nil {
+		return err
+	}
+
+	// Sort children
+	sort.Slice(children, func(i, j int) bool {
+		return children[i].Title < children[j].Title
+	})
+
+	// Print children recursively
+	for i, child := range children {
+		isLast := i == len(children)-1
+
+		var childTreePrefix string
+		var childContinuationPrefix string
+
+		if isLast {
+			childTreePrefix = continuationPrefix + "└── "
+			childContinuationPrefix = continuationPrefix + "    "
+		} else {
+			childTreePrefix = continuationPrefix + "├── "
+			childContinuationPrefix = continuationPrefix + "│   "
+		}
+
+		if err := printTaskTreeWithPrefix(projectManager, child, currentDepth+1, maxDepth, childTreePrefix, childContinuationPrefix); err != nil {
 			return err
+		}
+	}
+
+	return nil
+}
+
+// printTaskTreeWithStructure prints a task tree with enhanced structural lines
+func printTaskTreeWithStructure(projectManager manager.ProjectManager, parentTask *types.Task, currentDepth, maxDepth int, prefix string) error {
+	// Create tree formatter
+	formatter := treeformatter.NewFormatter(&treeformatter.Config{
+		ShowEmojis:   true,
+		CompactMode:  false,
+		IndentSize:   2,
+	})
+
+	// Get children of the parent task
+	children, err := projectManager.GetChildTasks(context.Background(), parentTask.ID)
+	if err != nil {
+		return err
+	}
+
+	// Sort children
+	sort.Slice(children, func(i, j int) bool {
+		return children[i].Title < children[j].Title
+	})
+
+	// Print children with enhanced structure
+	for i, child := range children {
+		isLast := i == len(children)-1
+
+		var childPrefix string
+		var structuralPrefix string
+
+		if isLast {
+			childPrefix = prefix + "└── "
+			structuralPrefix = prefix + "    "
+		} else {
+			childPrefix = prefix + "├── "
+			structuralPrefix = prefix + "│   "
+		}
+
+		// Check if this child has its own children
+		grandchildren, err := projectManager.GetChildTasks(context.Background(), child.ID)
+		if err == nil && len(grandchildren) > 0 {
+			// Parent task with children - use special formatting
+			fmt.Printf("%s┬─ %s\n", strings.TrimSuffix(childPrefix, " "), formatter.FormatTaskLine(child))
+			// Add structural line after parent with children
+			fmt.Printf("%s│\n", structuralPrefix)
+
+			// Recursively print grandchildren
+			if err := printTaskTreeWithStructure(projectManager, child, currentDepth+1, maxDepth, structuralPrefix); err != nil {
+				return err
+			}
+		} else {
+			// Leaf task
+			taskLine := formatter.FormatTaskLine(child)
+			fmt.Printf("%s%s\n", childPrefix, taskLine)
+		}
+
+		// Add structural line between siblings (except after last one at this level)
+		if !isLast {
+			fmt.Printf("%s│\n", prefix)
 		}
 	}
 

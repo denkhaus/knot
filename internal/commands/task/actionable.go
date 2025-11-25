@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/selection"
 	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -130,7 +132,12 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 		fmt.Printf("* %s (ID: %s)\n", selectedTask.Title, selectedTask.ID)
 
 		if selectedTask.Description != "" {
-			fmt.Printf("  %s\n", selectedTask.Description)
+			fmt.Printf("%s\n", strings.Repeat("═", 120))
+			wrappedDesc := utils.WrapText(selectedTask.Description, 120)
+			for _, line := range wrappedDesc {
+				fmt.Printf("  %s\n", line)
+			}
+			fmt.Printf("%s\n", strings.Repeat("═", 120))
 		}
 
 		fmt.Printf("  State: %s | Complexity: %d | Priority: %d\n",

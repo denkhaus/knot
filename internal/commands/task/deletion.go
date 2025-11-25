@@ -3,6 +3,7 @@ package task
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
@@ -28,60 +29,219 @@ func printDeletionTree(header string, rootTask *types.Task, descendants []*types
 
 	fmt.Printf("\n┌── %s\n│\n", header)
 
-	// Display root task
-	rootLine := formatter.FormatTaskLine(rootTask)
-	if showState {
-		fmt.Printf("└── %s [ROOT]\n", rootLine)
-	} else {
-		fmt.Printf("└── %s [ROOT]\n", rootLine)
+	// Display root task with proper formatting (no emoji, use ├── like other tree commands)
+	rootLine := fmt.Sprintf("%s (ID: %s) - %s", rootTask.Title, rootTask.ID, rootTask.State)
+	fmt.Printf("├── %s [ROOT]\n", rootLine)
+
+	// Display descendants if any - organize them hierarchically with enhanced structure
+	if len(descendants) > 0 {
+		fmt.Printf("│\n")
+
+		// Build hierarchical structure from flat descendant list
+		hierarchy := buildTaskHierarchy(rootTask.ID, descendants)
+
+		// Print hierarchical tree with enhanced structure (no descriptions)
+		printDeletionHierarchicalTree(formatter, hierarchy)
+
+		// Add empty line after children (matching desired format)
+		fmt.Printf("\n")
+	}
+}
+
+// TaskNode represents a node in the hierarchical tree structure
+type TaskNode struct {
+	Task     *types.Task
+	Children []*TaskNode
+}
+
+// buildTaskHierarchy creates a hierarchical tree structure from a flat list of descendants
+func buildTaskHierarchy(rootTaskID uuid.UUID, descendants []*types.Task) []*TaskNode {
+	// Create task lookup map
+	taskMap := make(map[uuid.UUID]*types.Task)
+	for _, task := range descendants {
+		taskMap[task.ID] = task
 	}
 
-	// Add root task description if available
-	if rootTask.Description != "" {
-		wrappedDesc := utils.WrapText(rootTask.Description, 120)
-		for _, line := range wrappedDesc {
-			fmt.Printf("   %s\n", line)
+	// Build child-to-parent mapping
+	childToParent := make(map[uuid.UUID]uuid.UUID)
+	for _, task := range descendants {
+		// Find which descendant is the parent of this task, if any
+		for _, potentialParent := range descendants {
+			if task.ParentID != nil && *task.ParentID == potentialParent.ID {
+				childToParent[task.ID] = potentialParent.ID
+				break
+			}
+		}
+		// If no descendant parent found, it's a direct child of root
+		if _, exists := childToParent[task.ID]; !exists {
+			if task.ParentID == nil || *task.ParentID == rootTaskID {
+				childToParent[task.ID] = rootTaskID
+			}
 		}
 	}
 
-	// Display descendants if any
-	if len(descendants) > 0 {
-		fmt.Printf("│\n├── %d descendant task(s):\n│\n", len(descendants))
+	// Build node map
+	nodeMap := make(map[uuid.UUID]*TaskNode)
+	for _, task := range descendants {
+		nodeMap[task.ID] = &TaskNode{
+			Task:     task,
+			Children: []*TaskNode{},
+		}
+	}
 
-		for i, desc := range descendants {
-			isLast := i == len(descendants)-1
-			var prefix string
+	// Build hierarchy
+	var roots []*TaskNode
+	for _, task := range descendants {
+		node := nodeMap[task.ID]
 
-			if isLast {
-				prefix = "└── "
-			} else {
-				prefix = "├── "
+		parentID, hasParent := childToParent[task.ID]
+		if hasParent && parentID != rootTaskID {
+			if parentNode, exists := nodeMap[parentID]; exists {
+				parentNode.Children = append(parentNode.Children, node)
 			}
+		} else {
+			// This is a root-level child
+			roots = append(roots, node)
+		}
+	}
 
-			// Format task line
-			taskLine := formatter.FormatTaskLine(desc)
-			fmt.Printf("%s%s\n", prefix, taskLine)
+	// Sort children recursively
+	sortTaskNodes(roots)
 
-			// Add description if available
-			if desc.Description != "" {
-				wrappedLines := utils.WrapText(desc.Description, 120)
-				for _, line := range wrappedLines {
-					if isLast {
-						fmt.Printf("   %s\n", line)
-					} else {
-						fmt.Printf("│  %s\n", line)
-					}
+	return roots
+}
+
+// sortTaskNodes recursively sorts task nodes and their children by title
+func sortTaskNodes(nodes []*TaskNode) {
+	for _, node := range nodes {
+		sortTaskNodes(node.Children)
+	}
+	// Sort the slice itself
+	for i := 0; i < len(nodes)-1; i++ {
+		for j := i + 1; j < len(nodes); j++ {
+			if nodes[i].Task.Title > nodes[j].Task.Title {
+				nodes[i], nodes[j] = nodes[j], nodes[i]
+			}
+		}
+	}
+}
+
+// printHierarchicalTask prints a task and its children in hierarchical format
+func printHierarchicalTask(formatter treeformatter.TreeFormatter, node *TaskNode, prefix string, isLast bool, isRoot bool) {
+	// Determine the tree prefix
+	var treePrefix string
+	if isRoot {
+		treePrefix = ""
+	} else {
+		if isLast {
+			treePrefix = prefix + "└── "
+		} else {
+			treePrefix = prefix + "├── "
+		}
+	}
+
+	// Print current task
+	taskLine := formatter.FormatTaskLine(node.Task)
+	fmt.Printf("%s%s\n", treePrefix, taskLine)
+
+	// Add description if available
+	if node.Task.Description != "" {
+		wrappedLines := utils.WrapText(node.Task.Description, 120)
+		for _, line := range wrappedLines {
+			if isRoot {
+				fmt.Printf("   %s\n", line)
+			} else {
+				// Use proper continuation prefix for description lines
+				if isLast {
+					fmt.Printf("      %s\n", line)
+				} else {
+					fmt.Printf("%s│   %s\n", prefix, line)
 				}
 			}
-
-			// Add separator line except for last task
-			if !isLast {
-				fmt.Printf("│\n")
-			}
 		}
 	}
 
-	fmt.Printf("│\n")
+	// Print children recursively
+	for i, child := range node.Children {
+		childIsLast := i == len(node.Children)-1
+		var childPrefix string
+
+		if isRoot {
+			childPrefix = ""
+		} else {
+			if isLast {
+				childPrefix = prefix + "    "
+			} else {
+				childPrefix = prefix + "│   "
+			}
+		}
+
+		printHierarchicalTask(formatter, child, childPrefix, childIsLast, false)
+	}
+}
+
+// printDeletionHierarchicalTree prints the deletion tree with enhanced structure (similar to regular task tree)
+func printDeletionHierarchicalTree(formatter treeformatter.TreeFormatter, nodes []*TaskNode) {
+	// Print first level children with proper tree structure
+	for i, node := range nodes {
+		isLast := i == len(nodes)-1
+
+		var childPrefix string
+
+		if isLast {
+			childPrefix = "└─── "
+		} else {
+			childPrefix = "├─── "
+		}
+
+		// Check if this child has its own children
+		if len(node.Children) > 0 {
+			// Parent task with children - use special formatting
+			fmt.Printf("%s┬─ %s\n", strings.TrimSuffix(childPrefix, " "), formatter.FormatTaskLine(node.Task))
+
+			// Add structural line after parent with children
+			fmt.Printf("│\n")
+
+			// Print children with proper structure
+			printDeletionNodeChildren(formatter, node, "│   ")
+		} else {
+			// Leaf task
+			taskLine := formatter.FormatTaskLine(node.Task)
+			fmt.Printf("%s%s\n", childPrefix, taskLine)
+		}
+
+		// Add structural line between children (except after last one)
+		if !isLast {
+			fmt.Printf("│\n")
+		}
+	}
+}
+
+// printDeletionNodeChildren recursively prints children of a node with enhanced structure
+func printDeletionNodeChildren(formatter treeformatter.TreeFormatter, node *TaskNode, prefix string) {
+	for i, child := range node.Children {
+		isLast := i == len(node.Children)-1
+
+		var childPrefix string
+		var continuationPrefix string
+
+		if isLast {
+			childPrefix = prefix + "└── "
+			continuationPrefix = prefix + "    "
+		} else {
+			childPrefix = prefix + "├── "
+			continuationPrefix = prefix + "│   "
+		}
+
+		// Print current child (no descriptions to maintain clean tree)
+		taskLine := formatter.FormatTaskLine(child.Task)
+		fmt.Printf("%s%s\n", childPrefix, taskLine)
+
+		// Recursively print grandchildren
+		if len(child.Children) > 0 {
+			printDeletionNodeChildren(formatter, child, continuationPrefix)
+		}
+	}
 }
 
 // DeletionCommands returns task deletion related CLI commands
