@@ -1,3 +1,15 @@
+// Package config provides configuration management for KNOT.
+//
+// This package handles application configuration including settings management,
+// environment variable handling, and configuration file operations for the
+// KNOT project management system.
+//
+// Key Components:
+//   - Config Structure: Application configuration data models
+//   - Environment Handling: Environment variable processing
+//   - Settings Management: Configuration loading and persistence
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package config
 
 import (

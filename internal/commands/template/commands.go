@@ -1,3 +1,15 @@
+// Package template provides CLI commands for template management in KNOT.
+//
+// This package implements command-line interface commands for managing project
+// and task templates, creating new projects from templates, and template
+// operations within the KNOT project management system.
+//
+// Key Commands:
+//   - ListTemplates: Shows available project and task templates
+//   - CreateFromTemplate: Creates new projects from templates
+//   - TemplateManagement: Manages custom templates
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package template
 
 import (

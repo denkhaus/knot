@@ -1,3 +1,15 @@
+// Package internal provides integration tests for CLI functionality in KNOT.
+//
+// This package contains end-to-end integration tests that verify the CLI
+// functionality works correctly across different command scenarios and workflows.
+// It tests the complete application behavior rather than individual components.
+//
+// Key Test Areas:
+//   - CLI Integration: End-to-end command execution
+//   - Workflow Testing: Complete user scenario validation
+//   - Output Verification: CLI output format and content validation
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package internal
 
 import (

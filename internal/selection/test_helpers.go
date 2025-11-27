@@ -25,7 +25,7 @@ func (tt *TestTask) ToTask() *types.Task {
 	return &types.Task{
 		ID:           tt.ID,
 		Title:        tt.Title,
-		State:        types.TaskState(tt.State),
+		State:        tt.State,
 		Priority:     types.TaskPriority(tt.Priority),
 		ParentID:     tt.ParentID,
 		Dependencies: tt.Dependencies,
@@ -39,7 +39,7 @@ func createTestTask(id, title string, state types.TaskState, priority types.Task
 	return &types.Task{
 		ID:           taskID,
 		Title:        title,
-		State:        types.TaskState(state),
+		State:        state,
 		Priority:     priority,
 		ParentID:     parentID,
 		Dependencies: dependencies,

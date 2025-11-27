@@ -1,3 +1,15 @@
+// Package dependency provides CLI commands for dependency management in KNOT.
+//
+// This package implements command-line interface commands for managing
+// task dependencies, relationship visualization, and dependency analysis.
+//
+// Key Commands:
+//   - AddDependency: Creates dependencies between tasks
+//   - RemoveDependency: Removes task dependencies
+//   - ListDependencies: Shows dependency relationships
+//   - VisualizeDependencies: Displays dependency graphs
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package dependency
 
 import (

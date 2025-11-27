@@ -1,3 +1,16 @@
+// Package project provides CLI commands for project management operations in KNOT.
+//
+// This package implements command-line interface commands for creating, listing,
+// updating, and managing projects within the KNOT task management system.
+//
+// Key Commands:
+//   - CreateProject: Creates a new project with specified parameters
+//   - ListProjects: Displays all available projects
+//   - UpdateProject: Modifies existing project properties
+//   - DeleteProject: Removes projects and their associated tasks
+//   - SelectProject: Sets the active project for task operations
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package project
 
 import (

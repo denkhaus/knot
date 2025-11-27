@@ -1,3 +1,14 @@
+// Package config provides CLI commands for configuration management in KNOT.
+//
+// This package implements command-line interface commands for managing
+// application settings, project preferences, and system configuration.
+//
+// Key Commands:
+//   - SetConfig: Updates configuration values
+//   - GetConfig: Retrieves current configuration settings
+//   - ResetConfig: Resets configuration to default values
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package config
 
 import (

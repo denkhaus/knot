@@ -1,3 +1,15 @@
+// Package templates provides embedded template resources for KNOT.
+//
+// This package contains embedded file systems and template data used throughout
+// the KNOT project management system, including project templates, task examples,
+// and configuration templates for initializing new projects and tasks.
+//
+// Key Resources:
+//   - Project Templates: Predefined project structures and configurations
+//   - Task Templates: Common task patterns and examples
+//   - Configuration Templates: Default settings and configurations
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package templates
 
 import (

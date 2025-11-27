@@ -1,3 +1,15 @@
+// Package visualization provides dependency analysis and visualization tools for KNOT.
+//
+// This package contains tools for analyzing, visualizing, and understanding
+// task dependency relationships, project structures, and workflow patterns
+// within the KNOT project management system.
+//
+// Key Components:
+//   - Dependency Analyzer: Analyzes task relationships and dependencies
+//   - Visualization Tools: Creates visual representations of project structure
+//   - Relationship Mapping: Maps and displays task connections
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package visualization
 
 import (

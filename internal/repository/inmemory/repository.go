@@ -1,3 +1,15 @@
+// Package inmemory provides an in-memory repository implementation for KNOT.
+//
+// This package implements the repository interface using in-memory storage for
+// testing and development purposes. It provides a lightweight, fast storage
+// backend that doesn't persist data between runs.
+//
+// Key Components:
+//   - InMemory Repository: Main repository implementation
+//   - Data Storage: In-memory data structures for projects and tasks
+//   - Test Support: Optimized for testing scenarios
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package inmemory
 
 import (

@@ -1,3 +1,14 @@
+// Package utils provides common utility functions for the KNOT project management system.
+//
+// This package contains helper functions for common operations across the application,
+// including mathematical utilities, task state checking, JSON output formatting,
+// and UUID conversion helpers.
+//
+// Key Functions:
+//   - Min: Returns the minimum of two integers
+//   - IsTaskReady: Checks if a task has all its dependencies completed
+//   - OutputTasksAsJSON: Formats tasks as JSON for output
+//   - ConvertUUIDsToStrings: Converts UUID slices to string slices for logging
 package utils
 
 import (

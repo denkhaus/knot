@@ -1,3 +1,16 @@
+// Package sqlite provides SQLite database repository implementation for KNOT.
+//
+// This package implements the repository interface using SQLite as the persistent
+// storage backend. It offers data persistence, ACID compliance, and
+// production-ready storage for the KNOT project management system.
+//
+// Key Components:
+//   - SQLite Repository: Main repository implementation
+//   - Database Configuration: Connection and optimization settings
+//   - Migration Support: Database schema management
+//   - Transaction Handling: ACID-compliant operations
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package sqlite
 
 import (

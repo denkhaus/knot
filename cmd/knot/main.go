@@ -1,3 +1,16 @@
+// Package main provides the entry point for the KNOT CLI application.
+//
+// This is the main package that initializes and runs the KNOT project management
+// command-line interface. It handles application startup, version information,
+// and graceful shutdown procedures.
+//
+// Key Responsibilities:
+//   - Application Entry: Main entry point and initialization
+//   - CLI Startup: Launches the CLI application
+//   - Version Info: Provides build and version information
+//   - Error Handling: Handles application-level errors
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package main
 
 import (

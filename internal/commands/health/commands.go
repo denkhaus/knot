@@ -1,3 +1,15 @@
+// Package health provides CLI commands for system health monitoring in KNOT.
+//
+// This package implements command-line interface commands for checking the
+// operational status of the KNOT project management system, including
+// repository connectivity, data integrity, and system diagnostics.
+//
+// Key Commands:
+//   - HealthCheck: Performs comprehensive system health checks
+//   - RepositoryStatus: Checks database connectivity and integrity
+//   - SystemInfo: Displays system configuration and status
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package health
 
 import (

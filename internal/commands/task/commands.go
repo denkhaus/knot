@@ -1,3 +1,16 @@
+// Package task provides CLI commands for task management operations in KNOT.
+//
+// This package implements command-line interface commands for creating, updating,
+// managing, and analyzing tasks within the KNOT project management system.
+//
+// Key Commands:
+//   - CreateTask: Creates new tasks with hierarchical relationships
+//   - ListTasks: Displays tasks with filtering and sorting options
+//   - UpdateTask: Modifies task state, priority, and properties
+//   - DeleteTask: Removes tasks and manages dependencies
+//   - TaskAnalysis: Provides task breakdown and complexity analysis
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package task
 
 import (

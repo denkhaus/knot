@@ -1,3 +1,15 @@
+// Package testutil provides testing utilities and mock implementations for KNOT.
+//
+// This package contains common testing utilities, mock implementations, and helper
+// functions used throughout the KNOT project management system test suite.
+// It provides consistent testing infrastructure and reduces code duplication.
+//
+// Key Components:
+//   - Mock AppContext: Mocked application context for testing
+//   - Test Helpers: Common testing utilities and fixtures
+//   - Mock Managers: Mocked implementations of core interfaces
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package testutil
 
 import (

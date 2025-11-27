@@ -1,3 +1,15 @@
+// Package app provides the main application entry point and CLI setup for KNOT.
+//
+// This package contains the main application initialization, command registration,
+// and CLI configuration for the KNOT project management system. It orchestrates
+// all command modules and provides the unified interface for the knot CLI tool.
+//
+// Key Components:
+//   - App: Main application structure and lifecycle management
+//   - Command Registration: Registers all CLI commands and subcommands
+//   - CLI Setup: Configures command-line interface and flags
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package app
 
 import (

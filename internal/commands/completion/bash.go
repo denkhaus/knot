@@ -1,3 +1,15 @@
+// Package completion provides shell completion functionality for KNOT CLI.
+//
+// This package contains shell completion scripts and functionality for different
+// shell environments including bash and zsh, enabling tab completion for
+// KNOT commands and options.
+//
+// Key Components:
+//   - Bash Completion: Bash shell completion scripts and integration
+//   - ZSH Completion: ZSH shell completion scripts and integration
+//   - CLI Integration: Completion registration and setup
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package completion
 
 import (

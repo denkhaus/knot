@@ -1,3 +1,15 @@
+// Package validation provides CLI commands for validation operations in KNOT.
+//
+// This package implements command-line interface commands for validating task
+// states, project configurations, and data integrity within the KNOT project
+// management system.
+//
+// Key Commands:
+//   - ValidateState: Checks if task state transitions are valid
+//   - ValidateConfig: Validates project and system configuration
+//   - ValidateDependencies: Ensures dependency relationships are valid
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package validation
 
 import (

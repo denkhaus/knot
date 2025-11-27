@@ -1,3 +1,15 @@
+// Package logger provides structured logging capabilities for KNOT.
+//
+// This package configures and provides access to a global logger instance
+// using the zap library for structured, high-performance logging throughout
+// the KNOT project management system.
+//
+// Key Components:
+//   - Global Log: Centralized logger instance for consistent logging
+//   - Configuration: Pre-configured log levels and output formatting
+//   - Integration: Compatible with zap ecosystem and structured logging
+//
+// Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package logger
 
 import (
