@@ -8,7 +8,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Test helper functions for creating test data
+// TestTask helper functions for creating test data
 // Test task structure for testing
 type TestTask struct {
 	ID           uuid.UUID

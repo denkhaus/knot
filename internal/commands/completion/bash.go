@@ -34,7 +34,7 @@ func (b *BashCompletion) Generate() error {
 	return err
 }
 
-// LoadCompletionScript loads the bash completion script from embedded fs
+// LoadBashCompletionScript loads the bash completion script from embedded fs
 func LoadBashCompletionScript() (string, error) {
 	return bashCompletionScript, nil
 }

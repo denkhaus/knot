@@ -22,7 +22,7 @@ func (z *ZshCompletion) Generate() error {
 	return err
 }
 
-// LoadCompletionScript loads the zsh completion script from embedded fs
+// LoadZshCompletionScript loads the zsh completion script from embedded fs
 func LoadZshCompletionScript() (string, error) {
 	return zshCompletionScript, nil
 }
