@@ -26,7 +26,9 @@ func TestEntRepositoryInterface(t *testing.T) {
 	require.NoError(t, err, "Failed to create ent repository")
 	defer func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
-			closer.Close()
+			if err := closer.Close(); err != nil {
+				t.Logf("Warning: failed to close repository: %v", err)
+			}
 		}
 	}()
 
@@ -323,7 +325,9 @@ func BenchmarkEntRepository(b *testing.B) {
 	}
 	defer func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
-			closer.Close()
+			if err := closer.Close(); err != nil {
+				b.Logf("Warning: failed to close repository: %v", err)
+			}
 		}
 	}()
 

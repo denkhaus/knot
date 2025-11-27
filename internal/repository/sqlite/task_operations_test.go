@@ -60,7 +60,7 @@ func TestGetTasksWithDependencies(t *testing.T) {
 		tasks, err := repo.GetTasksWithDependencies(ctx, []uuid.UUID{task.ID})
 		assert.NoError(t, err)
 		assert.Len(t, tasks, 1)
-		
+
 		retrieved := tasks[0]
 		assert.Equal(t, task.ID, retrieved.ID)
 		assert.Equal(t, task.Title, retrieved.Title)
@@ -135,29 +135,29 @@ func TestGetTasksWithDependencies(t *testing.T) {
 		}
 
 		taskB := &types.Task{
-			ID:          uuid.New(),
-			ProjectID:   project.ID,
-			Title:       "Task B (Middle)",
-			Description: "Middle task that depends on C",
-			State:       types.TaskStatePending,
-			Priority:    types.TaskPriorityMedium,
-			Complexity:  2,
+			ID:           uuid.New(),
+			ProjectID:    project.ID,
+			Title:        "Task B (Middle)",
+			Description:  "Middle task that depends on C",
+			State:        types.TaskStatePending,
+			Priority:     types.TaskPriorityMedium,
+			Complexity:   2,
 			Dependencies: []uuid.UUID{taskC.ID},
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		}
 
 		taskA := &types.Task{
-			ID:          uuid.New(),
-			ProjectID:   project.ID,
-			Title:       "Task A (Top)",
-			Description: "Top task that depends on B",
-			State:       types.TaskStatePending,
-			Priority:    types.TaskPriorityMedium,
-			Complexity:  3,
+			ID:           uuid.New(),
+			ProjectID:    project.ID,
+			Title:        "Task A (Top)",
+			Description:  "Top task that depends on B",
+			State:        types.TaskStatePending,
+			Priority:     types.TaskPriorityMedium,
+			Complexity:   3,
 			Dependencies: []uuid.UUID{taskB.ID},
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		}
 
 		// Create tasks in dependency order
@@ -232,16 +232,16 @@ func TestGetTasksWithDependencies(t *testing.T) {
 		}
 
 		mainTask := &types.Task{
-			ID:          uuid.New(),
-			ProjectID:   project.ID,
-			Title:       "Main Task",
-			Description: "Task with multiple dependencies",
-			State:       types.TaskStatePending,
-			Priority:    types.TaskPriorityHigh,
-			Complexity:  4,
+			ID:           uuid.New(),
+			ProjectID:    project.ID,
+			Title:        "Main Task",
+			Description:  "Task with multiple dependencies",
+			State:        types.TaskStatePending,
+			Priority:     types.TaskPriorityHigh,
+			Complexity:   4,
 			Dependencies: []uuid.UUID{dep1.ID, dep2.ID},
-			CreatedAt:   time.Now(),
-			UpdatedAt:   time.Now(),
+			CreatedAt:    time.Now(),
+			UpdatedAt:    time.Now(),
 		}
 
 		// Create tasks
@@ -380,7 +380,7 @@ func TestGetTasksWithDependencies(t *testing.T) {
 		// Create multiple tasks to test batch loading performance
 		numTasks := 10
 		taskIDs := make([]uuid.UUID, numTasks)
-		
+
 		for i := 0; i < numTasks; i++ {
 			task := &types.Task{
 				ID:          uuid.New(),
@@ -393,7 +393,7 @@ func TestGetTasksWithDependencies(t *testing.T) {
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
 			}
-			
+
 			err := repo.CreateTask(ctx, task)
 			require.NoError(t, err)
 			taskIDs[i] = task.ID
@@ -459,7 +459,7 @@ func TestGetTasksWithDependenciesEdgeCases(t *testing.T) {
 		// Test with a large number of task IDs (some exist, some don't)
 		const numTasks = 50
 		taskIDs := make([]uuid.UUID, numTasks)
-		
+
 		// Create half the tasks
 		for i := 0; i < numTasks/2; i++ {
 			task := &types.Task{
@@ -473,7 +473,7 @@ func TestGetTasksWithDependenciesEdgeCases(t *testing.T) {
 				CreatedAt:   time.Now(),
 				UpdatedAt:   time.Now(),
 			}
-			
+
 			err := repo.CreateTask(ctx, task)
 			require.NoError(t, err)
 			taskIDs[i] = task.ID
@@ -509,7 +509,7 @@ func TestGetTasksWithDependenciesEdgeCases(t *testing.T) {
 
 		// Request the same task multiple times
 		duplicateIDs := []uuid.UUID{task.ID, task.ID, task.ID}
-		
+
 		// This should fail because the duplicate IDs result in fewer tasks than expected
 		_, err = repo.GetTasksWithDependencies(ctx, duplicateIDs)
 		assert.Error(t, err)
@@ -520,17 +520,17 @@ func TestGetTasksWithDependenciesEdgeCases(t *testing.T) {
 		// Test with timeout context
 		timeoutCtx, cancel := context.WithTimeout(context.Background(), time.Nanosecond)
 		defer cancel()
-		
+
 		// Wait for timeout to trigger
 		time.Sleep(time.Millisecond)
-		
+
 		_, err := repo.GetTasksWithDependencies(timeoutCtx, []uuid.UUID{uuid.New()})
 		assert.Error(t, err)
 		// Should contain either "context deadline exceeded" or "context canceled"
-		assert.True(t, 
-			err.Error() == "context deadline exceeded" || 
-			err.Error() == "context canceled" ||
-			strings.Contains(err.Error(), "context"),
+		assert.True(t,
+			err.Error() == "context deadline exceeded" ||
+				err.Error() == "context canceled" ||
+				strings.Contains(err.Error(), "context"),
 		)
 	})
 }

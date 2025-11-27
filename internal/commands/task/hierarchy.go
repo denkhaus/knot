@@ -118,9 +118,9 @@ func wrapText(text string, width int) []string {
 func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task, recursive bool) {
 	// Create tree formatter with emoji support for visual hierarchy
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	// Display children using proper tree structure

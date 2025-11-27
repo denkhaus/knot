@@ -24,7 +24,7 @@ func TestHierarchyCommands(t *testing.T) {
 	commands := HierarchyCommands(appCtx)
 
 	assert.NotEmpty(t, commands)
-	
+
 	// Check for expected hierarchy commands
 	commandNames := make(map[string]bool)
 	for _, cmd := range commands {

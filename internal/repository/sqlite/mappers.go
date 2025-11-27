@@ -300,4 +300,3 @@ func entStateToProjectState(state string) types.ProjectState {
 		return types.ProjectStateActive // Default to active for unknown states
 	}
 }
-

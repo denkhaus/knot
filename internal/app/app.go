@@ -5,8 +5,8 @@ import (
 	"os"
 	"strings"
 
-	configCommands "github.com/denkhaus/knot/v2/internal/commands/config"
 	"github.com/denkhaus/knot/v2/internal/commands/completion"
+	configCommands "github.com/denkhaus/knot/v2/internal/commands/config"
 	"github.com/denkhaus/knot/v2/internal/commands/dependency"
 	"github.com/denkhaus/knot/v2/internal/commands/health"
 	"github.com/denkhaus/knot/v2/internal/commands/project"

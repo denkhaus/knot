@@ -47,28 +47,28 @@ func (sv *StateValidator) defineAllowedTransitions() {
 	// Valid transitions from each state - logical workflow only
 	transitions := []StateTransition{
 		// From pending - normal starting point
-		{types.TaskStatePending, types.TaskStateInProgress}, // Start work
-		{types.TaskStatePending, types.TaskStateBlocked},    // Block before starting
-		{types.TaskStatePending, types.TaskStateCancelled},  // Cancel before starting
+		{types.TaskStatePending, types.TaskStateInProgress},      // Start work
+		{types.TaskStatePending, types.TaskStateBlocked},         // Block before starting
+		{types.TaskStatePending, types.TaskStateCancelled},       // Cancel before starting
 		{types.TaskStatePending, types.TaskStateDeletionPending}, // Mark for deletion
 
 		// From in-progress - work has been started, cannot go back to pending
-		{types.TaskStateInProgress, types.TaskStateCompleted}, // Finish work
-		{types.TaskStateInProgress, types.TaskStateBlocked},   // Block during work
-		{types.TaskStateInProgress, types.TaskStateCancelled}, // Cancel during work
+		{types.TaskStateInProgress, types.TaskStateCompleted},       // Finish work
+		{types.TaskStateInProgress, types.TaskStateBlocked},         // Block during work
+		{types.TaskStateInProgress, types.TaskStateCancelled},       // Cancel during work
 		{types.TaskStateInProgress, types.TaskStateDeletionPending}, // Mark for deletion
 
 		// From completed - work is finished, cannot be reopened
 		{types.TaskStateCompleted, types.TaskStateDeletionPending}, // Only deletion allowed after completion
 
 		// From blocked - work was blocked, can be resumed or cancelled
-		{types.TaskStateBlocked, types.TaskStatePending},     // Reset to pending (unblock)
-		{types.TaskStateBlocked, types.TaskStateInProgress}, // Resume work directly
-		{types.TaskStateBlocked, types.TaskStateCancelled},  // Cancel while blocked
+		{types.TaskStateBlocked, types.TaskStatePending},         // Reset to pending (unblock)
+		{types.TaskStateBlocked, types.TaskStateInProgress},      // Resume work directly
+		{types.TaskStateBlocked, types.TaskStateCancelled},       // Cancel while blocked
 		{types.TaskStateBlocked, types.TaskStateDeletionPending}, // Mark for deletion
 
 		// From cancelled - task was cancelled, can be restored to pending
-		{types.TaskStateCancelled, types.TaskStatePending},    // Restore to pending (reactivate)
+		{types.TaskStateCancelled, types.TaskStatePending},         // Restore to pending (reactivate)
 		{types.TaskStateCancelled, types.TaskStateDeletionPending}, // Mark for deletion
 
 		// From deletion-pending - NO TRANSITIONS ALLOWED except delete operation

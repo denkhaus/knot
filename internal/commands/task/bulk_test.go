@@ -24,7 +24,7 @@ func TestBulkCommands(t *testing.T) {
 	commands := BulkCommands(appCtx)
 
 	assert.NotEmpty(t, commands)
-	
+
 	// Check for expected bulk commands
 	commandNames := make(map[string]bool)
 	for _, cmd := range commands {

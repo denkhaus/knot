@@ -9,23 +9,23 @@ import (
 
 // DefaultDependencyAnalyzer implements DependencyAnalyzer interface using modular components
 type DefaultDependencyAnalyzer struct {
-	config                *Config
-	graphBuilder          *DependencyGraphBuilder
-	cycleDetector         *CycleDetector
-	metricsCalculator     *MetricsCalculator
+	config                 *Config
+	graphBuilder           *DependencyGraphBuilder
+	cycleDetector          *CycleDetector
+	metricsCalculator      *MetricsCalculator
 	actionabilityValidator *ActionabilityValidator
-	cache                 *Cache
+	cache                  *Cache
 }
 
 // NewDependencyAnalyzer creates a new dependency analyzer with modular components
 func NewDependencyAnalyzer(config *Config) *DefaultDependencyAnalyzer {
 	return &DefaultDependencyAnalyzer{
-		config:                config,
-		graphBuilder:          NewDependencyGraphBuilder(config),
-		cycleDetector:         NewCycleDetector(),
-		metricsCalculator:     NewMetricsCalculator(config),
+		config:                 config,
+		graphBuilder:           NewDependencyGraphBuilder(config),
+		cycleDetector:          NewCycleDetector(),
+		metricsCalculator:      NewMetricsCalculator(config),
 		actionabilityValidator: NewActionabilityValidator(config),
-		cache:                 NewCache(config),
+		cache:                  NewCache(config),
 	}
 }
 

@@ -37,9 +37,13 @@ func setupIntegrationTest(t *testing.T) (manager.ProjectManager, func()) {
 	// Return cleanup function
 	cleanup := func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
-			closer.Close()
+			if err := closer.Close(); err != nil {
+				t.Logf("Warning: failed to close repository: %v", err)
+			}
 		}
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+			t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+		}
 	}
 
 	return mgr, cleanup

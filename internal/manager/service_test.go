@@ -440,9 +440,13 @@ func setupSQLiteTestRepository(t *testing.T) (types.Repository, func()) {
 
 	cleanup := func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
-			closer.Close()
+			if err := closer.Close(); err != nil {
+				t.Logf("Warning: failed to close repository: %v", err)
+			}
 		}
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+			t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+		}
 	}
 
 	return repo, cleanup

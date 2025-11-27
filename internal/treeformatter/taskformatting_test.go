@@ -165,27 +165,27 @@ func TestDifferentConfigurations(t *testing.T) {
 		{
 			name: "emojis enabled",
 			config: &Config{
-				ShowEmojis:   true,
-				CompactMode:  false,
-				IndentSize:   2,
+				ShowEmojis:  true,
+				CompactMode: false,
+				IndentSize:  2,
 			},
 			expected: "✅ Config Test Task (ID: 550e8400-e29b-41d4-a716-446655440000) - completed",
 		},
 		{
 			name: "compact with emojis",
 			config: &Config{
-				ShowEmojis:   true,
-				CompactMode:  true,
-				IndentSize:   2,
+				ShowEmojis:  true,
+				CompactMode: true,
+				IndentSize:  2,
 			},
 			expected: "✅ Config Test Task (ID: 550e8400-e29b-41d4-a716-446655440000) - completed",
 		},
 		{
 			name: "custom indent size",
 			config: &Config{
-				ShowEmojis:   false,
-				CompactMode:  false,
-				IndentSize:   4,
+				ShowEmojis:  false,
+				CompactMode: false,
+				IndentSize:  4,
 			},
 			expected: "Config Test Task (ID: 550e8400-e29b-41d4-a716-446655440000) - completed",
 		},

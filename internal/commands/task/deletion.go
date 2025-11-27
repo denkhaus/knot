@@ -8,7 +8,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/treeformatter"
-	"github.com/denkhaus/knot/v2/internal/utils"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -22,9 +21,9 @@ import (
 func printDeletionTree(header string, rootTask *types.Task, descendants []*types.Task, showState bool) {
 	// Create tree formatter with emoji support
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	fmt.Printf("\n┌── %s\n│\n", header)
@@ -123,60 +122,6 @@ func sortTaskNodes(nodes []*TaskNode) {
 				nodes[i], nodes[j] = nodes[j], nodes[i]
 			}
 		}
-	}
-}
-
-// printHierarchicalTask prints a task and its children in hierarchical format
-func printHierarchicalTask(formatter treeformatter.TreeFormatter, node *TaskNode, prefix string, isLast bool, isRoot bool) {
-	// Determine the tree prefix
-	var treePrefix string
-	if isRoot {
-		treePrefix = ""
-	} else {
-		if isLast {
-			treePrefix = prefix + "└── "
-		} else {
-			treePrefix = prefix + "├── "
-		}
-	}
-
-	// Print current task
-	taskLine := formatter.FormatTaskLine(node.Task)
-	fmt.Printf("%s%s\n", treePrefix, taskLine)
-
-	// Add description if available
-	if node.Task.Description != "" {
-		wrappedLines := utils.WrapText(node.Task.Description, 120)
-		for _, line := range wrappedLines {
-			if isRoot {
-				fmt.Printf("   %s\n", line)
-			} else {
-				// Use proper continuation prefix for description lines
-				if isLast {
-					fmt.Printf("      %s\n", line)
-				} else {
-					fmt.Printf("%s│   %s\n", prefix, line)
-				}
-			}
-		}
-	}
-
-	// Print children recursively
-	for i, child := range node.Children {
-		childIsLast := i == len(node.Children)-1
-		var childPrefix string
-
-		if isRoot {
-			childPrefix = ""
-		} else {
-			if isLast {
-				childPrefix = prefix + "    "
-			} else {
-				childPrefix = prefix + "│   "
-			}
-		}
-
-		printHierarchicalTask(formatter, child, childPrefix, childIsLast, false)
 	}
 }
 
@@ -436,20 +381,6 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 	}
 }
-
-
-// confirmDeletion prompts user for confirmation
-// Currently unused but kept for potential future use
-// func confirmDeletion(itemType, itemName string) bool {
-// 	fmt.Printf("\nAre you sure you want to delete this %s?\n", itemType)
-// 	fmt.Printf("   %s\n", itemName)
-// 	fmt.Printf("\nThis action cannot be undone. Type 'yes' to confirm: ")
-//
-// 	var response string
-// 	_, _ = fmt.Scanln(&response)
-//
-// 	return strings.ToLower(strings.TrimSpace(response)) == "yes"
-// }
 
 // getTaskDescendants recursively gets all descendants of a task (renamed to avoid conflict)
 func getTaskDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) {

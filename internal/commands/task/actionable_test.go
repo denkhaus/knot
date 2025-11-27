@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -18,7 +19,7 @@ func TestActionableAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("no actionable tasks in empty project", func(t *testing.T) {
@@ -44,7 +45,7 @@ func TestActionableAction(t *testing.T) {
 
 	t.Run("single actionable task", func(t *testing.T) {
 		// Create a pending task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Actionable Task", "A task to work on", 3, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Actionable Task", "A task to work on", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -67,17 +68,17 @@ func TestActionableAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify task is still there
-		retrievedTask, err := mgr.GetTask(nil, task.ID)
+		retrievedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, task.Title, retrievedTask.Title)
 	})
 
 	t.Run("actionable with specific strategy", func(t *testing.T) {
 		// Create multiple tasks
-		task1, err := mgr.CreateTask(nil, project.ID, nil, "High Priority Task", "Important task", 2, types.TaskPriorityHigh, "test-user")
+		task1, err := mgr.CreateTask(context.TODO(), project.ID, nil, "High Priority Task", "Important task", 2, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		task2, err := mgr.CreateTask(nil, project.ID, nil, "Low Priority Task", "Less important task", 1, types.TaskPriorityLow, "test-user")
+		task2, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Low Priority Task", "Less important task", 1, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -101,9 +102,9 @@ func TestActionableAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(nil, task1.ID)
+		_, err = mgr.GetTask(context.TODO(), task1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, task2.ID)
+		_, err = mgr.GetTask(context.TODO(), task2.ID)
 		assert.NoError(t, err)
 	})
 
@@ -162,7 +163,7 @@ func TestNewActionableCommand(t *testing.T) {
 	}
 
 	cmd := NewActionableCommand(appCtx)
-	
+
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "actionable", cmd.Name)
 	assert.Contains(t, cmd.Aliases, "next")
@@ -176,7 +177,7 @@ func TestNewActionableCommand(t *testing.T) {
 	for _, flag := range cmd.Flags {
 		flagNames[flag.Names()[0]] = true
 	}
-	
+
 	assert.True(t, flagNames["strategy"])
 	assert.True(t, flagNames["allow-parent-with-subtasks"])
 	assert.True(t, flagNames["prefer-pending"])

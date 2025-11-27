@@ -33,9 +33,13 @@ func setupTestRepository(t *testing.T) (types.Repository, func()) {
 	// Return cleanup function
 	cleanup := func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
-			closer.Close()
+			if err := closer.Close(); err != nil {
+				t.Logf("Warning: failed to close repository: %v", err)
+			}
 		}
-		os.RemoveAll(tempDir)
+		if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+			t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+		}
 	}
 
 	return repo, cleanup
@@ -53,7 +57,11 @@ func TestRepositoryInitialization(t *testing.T) {
 	t.Run("initialization with custom config", func(t *testing.T) {
 		tempDir, err := os.MkdirTemp("", "knot_test_*")
 		require.NoError(t, err)
-		defer os.RemoveAll(tempDir)
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+				t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+			}
+		}()
 
 		dbPath := filepath.Join(tempDir, "custom.db")
 
@@ -65,7 +73,9 @@ func TestRepositoryInitialization(t *testing.T) {
 		require.NoError(t, err)
 		defer func() {
 			if closer, ok := repo.(interface{ Close() error }); ok {
-				closer.Close()
+				if err := closer.Close(); err != nil {
+					t.Logf("Warning: failed to close repository: %v", err)
+				}
 			}
 		}()
 
@@ -634,7 +644,11 @@ func TestSecurityFeatures(t *testing.T) {
 		// Test the EnsureProjectDir function directly
 		tempDir, err := os.MkdirTemp("", "knot_security_test_*")
 		require.NoError(t, err)
-		defer os.RemoveAll(tempDir)
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+				t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+			}
+		}()
 
 		// Change to temp directory
 		originalCwd, err := os.Getwd()

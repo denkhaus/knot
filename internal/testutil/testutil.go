@@ -56,7 +56,9 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository {
 		tempDir, err = os.MkdirTemp("", "knot_test_*")
 		require.NoError(t, err)
 		t.Cleanup(func() {
-			os.RemoveAll(tempDir)
+			if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+				t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+			}
 		})
 	}
 
@@ -174,7 +176,9 @@ func TempFile(t *testing.T, content string) string {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		os.Remove(tmpFile.Name())
+		if err := os.Remove(tmpFile.Name()); err != nil && !os.IsNotExist(err) {
+			t.Logf("Warning: failed to remove temp file %s: %v", tmpFile.Name(), err)
+		}
 	})
 
 	return tmpFile.Name()
@@ -186,7 +190,9 @@ func TempDir(t *testing.T) string {
 	require.NoError(t, err)
 
 	t.Cleanup(func() {
-		os.RemoveAll(dir)
+		if err := os.RemoveAll(dir); err != nil && !os.IsNotExist(err) {
+			t.Logf("Warning: failed to remove temp directory %s: %v", dir, err)
+		}
 	})
 
 	return dir

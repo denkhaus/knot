@@ -149,11 +149,11 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		cycles := detectCycles(tasks)
 		result := map[string]interface{}{
-			"project_id":     projectID,
-			"total_tasks":    len(tasks),
-			"cycles_found":   len(cycles),
-			"has_cycles":     len(cycles) > 0,
-			"cycles":         cycles,
+			"project_id":   projectID,
+			"total_tasks":  len(tasks),
+			"cycles_found": len(cycles),
+			"has_cycles":   len(cycles) > 0,
+			"cycles":       cycles,
 		}
 
 		if jsonOutput {
@@ -184,7 +184,7 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 					detailedCycle = append(detailedCycle, taskInfo)
 				}
 				detailedCycles = append(detailedCycles, map[string]interface{}{
-					"cycle": detailedCycle,
+					"cycle":  detailedCycle,
 					"length": len(cycle),
 				})
 			}

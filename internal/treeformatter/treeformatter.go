@@ -39,9 +39,9 @@ type Config struct {
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		ShowEmojis:   false,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  false,
+		CompactMode: false,
+		IndentSize:  2,
 	}
 }
 

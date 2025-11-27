@@ -124,9 +124,9 @@ func TestBreakdownAction(t *testing.T) {
 	t.Run("limit results", func(t *testing.T) {
 		// Create multiple high complexity tasks
 		for i := 0; i < 5; i++ {
-			_, err := mgr.CreateTask(nil, project.ID, nil, 
-				fmt.Sprintf("Complex Task %d", i), 
-				fmt.Sprintf("Complex task number %d", i), 
+			_, err := mgr.CreateTask(nil, project.ID, nil,
+				fmt.Sprintf("Complex Task %d", i),
+				fmt.Sprintf("Complex task number %d", i),
 				9, types.TaskPriorityHigh, "test-user")
 			require.NoError(t, err)
 		}

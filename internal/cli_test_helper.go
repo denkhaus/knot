@@ -71,8 +71,12 @@ func (h *CLITestHelper) RunCommand(args ...string) (string, string, error) {
 	err := h.app.Run(fullArgs)
 
 	// Close writers and restore
-	wOut.Close()
-	wErr.Close()
+	if err := wOut.Close(); err != nil {
+		h.t.Logf("Warning: failed to close stdout writer: %v", err)
+	}
+	if err := wErr.Close(); err != nil {
+		h.t.Logf("Warning: failed to close stderr writer: %v", err)
+	}
 	os.Stdout = oldStdout
 	os.Stderr = oldStderr
 
@@ -122,7 +126,9 @@ func (h *CLITestHelper) ExtractTaskID(output string) string {
 // Cleanup cleans up the test environment
 func (h *CLITestHelper) Cleanup() {
 	_ = os.Chdir(h.originalDir)
-	_ = os.RemoveAll(h.tempDir)
+	if err := os.RemoveAll(h.tempDir); err != nil && !os.IsNotExist(err) {
+		h.t.Logf("Warning: failed to remove temp directory %s: %v", h.tempDir, err)
+	}
 }
 
 // CreateTestProject creates a test project and returns its ID

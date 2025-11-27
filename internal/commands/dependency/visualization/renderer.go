@@ -117,25 +117,25 @@ func (r *Renderer) RenderJSON(taskResult *TaskAnalysisResult, projectResult *Pro
 
 	if taskResult != nil {
 		data = map[string]interface{}{
-			"type":  "task_analysis",
-			"task":  r.taskToMap(taskResult.Task),
-			"upstream": r.tasksToMap(taskResult.UpstreamTasks),
+			"type":       "task_analysis",
+			"task":       r.taskToMap(taskResult.Task),
+			"upstream":   r.tasksToMap(taskResult.UpstreamTasks),
 			"downstream": r.tasksToMap(taskResult.DownstreamTasks),
-			"blocked": taskResult.IsBlocked,
-			"blocking": r.tasksToMap(taskResult.BlockingTasks),
-			"in_cycle": taskResult.InCycle,
+			"blocked":    taskResult.IsBlocked,
+			"blocking":   r.tasksToMap(taskResult.BlockingTasks),
+			"in_cycle":   taskResult.InCycle,
 		}
 	} else {
 		data = map[string]interface{}{
-			"type":           "project_analysis",
-			"total_tasks":    projectResult.TotalTasks,
+			"type":            "project_analysis",
+			"total_tasks":     projectResult.TotalTasks,
 			"tasks_with_deps": projectResult.TasksWithDeps,
-			"blocked_tasks":  projectResult.BlockedTasks,
-			"completed":      projectResult.CompletedTasks,
-			"in_progress":    projectResult.InProgressTasks,
-			"pending":        projectResult.PendingTasks,
-			"cycles":         projectResult.Cycles,
-			"root_tasks":     r.tasksToMap(projectResult.RootTasks),
+			"blocked_tasks":   projectResult.BlockedTasks,
+			"completed":       projectResult.CompletedTasks,
+			"in_progress":     projectResult.InProgressTasks,
+			"pending":         projectResult.PendingTasks,
+			"cycles":          projectResult.Cycles,
+			"root_tasks":      r.tasksToMap(projectResult.RootTasks),
 		}
 	}
 

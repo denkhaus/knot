@@ -12,9 +12,9 @@ import (
 func TestTaskFormatterIntegration(t *testing.T) {
 	// Create tree formatter with emoji support
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	// Test task from the brain memory specification
@@ -37,9 +37,9 @@ func TestTaskFormatterIntegration(t *testing.T) {
 // TestTaskFormatterDifferentStates tests all task states with emojis
 func TestTaskFormatterDifferentStates(t *testing.T) {
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	tests := []struct {
@@ -79,9 +79,9 @@ func TestTaskFormatterDifferentStates(t *testing.T) {
 // TestTaskFormatterWithoutEmojis tests that emojis can be disabled
 func TestTaskFormatterWithoutEmojis(t *testing.T) {
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   false,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  false,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	task := &types.Task{

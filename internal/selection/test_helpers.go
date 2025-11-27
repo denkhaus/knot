@@ -128,9 +128,6 @@ func testTaskID(id string) uuid.UUID {
 	}
 }
 
-
-
-
 // createComplexDependencyGraph creates a more complex dependency scenario
 func createComplexDependencyGraph() []*types.Task {
 	return []*types.Task{
@@ -233,7 +230,6 @@ func taskIDFromIndex(i int) string {
 func taskNameFromIndex(i int) string {
 	return fmt.Sprintf("Task %d", i+1)
 }
-
 
 // assertTaskSelected verifies that the expected task was selected (stub for compilation)
 func assertTaskSelected(t interface{}, expectedTaskName string, selectedTask *types.Task, err error) {

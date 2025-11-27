@@ -56,7 +56,9 @@ func TestShowAction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Restore stdout
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Logf("Warning: failed to close stdout writer: %v", err)
+	}
 	os.Stdout = old
 
 	// Read the output
@@ -278,7 +280,9 @@ func TestResetAction(t *testing.T) {
 	assert.NoError(t, err)
 
 	// Restore stdout
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Logf("Warning: failed to close stdout writer: %v", err)
+	}
 	os.Stdout = old
 
 	// Read the output
@@ -365,7 +369,9 @@ func TestShowActionOutputFormat(t *testing.T) {
 	err := actionFunc(ctx)
 	assert.NoError(t, err)
 
-	w.Close()
+	if err := w.Close(); err != nil {
+		t.Logf("Warning: failed to close stdout writer: %v", err)
+	}
 	os.Stdout = old
 
 	var buf bytes.Buffer

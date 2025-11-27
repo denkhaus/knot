@@ -11,7 +11,11 @@
       "mcp__brain__update_memory",
       "mcp__brain__get_memory",
       "mcp__brain__list_memories",
-      "Bash(mage build:install:*)"
+      "Bash(mage build:install:*)",
+      "Bash(golangci-lint run:*)",
+      "Bash(go build:*)",
+      "Bash(go vet:*)",
+      "Bash(golangci-lint help:*)"
     ],
     "deny": [],
     "ask": []

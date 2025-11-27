@@ -1,8 +1,8 @@
 package selection
 
 import (
-	"testing"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"testing"
 )
 
 func TestBasicDependencyAnalyzer(t *testing.T) {
@@ -10,7 +10,7 @@ func TestBasicDependencyAnalyzer(t *testing.T) {
 
 	t.Run("EmptyTaskList", func(t *testing.T) {
 		graph, err := analyzer.BuildDependencyGraph([]*types.Task{})
-		
+
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -31,7 +31,7 @@ func TestBasicDependencyAnalyzer(t *testing.T) {
 		tasks := []*types.Task{task}
 
 		graph, err := analyzer.BuildDependencyGraph(tasks)
-		
+
 		if err != nil {
 			t.Errorf("Expected no error, got %v", err)
 		}
@@ -41,7 +41,7 @@ func TestBasicDependencyAnalyzer(t *testing.T) {
 		if graph.TaskCount != 1 {
 			t.Errorf("Expected 1 task count, got %d", graph.TaskCount)
 		}
-		
+
 		node := graph.Nodes[testTaskID("task1")]
 		if node == nil {
 			t.Error("Expected node to exist")

@@ -9,18 +9,18 @@ import (
 
 // CacheKey represents a unique key for cached items
 type CacheKey struct {
-	ProjectID     uuid.UUID
-	TaskHash      string // Hash of task data for change detection
-	Strategy      Strategy
-	ConfigHash    string // Hash of configuration
+	ProjectID  uuid.UUID
+	TaskHash   string // Hash of task data for change detection
+	Strategy   Strategy
+	ConfigHash string // Hash of configuration
 }
 
 // CacheEntry represents a cached item with expiration
 type CacheEntry struct {
-	Graph         *DependencyGraph
-	ComputedAt    time.Time
-	ExpiresAt     time.Time
-	TaskVersion   int // Simple version tracking for task changes
+	Graph       *DependencyGraph
+	ComputedAt  time.Time
+	ExpiresAt   time.Time
+	TaskVersion int // Simple version tracking for task changes
 }
 
 // Cache provides thread-safe caching for dependency graphs and computations

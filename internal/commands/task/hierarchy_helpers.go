@@ -194,9 +194,9 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 
 	// Create tree formatter with emoji support for visual hierarchy
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	// Print current task with proper tree prefix
@@ -288,9 +288,9 @@ func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.
 
 	// Create tree formatter
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	// Print current task with its tree prefix
@@ -335,9 +335,9 @@ func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.
 func printTaskTreeWithStructure(projectManager manager.ProjectManager, parentTask *types.Task, currentDepth, maxDepth int, prefix string) error {
 	// Create tree formatter
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
-		ShowEmojis:   true,
-		CompactMode:  false,
-		IndentSize:   2,
+		ShowEmojis:  true,
+		CompactMode: false,
+		IndentSize:  2,
 	})
 
 	// Get children of the parent task
