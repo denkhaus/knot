@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -18,13 +19,13 @@ func TestGetStartedAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("get started in empty project", func(t *testing.T) {
 		// Create a new project for clean test
 		project2 := testutil.CreateTestProject(t, mgr)
-		err := mgr.SetSelectedProject(nil, project2.ID, "test-user")
+		err := mgr.SetSelectedProject(context.TODO(), project2.ID, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -44,20 +45,20 @@ func TestGetStartedAction(t *testing.T) {
 
 	t.Run("get started with existing tasks", func(t *testing.T) {
 		// Create some tasks in various states
-		pendingTask, err := mgr.CreateTask(nil, project.ID, nil, "Pending Task", "A pending task", 3, types.TaskPriorityMedium, "test-user")
+		pendingTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Pending Task", "A pending task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		inProgressTask, err := mgr.CreateTask(nil, project.ID, nil, "In Progress Task", "An in-progress task", 4, types.TaskPriorityHigh, "test-user")
+		inProgressTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "An in-progress task", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 		_, err = mgr.UpdateTaskState(nil, inProgressTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
-		blockedTask, err := mgr.CreateTask(nil, project.ID, nil, "Blocked Task", "A blocked task", 2, types.TaskPriorityLow, "test-user")
+		blockedTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Blocked Task", "A blocked task", 2, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 		_, err = mgr.UpdateTaskState(nil, blockedTask.ID, types.TaskStateBlocked, "test-user")
 		require.NoError(t, err)
 
-		completedTask, err := mgr.CreateTask(nil, project.ID, nil, "Completed Task", "A completed task", 3, types.TaskPriorityMedium, "test-user")
+		completedTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Completed Task", "A completed task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 		_, err = mgr.UpdateTaskState(nil, completedTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
@@ -91,13 +92,13 @@ func TestGetStartedAction(t *testing.T) {
 
 	t.Run("get started with hierarchical tasks", func(t *testing.T) {
 		// Create parent and child tasks
-		parentTask, err := mgr.CreateTask(nil, project.ID, nil, "Parent Task", "A parent task", 6, types.TaskPriorityHigh, "test-user")
+		parentTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Parent Task", "A parent task", 6, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		childTask1, err := mgr.CreateTask(nil, project.ID, &parentTask.ID, "Child Task 1", "First child", 3, types.TaskPriorityMedium, "test-user")
+		childTask1, err := mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child Task 1", "First child", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		childTask2, err := mgr.CreateTask(nil, project.ID, &parentTask.ID, "Child Task 2", "Second child", 2, types.TaskPriorityLow, "test-user")
+		childTask2, err := mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child Task 2", "Second child", 2, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		// Complete one child task
@@ -131,10 +132,10 @@ func TestGetStartedAction(t *testing.T) {
 
 	t.Run("get started with high complexity tasks", func(t *testing.T) {
 		// Create tasks with different complexity levels
-		simpleTask, err := mgr.CreateTask(nil, project.ID, nil, "Simple Task", "Easy task", 2, types.TaskPriorityLow, "test-user")
+		simpleTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Simple Task", "Easy task", 2, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
-		complexTask, err := mgr.CreateTask(nil, project.ID, nil, "Complex Task", "Difficult task", 9, types.TaskPriorityHigh, "test-user")
+		complexTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Complex Task", "Difficult task", 9, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -160,13 +161,13 @@ func TestGetStartedAction(t *testing.T) {
 
 	t.Run("get started with mixed priorities", func(t *testing.T) {
 		// Create tasks with different priorities
-		lowPriorityTask, err := mgr.CreateTask(nil, project.ID, nil, "Low Priority", "Can wait", 3, types.TaskPriorityLow, "test-user")
+		lowPriorityTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Low Priority", "Can wait", 3, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
-		mediumPriorityTask, err := mgr.CreateTask(nil, project.ID, nil, "Medium Priority", "Normal importance", 3, types.TaskPriorityMedium, "test-user")
+		mediumPriorityTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Medium Priority", "Normal importance", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		highPriorityTask, err := mgr.CreateTask(nil, project.ID, nil, "High Priority", "Urgent task", 3, types.TaskPriorityHigh, "test-user")
+		highPriorityTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "High Priority", "Urgent task", 3, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}

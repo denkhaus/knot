@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"fmt"
 	"testing"
@@ -19,7 +20,7 @@ func TestBreakdownAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("no tasks need breakdown in empty project", func(t *testing.T) {
@@ -42,7 +43,7 @@ func TestBreakdownAction(t *testing.T) {
 
 	t.Run("task with high complexity needs breakdown", func(t *testing.T) {
 		// Create a high complexity task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Complex Task", "A very complex task", 9, types.TaskPriorityHigh, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Complex Task", "A very complex task", 9, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -62,18 +63,18 @@ func TestBreakdownAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify task still exists
-		retrievedTask, err := mgr.GetTask(nil, task.ID)
+		retrievedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, 9, retrievedTask.Complexity)
 	})
 
 	t.Run("task with subtasks should not need breakdown", func(t *testing.T) {
 		// Create a parent task with high complexity
-		parentTask, err := mgr.CreateTask(nil, project.ID, nil, "Parent Task", "Complex parent task", 9, types.TaskPriorityHigh, "test-user")
+		parentTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Parent Task", "Complex parent task", 9, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		// Create a subtask
-		_, err = mgr.CreateTask(nil, project.ID, &parentTask.ID, "Subtask", "A subtask", 3, types.TaskPriorityMedium, "test-user")
+		_, err = mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Subtask", "A subtask", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -95,7 +96,7 @@ func TestBreakdownAction(t *testing.T) {
 
 	t.Run("custom threshold", func(t *testing.T) {
 		// Create a task with complexity 6
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Medium Complex Task", "Moderately complex", 6, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Medium Complex Task", "Moderately complex", 6, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -116,7 +117,7 @@ func TestBreakdownAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify task still exists
-		retrievedTask, err := mgr.GetTask(nil, task.ID)
+		retrievedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, 6, retrievedTask.Complexity)
 	})
@@ -124,7 +125,7 @@ func TestBreakdownAction(t *testing.T) {
 	t.Run("limit results", func(t *testing.T) {
 		// Create multiple high complexity tasks
 		for i := 0; i < 5; i++ {
-			_, err := mgr.CreateTask(nil, project.ID, nil,
+			_, err := mgr.CreateTask(context.TODO(), project.ID, nil,
 				fmt.Sprintf("Complex Task %d", i),
 				fmt.Sprintf("Complex task number %d", i),
 				9, types.TaskPriorityHigh, "test-user")
@@ -151,11 +152,11 @@ func TestBreakdownAction(t *testing.T) {
 
 	t.Run("tasks at different depths", func(t *testing.T) {
 		// Create a root task
-		rootTask, err := mgr.CreateTask(nil, project.ID, nil, "Root Complex Task", "Complex root", 10, types.TaskPriorityHigh, "test-user")
+		rootTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Root Complex Task", "Complex root", 10, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		// Create a child task with high complexity (but no children of its own)
-		childTask, err := mgr.CreateTask(nil, project.ID, &rootTask.ID, "Child Complex Task", "Complex child", 9, types.TaskPriorityHigh, "test-user")
+		childTask, err := mgr.CreateTask(context.TODO(), project.ID, &rootTask.ID, "Child Complex Task", "Complex child", 9, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -175,21 +176,21 @@ func TestBreakdownAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify both tasks still exist
-		_, err = mgr.GetTask(nil, rootTask.ID)
+		_, err = mgr.GetTask(context.TODO(), rootTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, childTask.ID)
+		_, err = mgr.GetTask(context.TODO(), childTask.ID)
 		assert.NoError(t, err)
 	})
 
 	t.Run("mixed complexity tasks", func(t *testing.T) {
 		// Create tasks with various complexities
-		lowComplexTask, err := mgr.CreateTask(nil, project.ID, nil, "Low Complex", "Simple task", 3, types.TaskPriorityLow, "test-user")
+		lowComplexTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Low Complex", "Simple task", 3, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
-		mediumComplexTask, err := mgr.CreateTask(nil, project.ID, nil, "Medium Complex", "Medium task", 7, types.TaskPriorityMedium, "test-user")
+		mediumComplexTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Medium Complex", "Medium task", 7, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		highComplexTask, err := mgr.CreateTask(nil, project.ID, nil, "High Complex", "Complex task", 10, types.TaskPriorityHigh, "test-user")
+		highComplexTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "High Complex", "Complex task", 10, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -209,11 +210,11 @@ func TestBreakdownAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify all tasks still exist
-		_, err = mgr.GetTask(nil, lowComplexTask.ID)
+		_, err = mgr.GetTask(context.TODO(), lowComplexTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, mediumComplexTask.ID)
+		_, err = mgr.GetTask(context.TODO(), mediumComplexTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, highComplexTask.ID)
+		_, err = mgr.GetTask(context.TODO(), highComplexTask.ID)
 		assert.NoError(t, err)
 	})
 }

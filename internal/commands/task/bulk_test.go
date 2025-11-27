@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -44,17 +45,17 @@ func TestListByStateAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("list pending tasks", func(t *testing.T) {
 		// Create tasks with different states
-		pendingTask, err := mgr.CreateTask(nil, project.ID, nil, "Pending Task", "A pending task", 3, types.TaskPriorityMedium, "test-user")
+		pendingTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Pending Task", "A pending task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		inProgressTask, err := mgr.CreateTask(nil, project.ID, nil, "In Progress Task", "An in-progress task", 3, types.TaskPriorityMedium, "test-user")
+		inProgressTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "An in-progress task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, inProgressTask.ID, types.TaskStateInProgress, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), inProgressTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -75,9 +76,9 @@ func TestListByStateAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(nil, pendingTask.ID)
+		_, err = mgr.GetTask(context.TODO(), pendingTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, inProgressTask.ID)
+		_, err = mgr.GetTask(context.TODO(), inProgressTask.ID)
 		assert.NoError(t, err)
 	})
 
@@ -128,12 +129,12 @@ func TestDuplicateAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("duplicate existing task", func(t *testing.T) {
 		// Create a task to duplicate
-		originalTask, err := mgr.CreateTask(nil, project.ID, nil, "Original Task", "Original description", 4, types.TaskPriorityHigh, "test-user")
+		originalTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Original Task", "Original description", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -157,7 +158,7 @@ func TestDuplicateAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify original task still exists
-		_, err = mgr.GetTask(nil, originalTask.ID)
+		_, err = mgr.GetTask(context.TODO(), originalTask.ID)
 		assert.NoError(t, err)
 	})
 

@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -18,12 +19,12 @@ func TestUpdateDescriptionAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("successful description update", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Test Task", "Original description", 3, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Original description", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -48,7 +49,7 @@ func TestUpdateDescriptionAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify the update
-		updatedTask, err := mgr.GetTask(nil, task.ID)
+		updatedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "Updated description", updatedTask.Description)
 	})
@@ -84,12 +85,12 @@ func TestUpdatePriorityAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("successful priority update", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -114,7 +115,7 @@ func TestUpdatePriorityAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify the update
-		updatedTask, err := mgr.GetTask(nil, task.ID)
+		updatedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, types.TaskPriorityHigh, updatedTask.Priority)
 	})
@@ -126,12 +127,12 @@ func TestGetAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("get existing task", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Test Task", "Test description", 5, types.TaskPriorityHigh, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Test description", 5, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
