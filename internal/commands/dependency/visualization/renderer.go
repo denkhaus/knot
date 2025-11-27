@@ -6,6 +6,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 )
 
@@ -295,11 +296,11 @@ func (r *Renderer) renderTaskTree(task *types.Task, relationships []TaskRelation
 
 func (r *Renderer) getTaskIcon(task *types.Task, _ interface{}) TaskIcon {
 	switch task.State {
-	case "completed":
+	case shared.TaskStateCompleted:
 		return IconCompleted
 	case "in-progress":
 		return IconInProgress
-	case "pending":
+	case shared.TaskStatePending:
 		if r.isTaskBlocked(task) {
 			return IconBlocked
 		}

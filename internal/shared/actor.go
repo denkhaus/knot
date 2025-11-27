@@ -27,7 +27,7 @@ import (
 func GetActorFromContext(c *cli.Context) string {
 	actor := c.String("actor")
 	if actor == "" {
-		actor = "unknown"
+		actor = ActorUnknown
 	}
 	return actor
 }
@@ -38,7 +38,7 @@ func ResolveActor(actor string) string {
 	if actor == "" {
 		actor = os.Getenv("USER")
 		if actor == "" {
-			actor = "unknown"
+			actor = ActorUnknown
 		}
 	}
 	return actor

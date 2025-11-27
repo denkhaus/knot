@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
@@ -80,11 +81,11 @@ func (a *Analyzer) AnalyzeProject() (*ProjectAnalysisResult, error) {
 	for _, task := range a.taskMap {
 		// Count by state
 		switch task.State {
-		case "completed":
+		case shared.TaskStateCompleted:
 			result.CompletedTasks++
 		case "in-progress":
 			result.InProgressTasks++
-		case "pending":
+		case shared.TaskStatePending:
 			result.PendingTasks++
 		}
 

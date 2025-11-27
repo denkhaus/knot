@@ -50,19 +50,19 @@ func TestGetStartedAction(t *testing.T) {
 
 		inProgressTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "An in-progress task", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, inProgressTask.ID, types.TaskStateInProgress, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), inProgressTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
 		blockedTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Blocked Task", "A blocked task", 2, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, blockedTask.ID, types.TaskStateBlocked, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), blockedTask.ID, types.TaskStateBlocked, "test-user")
 		require.NoError(t, err)
 
 		completedTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Completed Task", "A completed task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, completedTask.ID, types.TaskStateInProgress, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), completedTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, completedTask.ID, types.TaskStateCompleted, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), completedTask.ID, types.TaskStateCompleted, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -80,13 +80,13 @@ func TestGetStartedAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify all tasks still exist
-		_, err = mgr.GetTask(nil, pendingTask.ID)
+		_, err = mgr.GetTask(context.TODO(), pendingTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, inProgressTask.ID)
+		_, err = mgr.GetTask(context.TODO(), inProgressTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, blockedTask.ID)
+		_, err = mgr.GetTask(context.TODO(), blockedTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, completedTask.ID)
+		_, err = mgr.GetTask(context.TODO(), completedTask.ID)
 		assert.NoError(t, err)
 	})
 
@@ -102,9 +102,9 @@ func TestGetStartedAction(t *testing.T) {
 		require.NoError(t, err)
 
 		// Complete one child task
-		_, err = mgr.UpdateTaskState(nil, childTask2.ID, types.TaskStateInProgress, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), childTask2.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, childTask2.ID, types.TaskStateCompleted, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), childTask2.ID, types.TaskStateCompleted, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -122,11 +122,11 @@ func TestGetStartedAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(nil, parentTask.ID)
+		_, err = mgr.GetTask(context.TODO(), parentTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, childTask1.ID)
+		_, err = mgr.GetTask(context.TODO(), childTask1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, childTask2.ID)
+		_, err = mgr.GetTask(context.TODO(), childTask2.ID)
 		assert.NoError(t, err)
 	})
 
@@ -153,9 +153,9 @@ func TestGetStartedAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(nil, simpleTask.ID)
+		_, err = mgr.GetTask(context.TODO(), simpleTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, complexTask.ID)
+		_, err = mgr.GetTask(context.TODO(), complexTask.ID)
 		assert.NoError(t, err)
 	})
 
@@ -185,11 +185,11 @@ func TestGetStartedAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(nil, lowPriorityTask.ID)
+		_, err = mgr.GetTask(context.TODO(), lowPriorityTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, mediumPriorityTask.ID)
+		_, err = mgr.GetTask(context.TODO(), mediumPriorityTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, highPriorityTask.ID)
+		_, err = mgr.GetTask(context.TODO(), highPriorityTask.ID)
 		assert.NoError(t, err)
 	})
 

@@ -111,7 +111,7 @@ func TestCheckCommandFlags(t *testing.T) {
 	require.NotNil(t, checkCommand, "Check command should be found")
 
 	// Check expected flags
-	expectedFlags := []string{"json", "timeout"}
+	expectedFlags := []string{"json", shared.HealthTestTimeout}
 	flagNames := make([]string, 0)
 	for _, flag := range checkCommand.Flags {
 		flagNames = append(flagNames, flag.Names()...)
@@ -129,7 +129,7 @@ func TestCheckCommandFlags(t *testing.T) {
 			boolFlag, ok := flag.(*cli.BoolFlag)
 			require.True(t, ok, "json flag should be a BoolFlag")
 			assert.False(t, boolFlag.Value, "json flag should default to false")
-		case "timeout":
+		case shared.HealthTestTimeout:
 			durationFlag, ok := flag.(*cli.DurationFlag)
 			require.True(t, ok, "timeout flag should be a DurationFlag")
 			assert.Equal(t, 10*time.Second, durationFlag.Value, "timeout flag should default to 10 seconds")
@@ -153,7 +153,7 @@ func TestPingCommandFlags(t *testing.T) {
 	require.NotNil(t, pingCommand, "Ping command should be found")
 
 	// Check expected flags
-	expectedFlags := []string{"timeout"}
+	expectedFlags := []string{shared.HealthTestTimeout}
 	flagNames := make([]string, 0)
 	for _, flag := range pingCommand.Flags {
 		flagNames = append(flagNames, flag.Names()...)
@@ -166,7 +166,7 @@ func TestPingCommandFlags(t *testing.T) {
 
 	// Check default value for timeout flag
 	for _, flag := range pingCommand.Flags {
-		if flag.Names()[0] == "timeout" {
+		if flag.Names()[0] == shared.HealthTestTimeout {
 			durationFlag, ok := flag.(*cli.DurationFlag)
 			require.True(t, ok, "timeout flag should be a DurationFlag")
 			assert.Equal(t, 5*time.Second, durationFlag.Value, "timeout flag should default to 5 seconds")
@@ -190,7 +190,7 @@ func TestValidateCommandFlags(t *testing.T) {
 	require.NotNil(t, validateCommand, "Validate command should be found")
 
 	// Check expected flags
-	expectedFlags := []string{"timeout"}
+	expectedFlags := []string{shared.HealthTestTimeout}
 	flagNames := make([]string, 0)
 	for _, flag := range validateCommand.Flags {
 		flagNames = append(flagNames, flag.Names()...)
@@ -202,7 +202,7 @@ func TestValidateCommandFlags(t *testing.T) {
 	}
 	// Check default value for timeout flag
 	for _, flag := range validateCommand.Flags {
-		if flag.Names()[0] == "timeout" {
+		if flag.Names()[0] == shared.HealthTestTimeout {
 			durationFlag, ok := flag.(*cli.DurationFlag)
 			require.True(t, ok, "timeout flag should be a DurationFlag")
 			assert.Equal(t, 30*time.Second, durationFlag.Value, "timeout flag should default to 30 seconds")
@@ -285,7 +285,7 @@ func TestHealthCheckTimeouts(t *testing.T) {
 
 		// Find timeout flag and verify it's properly configured
 		for _, flag := range checkCommand.Flags {
-			if flag.Names()[0] == "timeout" {
+			if flag.Names()[0] == shared.HealthTestTimeout {
 				durationFlag := flag.(*cli.DurationFlag)
 				assert.Equal(t, "Health check timeout", durationFlag.Usage)
 				assert.Equal(t, 10*time.Second, durationFlag.Value)
@@ -307,7 +307,7 @@ func TestHealthCheckTimeouts(t *testing.T) {
 
 		// Find timeout flag and verify it's properly configured
 		for _, flag := range pingCommand.Flags {
-			if flag.Names()[0] == "timeout" {
+			if flag.Names()[0] == shared.HealthTestTimeout {
 				durationFlag := flag.(*cli.DurationFlag)
 				assert.Equal(t, "Ping timeout", durationFlag.Usage)
 				assert.Equal(t, 5*time.Second, durationFlag.Value)

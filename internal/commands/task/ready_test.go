@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -18,12 +19,12 @@ func TestReadyAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("pending task is ready", func(t *testing.T) {
 		// Create a pending task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Ready Task", "A task ready to work on", 3, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Ready Task", "A task ready to work on", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -43,7 +44,7 @@ func TestReadyAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify task is still there
-		retrievedTask, err := mgr.GetTask(nil, task.ID)
+		retrievedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, task.Title, retrievedTask.Title)
 		assert.Equal(t, types.TaskStatePending, retrievedTask.State)
@@ -51,11 +52,11 @@ func TestReadyAction(t *testing.T) {
 
 	t.Run("in-progress task is ready", func(t *testing.T) {
 		// Create an in-progress task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "In Progress Task", "A task in progress", 3, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "A task in progress", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		// Update to in-progress
-		_, err = mgr.UpdateTaskState(nil, task.ID, types.TaskStateInProgress, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), task.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -75,7 +76,7 @@ func TestReadyAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify task is still there
-		retrievedTask, err := mgr.GetTask(nil, task.ID)
+		retrievedTask, err := mgr.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, task.Title, retrievedTask.Title)
 		assert.Equal(t, types.TaskStateInProgress, retrievedTask.State)
@@ -83,13 +84,13 @@ func TestReadyAction(t *testing.T) {
 
 	t.Run("completed task is not ready", func(t *testing.T) {
 		// Create and complete a task
-		task, err := mgr.CreateTask(nil, project.ID, nil, "Completed Task", "A completed task", 3, types.TaskPriorityMedium, "test-user")
+		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Completed Task", "A completed task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		// First transition to in-progress, then to completed (following valid transition rules)
-		_, err = mgr.UpdateTaskState(nil, task.ID, types.TaskStateInProgress, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), task.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(nil, task.ID, types.TaskStateCompleted, "test-user")
+		_, err = mgr.UpdateTaskState(context.TODO(), task.ID, types.TaskStateCompleted, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}

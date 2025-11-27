@@ -139,9 +139,9 @@ func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task
 					if d == relativeDepth-1 {
 						// This is the level where our child is
 						if isLast {
-							prefix += "└── "
+							prefix += shared.TreePrefixRight
 						} else {
-							prefix += "├── "
+							prefix += shared.TreePrefixMiddle
 						}
 					} else {
 						// For levels above, assume they have more children (use │)
@@ -175,10 +175,10 @@ func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task
 			var descPrefix string
 			if isLast {
 				// Last task: └── becomes spaces for proper alignment
-				descPrefix = strings.Replace(prefix, "└── ", "   ", -1)
+				descPrefix = strings.Replace(prefix, shared.TreePrefixRight, "   ", -1)
 			} else {
 				// Non-last tasks: ├── becomes │ for continuity
-				descPrefix = strings.Replace(prefix, "├── ", "│  ", -1)
+				descPrefix = strings.Replace(prefix, shared.TreePrefixMiddle, "│  ", -1)
 			}
 
 			// Wrap description at 120 characters
@@ -191,8 +191,8 @@ func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task
 		// Add separator line with box drawing continuity (except for last task)
 		if !isLast {
 			// Build separator prefix that maintains vertical line
-			separatorPrefix := strings.Replace(prefix, "├── ", "│", -1)
-			separatorPrefix = strings.Replace(separatorPrefix, "└── ", "│", -1)
+			separatorPrefix := strings.Replace(prefix, shared.TreePrefixMiddle, shared.TreePrefixSeparator, -1)
+			separatorPrefix = strings.Replace(separatorPrefix, shared.TreePrefixRight, shared.TreePrefixSeparator, -1)
 			fmt.Printf("%s\n", separatorPrefix)
 		}
 	}

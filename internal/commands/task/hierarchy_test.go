@@ -1,6 +1,7 @@
 package task
 
 import (
+	"context"
 	"flag"
 	"testing"
 
@@ -42,19 +43,19 @@ func TestChildrenAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("task with children", func(t *testing.T) {
 		// Create a parent task
-		parentTask, err := mgr.CreateTask(nil, project.ID, nil, "Parent Task", "A parent task", 4, types.TaskPriorityHigh, "test-user")
+		parentTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Parent Task", "A parent task", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		// Create child tasks
-		child1, err := mgr.CreateTask(nil, project.ID, &parentTask.ID, "Child 1", "First child", 2, types.TaskPriorityMedium, "test-user")
+		child1, err := mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child 1", "First child", 2, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		child2, err := mgr.CreateTask(nil, project.ID, &parentTask.ID, "Child 2", "Second child", 3, types.TaskPriorityLow, "test-user")
+		child2, err := mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child 2", "Second child", 3, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -75,9 +76,9 @@ func TestChildrenAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify children still exist
-		_, err = mgr.GetTask(nil, child1.ID)
+		_, err = mgr.GetTask(context.TODO(), child1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, child2.ID)
+		_, err = mgr.GetTask(context.TODO(), child2.ID)
 		assert.NoError(t, err)
 	})
 }
@@ -88,19 +89,19 @@ func TestRootsAction(t *testing.T) {
 	project := testutil.CreateTestProject(t, mgr)
 
 	// Set project context
-	err := mgr.SetSelectedProject(nil, project.ID, "test-user")
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("project with root tasks", func(t *testing.T) {
 		// Create root tasks
-		root1, err := mgr.CreateTask(nil, project.ID, nil, "Root 1", "First root task", 3, types.TaskPriorityMedium, "test-user")
+		root1, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Root 1", "First root task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		root2, err := mgr.CreateTask(nil, project.ID, nil, "Root 2", "Second root task", 4, types.TaskPriorityHigh, "test-user")
+		root2, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Root 2", "Second root task", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		// Create a child task (should not appear in roots)
-		_, err = mgr.CreateTask(nil, project.ID, &root1.ID, "Child", "Child task", 2, types.TaskPriorityLow, "test-user")
+		_, err = mgr.CreateTask(context.TODO(), project.ID, &root1.ID, "Child", "Child task", 2, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -119,9 +120,9 @@ func TestRootsAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify root tasks still exist
-		_, err = mgr.GetTask(nil, root1.ID)
+		_, err = mgr.GetTask(context.TODO(), root1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(nil, root2.ID)
+		_, err = mgr.GetTask(context.TODO(), root2.ID)
 		assert.NoError(t, err)
 	})
 }

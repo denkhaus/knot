@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"math"
 
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 )
 
@@ -26,7 +27,7 @@ func (s *CreationOrderStrategy) CalculateScore(score *TaskScore, config *Config)
 
 // GetStrategyName returns the strategy name
 func (s *CreationOrderStrategy) GetStrategyName() string {
-	return "creation-order"
+	return shared.StrategyCreationOrder
 }
 
 // DependencyAwareStrategy implements intelligent scoring based on multiple factors
@@ -52,7 +53,7 @@ func (s *DependencyAwareStrategy) CalculateScore(score *TaskScore, config *Confi
 
 // GetStrategyName returns the strategy name
 func (s *DependencyAwareStrategy) GetStrategyName() string {
-	return "dependency-aware"
+	return shared.StrategyDependencyAware
 }
 
 // PriorityStrategy implements selection primarily based on task priority
@@ -71,7 +72,7 @@ func (s *PriorityStrategy) CalculateScore(score *TaskScore, config *Config) floa
 
 // GetStrategyName returns the strategy name
 func (s *PriorityStrategy) GetStrategyName() string {
-	return "priority"
+	return shared.StrategyPriority
 }
 
 // DepthFirstStrategy implements selection that prioritizes completing branches
@@ -93,7 +94,7 @@ func (s *DepthFirstStrategy) CalculateScore(score *TaskScore, config *Config) fl
 
 // GetStrategyName returns the strategy name
 func (s *DepthFirstStrategy) GetStrategyName() string {
-	return "depth-first"
+	return shared.StrategyDepthFirst
 }
 
 // CriticalPathStrategy implements selection based on critical path analysis
@@ -115,7 +116,7 @@ func (s *CriticalPathStrategy) CalculateScore(score *TaskScore, config *Config) 
 
 // GetStrategyName returns the strategy name
 func (s *CriticalPathStrategy) GetStrategyName() string {
-	return "critical-path"
+	return shared.StrategyCriticalPath
 }
 
 // StrategyFactory creates scoring strategies

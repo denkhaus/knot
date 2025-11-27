@@ -189,19 +189,19 @@ func TestSetAction(t *testing.T) {
 				// Verify the config was updated
 				updatedConfig := appCtx.ProjectManager.GetConfig()
 				switch tt.key {
-				case "complexity-threshold":
+				case shared.ConfigKeyComplexityThreshold:
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.ComplexityThreshold)
-				case "max-depth":
+				case shared.ConfigKeyMaxDepth:
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.MaxDepth)
-				case "max-tasks-per-depth":
+				case shared.ConfigKeyMaxTasksPerDepth:
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.MaxTasksPerDepth)
-				case "max-description-length":
+				case shared.ConfigKeyMaxDescriptionLength:
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.MaxDescriptionLength)
-				case "auto-reduce-complexity":
+				case shared.ConfigKeyAutoReduceComplexity:
 					expected := tt.value == "1"
 					assert.Equal(t, expected, updatedConfig.AutoReduceComplexity)
 				}

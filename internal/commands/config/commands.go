@@ -24,7 +24,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 				&cli.StringFlag{
 					Name:     "key",
 					Aliases:  []string{"k"},
-					Usage:    "Configuration key (complexity-threshold, max-depth, max-tasks-per-depth, max-description-length, auto-reduce-complexity)",
+					Usage:    "Configuration key (" + shared.ConfigKeyComplexityThreshold + ", " + shared.ConfigKeyMaxDepth + ", " + shared.ConfigKeyMaxTasksPerDepth + ", " + shared.ConfigKeyMaxDescriptionLength + ", " + shared.ConfigKeyAutoReduceComplexity + ")",
 					Required: true,
 				},
 				&cli.IntFlag{
@@ -79,34 +79,34 @@ func SetAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Update the specified key
 		switch key {
-		case "complexity-threshold":
+		case shared.ConfigKeyComplexityThreshold:
 			if value < 1 || value > 10 {
 				return fmt.Errorf("complexity-threshold must be between 1 and 10, got %d", value)
 			}
 			newConfig.ComplexityThreshold = value
-		case "max-depth":
+		case shared.ConfigKeyMaxDepth:
 			if value < 1 {
 				return fmt.Errorf("max-depth must be at least 1, got %d", value)
 			}
 			newConfig.MaxDepth = value
-		case "max-tasks-per-depth":
+		case shared.ConfigKeyMaxTasksPerDepth:
 			if value < 1 {
 				return fmt.Errorf("max-tasks-per-depth must be at least 1, got %d", value)
 			}
 			newConfig.MaxTasksPerDepth = value
-		case "max-description-length":
+		case shared.ConfigKeyMaxDescriptionLength:
 			if value < 1 {
 				return fmt.Errorf("max-description-length must be at least 1, got %d", value)
 			}
 			newConfig.MaxDescriptionLength = value
-		case "auto-reduce-complexity":
+		case shared.ConfigKeyAutoReduceComplexity:
 			// Convert int to bool: 0 = false, 1 = true
 			if value != 0 && value != 1 {
 				return fmt.Errorf("auto-reduce-complexity must be 0 (false) or 1 (true), got %d", value)
 			}
 			newConfig.AutoReduceComplexity = value == 1
 		default:
-			return fmt.Errorf("unknown configuration key: %s. Valid keys: complexity-threshold, max-depth, max-tasks-per-depth, max-description-length, auto-reduce-complexity", key)
+			return fmt.Errorf("unknown configuration key: %s. Valid keys: "+shared.ConfigKeyComplexityThreshold+", "+shared.ConfigKeyMaxDepth+", "+shared.ConfigKeyMaxTasksPerDepth+", "+shared.ConfigKeyMaxDescriptionLength+", "+shared.ConfigKeyAutoReduceComplexity, key)
 		}
 
 		// Update and save config

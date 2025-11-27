@@ -7,6 +7,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/magefile/mage/mg"
 	"github.com/magefile/mage/sh"
 )
@@ -97,11 +98,11 @@ func (Test) Badge() error {
 	var color string
 	switch {
 	case coverage >= 80:
-		color = "green"
+		color = shared.ColorGreen
 	case coverage >= 50:
-		color = "yellow"
+		color = shared.ColorYellow
 	default:
-		color = "red"
+		color = shared.ColorRed
 	}
 
 	// Create coverage directory if it doesn't exist
@@ -147,11 +148,11 @@ func (Test) UpdateReadmeBadge(coveragePercent string) error {
 	var color string
 	switch {
 	case coverage >= 80:
-		color = "green"
+		color = shared.ColorGreen
 	case coverage >= 50:
-		color = "yellow"
+		color = shared.ColorYellow
 	default:
-		color = "red"
+		color = shared.ColorRed
 	}
 
 	for i, line := range lines {
