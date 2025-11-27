@@ -187,6 +187,7 @@ func performHealthCheck(ctx context.Context, appCtx *shared.AppContext) (*Health
 
 	if err != nil {
 		health.ErrorMessage = err.Error()
+		return health, err // Return the error here
 	}
 
 	return health, nil

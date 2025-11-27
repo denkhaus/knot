@@ -1,11 +1,19 @@
 package health
 
 import (
+
+	"context"
+	"errors"
+	"io"
+	"os" // Added missing import
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -18,6 +26,12 @@ func createTestAppContext(t *testing.T) *shared.AppContext {
 	mgr := config.SetupTestManager(t)
 	logger := zaptest.NewLogger(t)
 	return shared.NewAppContext(mgr, logger)
+}
+
+// createTestAppContextWithMockManager creates a test app context with a mock ProjectManager
+func createTestAppContextWithMockManager(t *testing.T, mockManager manager.ProjectManager) *shared.AppContext {
+	logger := zaptest.NewLogger(t)
+	return shared.NewAppContext(mockManager, logger)
 }
 
 func TestCommands(t *testing.T) {
@@ -175,8 +189,25 @@ func TestValidateCommandFlags(t *testing.T) {
 
 	require.NotNil(t, validateCommand, "Validate command should be found")
 
-	// Validate command might have different flags - just check it has a flags array
-	assert.NotNil(t, validateCommand.Flags, "Validate command should have flags array")
+	// Check expected flags
+	expectedFlags := []string{"timeout"}
+	flagNames := make([]string, 0)
+	for _, flag := range validateCommand.Flags {
+		flagNames = append(flagNames, flag.Names()...)
+	}
+
+	for _, expectedFlag := range expectedFlags {
+		assert.Contains(t, flagNames, expectedFlag,
+			"Validate command should have '%s' flag", expectedFlag)
+	}
+	// Check default value for timeout flag
+	for _, flag := range validateCommand.Flags {
+		if flag.Names()[0] == "timeout" {
+			durationFlag, ok := flag.(*cli.DurationFlag)
+			require.True(t, ok, "timeout flag should be a DurationFlag")
+			assert.Equal(t, 30*time.Second, durationFlag.Value, "timeout flag should default to 30 seconds")
+		}
+	}
 }
 
 func TestCommandUsageText(t *testing.T) {
@@ -284,4 +315,242 @@ func TestHealthCheckTimeouts(t *testing.T) {
 			}
 		}
 	})
+}
+
+func Test_performHealthCheck(t *testing.T) {
+	tests := []struct {
+		name                 string
+		listProjectsErr      error
+		expectedHealthy      bool
+		expectedErrorMessage string
+	}{
+		{
+			name:                 "healthy check",
+			listProjectsErr:      nil,
+			expectedHealthy:      true,
+			expectedErrorMessage: "",
+		},
+		{
+			name:                 "unhealthy check",
+			listProjectsErr:      errors.New("db connection failed"),
+			expectedHealthy:      false,
+			expectedErrorMessage: "db connection failed",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockMgr := NewMockProjectManager()
+			mockMgr.ListProjectsFunc = func(ctx context.Context) ([]*types.Project, error) {
+				return nil, tt.listProjectsErr
+			}
+			appCtx := createTestAppContextWithMockManager(t, mockMgr)
+
+			healthStatus, err := performHealthCheck(context.Background(), appCtx)
+
+			if tt.expectedHealthy {
+				require.NoError(t, err)
+				assert.True(t, healthStatus.Healthy)
+				assert.Empty(t, healthStatus.ErrorMessage)
+			} else {
+				require.Error(t, err)
+				assert.False(t, healthStatus.Healthy)
+				assert.Contains(t, healthStatus.ErrorMessage, tt.expectedErrorMessage)
+			}
+			assert.NotZero(t, healthStatus.LastChecked)
+			assert.GreaterOrEqual(t, healthStatus.PingLatency, time.Duration(0))
+		})
+	}
+}
+
+func Test_performPing(t *testing.T) {
+	tests := []struct {
+		name            string
+		listProjectsErr error
+		expectedErr     bool
+	}{
+		{
+			name:            "successful ping",
+			listProjectsErr: nil,
+			expectedErr:     false,
+		},
+		{
+			name:            "failed ping",
+			listProjectsErr: errors.New("network unreachable"),
+			expectedErr:     true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockMgr := NewMockProjectManager()
+			mockMgr.ListProjectsFunc = func(ctx context.Context) ([]*types.Project, error) {
+				return nil, tt.listProjectsErr
+			}
+			appCtx := createTestAppContextWithMockManager(t, mockMgr)
+
+			err := performPing(context.Background(), appCtx)
+
+			if tt.expectedErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.listProjectsErr.Error())
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_performValidation(t *testing.T) {
+	tests := []struct {
+		name                 string
+		listProjectsErr      error
+		getConfigReturn      *manager.Config
+		expectedErr          bool
+		expectedErrorMessage string
+	}{
+		{
+			name:            "successful validation",
+			listProjectsErr: nil,
+			getConfigReturn: manager.DefaultConfig(),
+			expectedErr:     false,
+		},
+		{
+			name:                 "list projects fails",
+			listProjectsErr:      errors.New("list projects error"),
+			getConfigReturn:      manager.DefaultConfig(),
+			expectedErr:          true,
+			expectedErrorMessage: "List Projects failed: list projects error",
+		},
+		{
+			name:                 "get config returns nil",
+			listProjectsErr:      nil,
+			getConfigReturn:      nil,
+			expectedErr:          true,
+			expectedErrorMessage: "Get Config failed: config is nil",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			mockMgr := NewMockProjectManager()
+			mockMgr.ListProjectsFunc = func(ctx context.Context) ([]*types.Project, error) {
+				return nil, tt.listProjectsErr
+			}
+			mockMgr.GetConfigFunc = func() *manager.Config {
+				return tt.getConfigReturn
+			}
+			appCtx := createTestAppContextWithMockManager(t, mockMgr)
+
+			err := performValidation(context.Background(), appCtx)
+
+			if tt.expectedErr {
+				require.Error(t, err)
+				assert.Contains(t, err.Error(), tt.expectedErrorMessage)
+			} else {
+				require.NoError(t, err)
+			}
+		})
+	}
+}
+
+func Test_printHealthStatus(t *testing.T) {
+	tests := []struct {
+		name         string
+		healthStatus *HealthStatus
+		expectedOutput string
+	}{
+		{
+			name: "healthy status",
+			healthStatus: &HealthStatus{
+				Healthy:          true,
+				ConnectionActive: true,
+				PingLatency:      10 * time.Millisecond,
+				DatabasePath:     "test.db",
+				LastChecked:      time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC),
+			},
+			expectedOutput: `Database Health Status:
+
+✅ Status: Healthy
+📊 Connection Details:
+   Active: true
+   Latency: 10ms
+   Database: test.db
+   Last Checked: 2023-01-01T12:00:00Z
+`,
+		},
+		{
+			name: "unhealthy status with error",
+			healthStatus: &HealthStatus{
+				Healthy:          false,
+				ConnectionActive: false,
+				PingLatency:      500 * time.Millisecond,
+				ErrorMessage:     "connection refused",
+				DatabasePath:     "test.db",
+				LastChecked:      time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC),
+			},
+			expectedOutput: `Database Health Status:
+
+❌ Status: Unhealthy
+   Error: connection refused
+📊 Connection Details:
+   Active: false
+   Latency: 500ms
+   Database: test.db
+   Last Checked: 2023-01-01T12:00:00Z
+`,
+		},
+		{
+			name: "status with connection pool and sqlite settings",
+			healthStatus: &HealthStatus{
+				Healthy:          true,
+				ConnectionActive: true,
+				PingLatency:      5 * time.Millisecond,
+				OpenConnections:  10,
+				IdleConnections:  5,
+				InUseConnections: 5,
+				DatabasePath:     "prod.db",
+				WALModeEnabled:   true,
+				ForeignKeys:      true,
+				LastChecked:      time.Date(2023, 1, 1, 12, 0, 0, 0, time.UTC),
+			},
+			expectedOutput: `Database Health Status:
+
+✅ Status: Healthy
+📊 Connection Details:
+   Active: true
+   Latency: 5ms
+   Database: prod.db
+   Last Checked: 2023-01-01T12:00:00Z
+🔗 Connection Pool:
+   Open: 10
+   Idle: 5
+   In Use: 5
+⚙️  SQLite Settings:
+   WAL Mode: ✅ Enabled
+   Foreign Keys: ✅ Enabled
+`,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Capture stdout
+			oldStdout := os.Stdout
+			r, w, _ := os.Pipe()
+			os.Stdout = w
+
+			printHealthStatus(tt.healthStatus)
+
+			w.Close()
+			out, _ := io.ReadAll(r)
+			os.Stdout = oldStdout // Restore stdout
+
+			// Clean up extra spaces/newlines to make comparison easier
+			actualOutput := strings.TrimSpace(string(out))
+			expectedOutput := strings.TrimSpace(tt.expectedOutput)
+
+			assert.Equal(t, expectedOutput, actualOutput)
+		})
+	}
 }
