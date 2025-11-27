@@ -327,7 +327,9 @@ func (r *sqliteRepository) DeleteTaskSubtree(ctx context.Context, taskID uuid.UU
 		}
 
 		// Add the root task to the list
-		allTaskIDs := append(descendantIDs, taskID)
+		allTaskIDs := make([]uuid.UUID, 0, len(descendantIDs)+1)
+		allTaskIDs = append(allTaskIDs, descendantIDs...)
+		allTaskIDs = append(allTaskIDs, taskID)
 
 		// Delete all task dependencies for these tasks
 		_, err = tx.TaskDependency.Delete().

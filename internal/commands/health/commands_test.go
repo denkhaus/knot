@@ -542,7 +542,7 @@ func Test_printHealthStatus(t *testing.T) {
 
 			printHealthStatus(tt.healthStatus)
 
-			w.Close()
+			_ = w.Close()
 			out, _ := io.ReadAll(r)
 			os.Stdout = oldStdout // Restore stdout
 

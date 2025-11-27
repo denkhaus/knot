@@ -176,13 +176,14 @@ func (ts *DefaultTaskSelector) selectBestTask(scores []*TaskScore) (*TaskScore, 
 	var candidateScores []*TaskScore
 	var alternatives []*TaskScore
 
-	if ts.config.Behavior.PreferInProgress && len(inProgressScores) > 0 {
+	switch {
+	case ts.config.Behavior.PreferInProgress && len(inProgressScores) > 0:
 		candidateScores = inProgressScores
 		alternatives = pendingScores
-	} else if len(pendingScores) > 0 {
+	case len(pendingScores) > 0:
 		candidateScores = pendingScores
 		alternatives = inProgressScores
-	} else {
+	default:
 		candidateScores = inProgressScores
 		alternatives = []*TaskScore{}
 	}

@@ -118,15 +118,16 @@ func (f *CommandFactory) parseConfig(c *cli.Context, appCtx *shared.AppContext) 
 	}
 
 	// Determine visualization mode
-	if config.TaskID != "" {
+	switch {
+	case config.TaskID != "":
 		config.Mode = ModeTask
-	} else if c.Bool("tree") {
+	case c.Bool("tree"):
 		config.Mode = ModeTree
-	} else if c.Bool("graph") {
+	case c.Bool("graph"):
 		config.Mode = ModeGraph
-	} else if c.Bool("blocks") {
+	case c.Bool("blocks"):
 		config.Mode = ModeBlocks
-	} else {
+	default:
 		config.Mode = ModeProject
 	}
 

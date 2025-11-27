@@ -4,8 +4,8 @@ package shared
 const (
 	// Config keys used in CLI commands
 	ConfigKeyComplexityThreshold  = "complexity-threshold"
-	ConfigKeyMaxDepth            = "max-depth"
-	ConfigKeyMaxTasksPerDepth    = "max-tasks-per-depth"
+	ConfigKeyMaxDepth             = "max-depth"
+	ConfigKeyMaxTasksPerDepth     = "max-tasks-per-depth"
 	ConfigKeyMaxDescriptionLength = "max-description-length"
 	ConfigKeyAutoReduceComplexity = "auto-reduce-complexity"
 )
@@ -32,9 +32,9 @@ const (
 
 // Tree formatting characters
 const (
-	TreePrefixRight      = "└── "
-	TreePrefixMiddle      = "├── "
-	TreePrefixSeparator   = "│"
+	TreePrefixRight     = "└── "
+	TreePrefixMiddle    = "├── "
+	TreePrefixSeparator = "│"
 )
 
 // Health test parameters

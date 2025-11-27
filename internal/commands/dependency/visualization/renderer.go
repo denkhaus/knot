@@ -279,14 +279,8 @@ func (r *Renderer) renderTaskTree(task *types.Task, relationships []TaskRelation
 		return dependents[i].Priority > dependents[j].Priority
 	})
 
-	for i, dependent := range dependents {
-		isLast := i == len(dependents)-1
-		connector := "+-"
-		if isLast {
-			connector += "-"
-		} else {
-			connector += "-"
-		}
+	for _, dependent := range dependents {
+		connector := "+--"
 
 		icon := r.getTaskIcon(dependent, dependent.ID)
 		r.addLine(fmt.Sprintf("%s  %s%s %s", indent, icon, connector, dependent.Title))

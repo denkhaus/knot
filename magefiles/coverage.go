@@ -11,8 +11,6 @@ import (
 	"github.com/magefile/mage/sh"
 )
 
-
-
 // Coverage namespace for coverage-related targets
 type Coverage mg.Namespace
 
@@ -171,5 +169,3 @@ func (Coverage) UpdateReadmeBadge(coveragePercent string) error {
 	updatedContent := strings.Join(lines, "\n")
 	return os.WriteFile(readmePath, []byte(updatedContent), 0644)
 }
-
-

@@ -27,9 +27,7 @@ func NewMockProjectManager() *MockProjectManager {
 		ListProjectsFunc: func(ctx context.Context) ([]*types.Project, error) {
 			return []*types.Project{}, nil // Default: return empty list, no error
 		},
-		GetConfigFunc: func() *manager.Config {
-			return manager.DefaultConfig() // Default: return default config
-		},
+		GetConfigFunc: manager.DefaultConfig,
 	}
 }
 
