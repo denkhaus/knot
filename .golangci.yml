@@ -28,12 +28,6 @@ linters-settings:
     min-len: 3
     min-occurrences: 3
   gocritic:
-    enabled-tags:
-      - diagnostic
-      - experimental
-      - opinionated
-      - performance
-      - style
     enabled-checks:
       - dupImport
       - ifElseChain
@@ -46,17 +40,12 @@ linters-settings:
     lines: 500
     statements: 100
   maintainidx:
-    target: 15
+    target: 20
 
 formatters:
   enable:
     - gofmt
 
 issues:
-  exclude-rules:
-    - path: "internal/.*test.*\\.go$"
-    - path: ".*_test\\.go$"
-    - path: "coverage/.*\\.go$"
-    - path: "magefiles/.*\\.go$"
   max-issues-per-linter: 0
   max-same-issues: 3
