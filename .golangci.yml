@@ -19,6 +19,7 @@ linters:
     - gocyclo
     - revive
     - goconst
+    - funlen
 
 linters-settings:
   gocyclo:
@@ -33,14 +34,28 @@ linters-settings:
       - opinionated
       - performance
       - style
-    disabled-checks:
+    enabled-checks:
       - dupImport
       - ifElseChain
       - octalLiteral
       - whyNoLint
       - wrapperFunc
+    settings:
+      dupl: false
+  funlen:
+    lines: 500
+    statements: 100
+  maintainidx:
+    target: 15
 
 formatters:
   enable:
     - gofmt
-    - goimports
+
+issues:
+  exclude-rules:
+    - path: "internal/.*test.*\\.go$"
+    - path: ".*_test\\.go$"
+    - path: "coverage/.*\\.go$"
+    - path: "magefiles/.*\\.go$"
+  max-same-issues: 3
