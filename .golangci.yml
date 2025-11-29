@@ -21,25 +21,6 @@ linters:
     - goconst
     - funlen
 
-linters-settings:
-  gocyclo:
-    min-complexity: 15
-  goconst:
-    min-len: 3
-    min-occurrences: 3
-  gocritic:
-    enabled-checks:
-      - dupImport
-      - ifElseChain
-      - octalLiteral
-      - whyNoLint
-      - wrapperFunc
-    settings:
-      dupl: false
-  funlen:
-    lines: 500
-    statements: 100
-
 formatters:
   enable:
     - gofmt
