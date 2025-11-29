@@ -19,7 +19,7 @@ import (
 
 // printDeletionTree displays tasks using the unified tree format for deletion operations
 // Task Reference: 12a4b5a6-908d-411d-959a-462cb3d3d1c2 | Brain Reference: e4bea247-7f1f-4712-8188-b9b0b4ecb3ea
-func printDeletionTree(header string, rootTask *types.Task, descendants []*types.Task, _showState bool) {
+func printDeletionTree(header string, rootTask *types.Task, descendants []*types.Task) {
 	// Create tree formatter with emoji support
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
 		ShowEmojis:  true,
@@ -277,7 +277,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 			// Show what will be deleted
 			if deleteAll {
-				printDeletionTree("Final deletion of task subtree:", task, descendants, false)
+				printDeletionTree("Final deletion of task subtree:", task, descendants)
 
 				totalTasks := 1 + len(descendants)
 				fmt.Printf("Total tasks to delete: %d\n", totalTasks)
@@ -292,7 +292,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 				appCtx.Logger.Info("Task subtree deleted successfully", zap.Int("totalDeleted", totalTasks))
 				fmt.Printf("Task subtree permanently deleted: %d task(s) removed\n", totalTasks)
 			} else {
-				printDeletionTree("Final deletion of task:", task, nil, false)
+				printDeletionTree("Final deletion of task:", task, nil)
 
 				// Perform single task deletion
 				err = appCtx.ProjectManager.DeleteTask(context.Background(), taskID, appCtx.Actor)
@@ -306,80 +306,80 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 				}
 
 				fmt.Printf("Task permanently deleted: %s\n", task.Title)
+			}
+			return nil
 		}
-		return nil
-	}
 
-	// First call - mark for deletion
-	if dryRun {
+		// First call - mark for deletion
+		if dryRun {
+			if deleteAll {
+				totalTasks := 1 + len(descendants)
+				fmt.Printf("DRY RUN: Task subtree would be marked for deletion (%d tasks, no actual changes made)\n", totalTasks)
+			} else {
+				fmt.Printf("DRY RUN: Task would be marked for deletion (no actual changes made)\n")
+			}
+			return nil
+		}
+
+		// Show what will be marked for deletion
 		if deleteAll {
-			totalTasks := 1 + len(descendants)
-			fmt.Printf("DRY RUN: Task subtree would be marked for deletion (%d tasks, no actual changes made)\n", totalTasks)
-		} else {
-			fmt.Printf("DRY RUN: Task would be marked for deletion (no actual changes made)\n")
-		}
-		return nil
-	}
-
-	// Show what will be marked for deletion
-	if deleteAll {
-			printDeletionTree("Task subtree to be marked for deletion:", task, descendants, true)
+			printDeletionTree("Task subtree to be marked for deletion:", task, descendants)
 
 			totalTasks := 1 + len(descendants)
 			fmt.Printf("Total tasks to mark for deletion: %d\n", totalTasks)
 
-				// Check for dependencies on any task in the subtree
-				err = checkSubtreeDependencies(appCtx, task, descendants)
-				if err != nil {
-					return err
-				}
-
-				fmt.Printf("\nTask subtree marked for deletion. To confirm deletion, run the same command again:\n")
-				fmt.Printf("    knot task delete --id %s --all\n", taskID)
-			} else {
-				printDeletionTree("Task to be marked for deletion:", task, nil, true)
-
-				// Check for dependencies
-				dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), taskID)
-				if err == nil && len(dependencies) > 0 {
-					fmt.Printf("\n  This task depends on %d other task(s):\n", len(dependencies))
-					for _, dep := range dependencies {
-						fmt.Printf("    • %s (ID: %s)\n", dep.Title, dep.ID)
-					}
-				}
-
-				dependents, err := appCtx.ProjectManager.GetDependentTasks(context.Background(), taskID)
-				if err == nil && len(dependents) > 0 {
-					fmt.Printf("\n  %d task(s) depend on this task:\n", len(dependents))
-					for _, dep := range dependents {
-						fmt.Printf("    • %s (ID: %s)\n", dep.Title, dep.ID)
-					}
-					fmt.Printf("    These dependencies will be removed.\n")
-				}
-
-				fmt.Printf("\nTask marked for deletion. To confirm deletion, run the same command again:\n")
-				fmt.Printf("    knot task delete --id %s\n", taskID)
-			}
-
-			fmt.Printf("\nTo cancel deletion, change the task state:\n")
-			fmt.Printf("    knot task update-state --id %s --state pending\n", taskID)
-
-			if deleteAll {
-				fmt.Printf("\nNote: Only the root task is marked as deletion-pending. All descendants will be deleted when confirmed.\n")
-			}
-
-			// Mark root task for deletion (triggers subtree deletion if --all was used)
-			_, err = appCtx.ProjectManager.UpdateTask(context.Background(), task.ID, task.Title, task.Description, task.Complexity, types.TaskStateDeletionPending, appCtx.Actor)
+			// Check for dependencies on any task in the subtree
+			err = checkSubtreeDependencies(appCtx, task, descendants)
 			if err != nil {
-				return &errors.EnhancedError{
-					Operation:   "marking task for deletion",
-					Cause:       err,
-					Suggestion:  "Check if the task state transition is valid",
-					HelpCommand: "knot task update-state --help",
+				return err
+			}
+
+			fmt.Printf("\nTask subtree marked for deletion. To confirm deletion, run the same command again:\n")
+			fmt.Printf("    knot task delete --id %s --all\n", taskID)
+		} else {
+			printDeletionTree("Task to be marked for deletion:", task, nil)
+
+			// Check for dependencies
+			dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), taskID)
+			if err == nil && len(dependencies) > 0 {
+				fmt.Printf("\n  This task depends on %d other task(s):\n", len(dependencies))
+				for _, dep := range dependencies {
+					fmt.Printf("    • %s (ID: %s)\n", dep.Title, dep.ID)
 				}
 			}
 
-			return nil
+			dependents, err := appCtx.ProjectManager.GetDependentTasks(context.Background(), taskID)
+			if err == nil && len(dependents) > 0 {
+				fmt.Printf("\n  %d task(s) depend on this task:\n", len(dependents))
+				for _, dep := range dependents {
+					fmt.Printf("    • %s (ID: %s)\n", dep.Title, dep.ID)
+				}
+				fmt.Printf("    These dependencies will be removed.\n")
+			}
+
+			fmt.Printf("\nTask marked for deletion. To confirm deletion, run the same command again:\n")
+			fmt.Printf("    knot task delete --id %s\n", taskID)
+		}
+
+		fmt.Printf("\nTo cancel deletion, change the task state:\n")
+		fmt.Printf("    knot task update-state --id %s --state pending\n", taskID)
+
+		if deleteAll {
+			fmt.Printf("\nNote: Only the root task is marked as deletion-pending. All descendants will be deleted when confirmed.\n")
+		}
+
+		// Mark root task for deletion (triggers subtree deletion if --all was used)
+		_, err = appCtx.ProjectManager.UpdateTask(context.Background(), task.ID, task.Title, task.Description, task.Complexity, types.TaskStateDeletionPending, appCtx.Actor)
+		if err != nil {
+			return &errors.EnhancedError{
+				Operation:   "marking task for deletion",
+				Cause:       err,
+				Suggestion:  "Check if the task state transition is valid",
+				HelpCommand: "knot task update-state --help",
+			}
+		}
+
+		return nil
 	}
 }
 

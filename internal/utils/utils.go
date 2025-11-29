@@ -7,7 +7,8 @@
 // Key Functions:
 //   - Min: Returns the minimum of two integers
 //   - IsTaskReady: Checks if a task has all its dependencies completed
-// Package utils provides utility functions for task management and data processing
+//
+// # Package utils provides utility functions for task management and data processing
 //
 // Key utilities:
 //   - OutputTasksAsJSON: Formats tasks as JSON for output

@@ -33,6 +33,59 @@ func (tt *TestTask) ToTask() *types.Task {
 	}
 }
 
+// testTaskUUIDMap provides O(1) lookup for test task UUIDs
+var testTaskUUIDMap = map[string]uuid.UUID{
+	// Basic test tasks
+	"task1": uuid.MustParse("11111111-1111-1111-1111-111111111111"),
+	"task2": uuid.MustParse("22222222-2222-2222-2222-222222222222"),
+	"task3": uuid.MustParse("33333333-3333-3333-3333-333333333333"),
+	"task4": uuid.MustParse("44444444-4444-4444-4444-444444444444"),
+	"task5": uuid.MustParse("55555555-5555-5555-5555-555555555555"),
+
+	// Root tasks
+	"root1":    uuid.MustParse("10000000-0000-0000-0000-000000000000"),
+	"root2":    uuid.MustParse("20000000-0000-0000-0000-000000000000"),
+	"subtask1": uuid.MustParse("11000000-0000-0000-0000-000000000000"),
+	"subtask2": uuid.MustParse("12000000-0000-0000-0000-000000000000"),
+
+	// Complex dependency graph tasks
+	"taskA": uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa"),
+	"taskB": uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb"),
+	"taskC": uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc"),
+	"taskD": uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd"),
+	"taskE": uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee"),
+
+	// Strategy comparison tasks
+	"oldHighPrio": uuid.MustParse("77777777-7777-7777-7777-777777777777"),
+	"newLowPrio":  uuid.MustParse("88888888-8888-8888-8888-888888888888"),
+	"unblockMany": uuid.MustParse("99999999-9999-9999-9999-999999999999"),
+
+	// Priority test tasks
+	"lowPrio":  uuid.MustParse("66666666-6666-6666-6666-666666666666"),
+	"highPrio": uuid.MustParse("55555555-5555-5555-5555-555555555555"),
+	"medPrio":  uuid.MustParse("44444444-4444-4444-4444-444444444444"),
+
+	// State test tasks
+	"pending1":    uuid.MustParse("60606060-6060-6060-6060-606060606060"),
+	"inprogress1": uuid.MustParse("61616161-6161-6161-6161-616161616161"),
+	"pending2":    uuid.MustParse("62626262-6262-6262-6262-626262626262"),
+	"inprogress2": uuid.MustParse("63636363-6363-6363-6363-636363636363"),
+
+	// Hierarchy test tasks
+	"parent": uuid.MustParse("70707070-7070-7070-7070-707070707070"),
+
+	// Component tasks
+	"frontend":  uuid.MustParse("fffffff1-ffff-ffff-ffff-ffffffffffff"),
+	"backend":   uuid.MustParse("fffffff2-ffff-ffff-ffff-ffffffffffff"),
+	"ui-design": uuid.MustParse("fffffff3-ffff-ffff-ffff-ffffffffffff"),
+	"api":       uuid.MustParse("fffffff4-ffff-ffff-ffff-ffffffffffff"),
+	"database":  uuid.MustParse("fffffff5-ffff-ffff-ffff-ffffffffffff"),
+	"ui-mockup": uuid.MustParse("fffffff6-ffff-ffff-ffff-ffffffffffff"),
+	"ui-impl":   uuid.MustParse("fffffff7-ffff-ffff-ffff-ffffffffffff"),
+	"api-impl":  uuid.MustParse("fffffff8-ffff-ffff-ffff-ffffffffffff"),
+	"tests":     uuid.MustParse("fffffff9-ffff-ffff-ffff-ffffffffffff"),
+}
+
 // createTestTask creates a test task with specified parameters
 func createTestTask(id, title string, state types.TaskState, priority types.TaskPriority, parentID *uuid.UUID, dependencies []uuid.UUID) *types.Task {
 	taskID := testTaskID(id)
@@ -48,84 +101,15 @@ func createTestTask(id, title string, state types.TaskState, priority types.Task
 }
 
 // testTaskID generates a UUID from a string for testing
+// Reduced complexity from 35 to 3 by using map lookup
 func testTaskID(id string) uuid.UUID {
-	// Create predictable UUIDs for testing
-	switch id {
-	case "task1":
-		return uuid.MustParse("11111111-1111-1111-1111-111111111111")
-	case "task2":
-		return uuid.MustParse("22222222-2222-2222-2222-222222222222")
-	case "task3":
-		return uuid.MustParse("33333333-3333-3333-3333-333333333333")
-	case "task4":
-		return uuid.MustParse("44444444-4444-4444-4444-444444444444")
-	case "task5":
-		return uuid.MustParse("55555555-5555-5555-5555-555555555555")
-	case "root1":
-		return uuid.MustParse("10000000-0000-0000-0000-000000000000")
-	case "root2":
-		return uuid.MustParse("20000000-0000-0000-0000-000000000000")
-	case "subtask1":
-		return uuid.MustParse("11000000-0000-0000-0000-000000000000")
-	case "subtask2":
-		return uuid.MustParse("12000000-0000-0000-0000-000000000000")
-	// Add missing task IDs for complex dependency graph and circular dependency testing
-	case "taskA":
-		return uuid.MustParse("aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa")
-	case "taskB":
-		return uuid.MustParse("bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb")
-	case "taskC":
-		return uuid.MustParse("cccccccc-cccc-cccc-cccc-cccccccccccc")
-	case "taskD":
-		return uuid.MustParse("dddddddd-dddd-dddd-dddd-dddddddddddd")
-	case "taskE":
-		return uuid.MustParse("eeeeeeee-eeee-eeee-eeee-eeeeeeeeeeee")
-	// Task IDs for strategy comparison tests
-	case "oldHighPrio":
-		return uuid.MustParse("77777777-7777-7777-7777-777777777777")
-	case "newLowPrio":
-		return uuid.MustParse("88888888-8888-8888-8888-888888888888")
-	case "unblockMany":
-		return uuid.MustParse("99999999-9999-9999-9999-999999999999")
-	// Task IDs for other test scenarios
-	case "lowPrio":
-		return uuid.MustParse("66666666-6666-6666-6666-666666666666")
-	case "highPrio":
-		return uuid.MustParse("55555555-5555-5555-5555-555555555555")
-	case "medPrio":
-		return uuid.MustParse("44444444-4444-4444-4444-444444444444")
-	case "pending1":
-		return uuid.MustParse("60606060-6060-6060-6060-606060606060")
-	case "inprogress1":
-		return uuid.MustParse("61616161-6161-6161-6161-616161616161")
-	case "pending2":
-		return uuid.MustParse("62626262-6262-6262-6262-626262626262")
-	case "inprogress2":
-		return uuid.MustParse("63636363-6363-6363-6363-636363636363")
-	case "parent":
-		return uuid.MustParse("70707070-7070-7070-7070-707070707070")
-	case "frontend":
-		return uuid.MustParse("fffffff1-ffff-ffff-ffff-ffffffffffff")
-	case "backend":
-		return uuid.MustParse("fffffff2-ffff-ffff-ffff-ffffffffffff")
-	case "ui-design":
-		return uuid.MustParse("fffffff3-ffff-ffff-ffff-ffffffffffff")
-	case "api":
-		return uuid.MustParse("fffffff4-ffff-ffff-ffff-ffffffffffff")
-	case "database":
-		return uuid.MustParse("fffffff5-ffff-ffff-ffff-ffffffffffff")
-	case "ui-mockup":
-		return uuid.MustParse("fffffff6-ffff-ffff-ffff-ffffffffffff")
-	case "ui-impl":
-		return uuid.MustParse("fffffff7-ffff-ffff-ffff-ffffffffffff")
-	case "api-impl":
-		return uuid.MustParse("fffffff8-ffff-ffff-ffff-ffffffffffff")
-	case "tests":
-		return uuid.MustParse("fffffff9-ffff-ffff-ffff-ffffffffffff")
-	default:
-		// For unknown IDs, generate a deterministic UUID based on the string
-		return uuid.NewSHA1(uuid.NameSpaceURL, []byte(id))
+	// Fast path: direct map lookup
+	if uuidVal, exists := testTaskUUIDMap[id]; exists {
+		return uuidVal
 	}
+
+	// Fallback: generate deterministic UUID for unknown IDs
+	return uuid.NewSHA1(uuid.NameSpaceURL, []byte(id))
 }
 
 // createComplexDependencyGraph creates a more complex dependency scenario
@@ -149,7 +133,7 @@ func createComplexDependencyGraph() []*types.Task {
 	}
 }
 
-// createUserScenarioTasks creates the specific scenario mentioned by the user
+// createUserScenarioTasks creates specific scenario mentioned by user
 func createUserScenarioTasks() []*types.Task {
 	firstRoot := testTaskID("root1")
 	return []*types.Task{
@@ -231,7 +215,7 @@ func taskNameFromIndex(i int) string {
 	return fmt.Sprintf("Task %d", i+1)
 }
 
-// assertTaskSelected verifies that the expected task was selected (stub for compilation)
+// assertTaskSelected verifies that expected task was selected (stub for compilation)
 func assertTaskSelected(t interface{}, expectedTaskName string, selectedTask *types.Task, err error) {
 	// Stub implementation for compilation
 }

@@ -333,7 +333,7 @@ func TestSetActionIntegration(t *testing.T) {
 	assert.NotEqual(t, initialThreshold, updatedConfig.ComplexityThreshold)
 }
 
-func TestSetActionFlagValidation(t *testing.T) {
+func TestSetActionFlagValidation(_ *testing.T) {
 	appCtx := &shared.AppContext{
 		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
 	}
@@ -571,7 +571,7 @@ func TestCommandsStructure(t *testing.T) {
 	}
 }
 
-func TestSetActionMissingRequiredFlags(t *testing.T) {
+func TestSetActionMissingRequiredFlags(_ *testing.T) {
 	appCtx := &shared.AppContext{
 		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
 	}

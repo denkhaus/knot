@@ -187,7 +187,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 }
 
 // listAction lists available templates
-func listAction(_appCtx *shared.AppContext) cli.ActionFunc {
+func listAction(*shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Load all templates (user + built-in)
 		templates, err := loadAllTemplates()
@@ -228,7 +228,7 @@ func listAction(_appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // showAction shows detailed information about a template
-func showAction(_appCtx *shared.AppContext) cli.ActionFunc {
+func showAction(*shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
 

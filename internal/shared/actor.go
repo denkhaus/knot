@@ -1,8 +1,9 @@
 package shared
 
 import (
-	"github.com/urfave/cli/v2"
 	"os"
+
+	"github.com/urfave/cli/v2"
 )
 
 // GetActorFromContext resolves the actor from CLI context with proper fallback logic

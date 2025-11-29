@@ -1,7 +1,6 @@
 package health
 
 import (
-
 	"context"
 	"errors"
 	"io"
@@ -456,8 +455,8 @@ func Test_performValidation(t *testing.T) {
 
 func Test_printStatus(t *testing.T) {
 	tests := []struct {
-		name         string
-		healthStatus *Status
+		name           string
+		healthStatus   *Status
 		expectedOutput string
 	}{
 		{
