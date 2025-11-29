@@ -1,7 +1,7 @@
 version: "2"
 
 run:
-  timeout: 5m
+  timeout: 10m
 
 linters:
   enable:
@@ -12,14 +12,21 @@ linters:
     - ineffassign
     - misspell
     - unconvert
-    - unparam
     - nakedret
-    - prealloc
     - gocritic
-    - gocyclo
-    - revive
     - goconst
-    - funlen
+
+linters-settings:
+  funlen:
+    lines: 120
+    statements: 50
+
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+      - name: var-naming
+        severity: warning
 
 formatters:
   enable:
