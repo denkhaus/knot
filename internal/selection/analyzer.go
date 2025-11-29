@@ -101,7 +101,7 @@ func (da *DefaultDependencyAnalyzer) InvalidateCache(projectID string) {
 }
 
 // parseProjectID converts project ID string to UUID
-func (da *DefaultDependencyAnalyzer) parseProjectID(projectID string) uuid.UUID {
+func (da *DefaultDependencyAnalyzer) parseProjectID(_projectID string) uuid.UUID {
 	// Simple implementation - in a real scenario, this would parse the project ID properly
 	// For now, return a zero UUID
 	return uuid.UUID{}

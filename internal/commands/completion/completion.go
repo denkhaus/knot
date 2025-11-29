@@ -15,8 +15,8 @@ const (
 	ShellZsh  ShellType = "zsh"
 )
 
-// CompletionCommand creates the shell completion command
-func CompletionCommand(appCtx *shared.AppContext) *cli.Command {
+// Command creates the shell completion command (renamed from CompletionCommand to avoid stuttering)
+func Command(appCtx *shared.AppContext) *cli.Command {
 	return &cli.Command{
 		Name:  "completion",
 		Usage: "Generate shell completion scripts",

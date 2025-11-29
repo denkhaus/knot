@@ -244,7 +244,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:  "Get started guide for LLM agents with available commands and usage",
 				Action: task.GetStartedAction(appCtx),
 			},
-			completion.CompletionCommand(appCtx),
+			completion.Command(appCtx),
 		},
 	}
 

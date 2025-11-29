@@ -96,7 +96,7 @@ func checkAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 			fmt.Println(string(jsonData))
 		} else {
-			printHealthStatus(health)
+			printStatus(health)
 		}
 
 		if !health.Healthy {
@@ -163,8 +163,8 @@ func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-// HealthStatus represents database health information
-type HealthStatus struct {
+// Status represents database health information (renamed from Status to avoid stuttering)
+type Status struct {
 	Healthy          bool          `json:"healthy"`
 	ConnectionActive bool          `json:"connection_active"`
 	PingLatency      time.Duration `json:"ping_latency"`
@@ -179,7 +179,7 @@ type HealthStatus struct {
 }
 
 // performHealthCheck performs a health check using the project manager
-func performHealthCheck(ctx context.Context, appCtx *shared.AppContext) (*HealthStatus, error) {
+func performHealthCheck(ctx context.Context, appCtx *shared.AppContext) (*Status, error) {
 	// For now, we'll implement a basic health check
 	// TODO: Extend manager interface to expose repository health checks
 
@@ -189,7 +189,7 @@ func performHealthCheck(ctx context.Context, appCtx *shared.AppContext) (*Health
 	_, err := appCtx.ProjectManager.ListProjects(ctx)
 	latency := time.Since(start)
 
-	health := &HealthStatus{
+	health := &Status{
 		LastChecked:      time.Now(),
 		PingLatency:      latency,
 		ConnectionActive: err == nil,
@@ -242,8 +242,8 @@ func performValidation(ctx context.Context, appCtx *shared.AppContext) error {
 	return nil
 }
 
-// printHealthStatus prints health status in human-readable format
-func printHealthStatus(health *HealthStatus) {
+// printStatus prints health status in human-readable format
+func printStatus(health *Status) {
 	fmt.Printf("Database Health Status:\n\n")
 
 	if health.Healthy {

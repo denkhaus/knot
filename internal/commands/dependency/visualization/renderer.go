@@ -12,12 +12,12 @@ import (
 
 // Renderer handles output rendering for different formats
 type Renderer struct {
-	config *VisualizationConfig
+	config *Config
 	output []string
 }
 
 // NewRenderer creates a new renderer
-func NewRenderer(config *VisualizationConfig) *Renderer {
+func NewRenderer(config *Config) *Renderer {
 	return &Renderer{
 		config: config,
 		output: make([]string, 0),

@@ -454,15 +454,15 @@ func Test_performValidation(t *testing.T) {
 	}
 }
 
-func Test_printHealthStatus(t *testing.T) {
+func Test_printStatus(t *testing.T) {
 	tests := []struct {
 		name         string
-		healthStatus *HealthStatus
+		healthStatus *Status
 		expectedOutput string
 	}{
 		{
 			name: "healthy status",
-			healthStatus: &HealthStatus{
+			healthStatus: &Status{
 				Healthy:          true,
 				ConnectionActive: true,
 				PingLatency:      10 * time.Millisecond,
@@ -481,7 +481,7 @@ func Test_printHealthStatus(t *testing.T) {
 		},
 		{
 			name: "unhealthy status with error",
-			healthStatus: &HealthStatus{
+			healthStatus: &Status{
 				Healthy:          false,
 				ConnectionActive: false,
 				PingLatency:      500 * time.Millisecond,
@@ -502,7 +502,7 @@ func Test_printHealthStatus(t *testing.T) {
 		},
 		{
 			name: "status with connection pool and sqlite settings",
-			healthStatus: &HealthStatus{
+			healthStatus: &Status{
 				Healthy:          true,
 				ConnectionActive: true,
 				PingLatency:      5 * time.Millisecond,
@@ -540,7 +540,7 @@ func Test_printHealthStatus(t *testing.T) {
 			r, w, _ := os.Pipe()
 			os.Stdout = w
 
-			printHealthStatus(tt.healthStatus)
+			printStatus(tt.healthStatus)
 
 			_ = w.Close()
 			out, _ := io.ReadAll(r)

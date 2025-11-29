@@ -94,11 +94,11 @@ func TestCLIHealthCommands(t *testing.T) {
 	helper, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	t.Run("health check", func(t *testing.T) {
+	t.Run("health check", func(_ *testing.T) {
 		helper.RunCommandExpectSuccess("health")
 	})
 
-	t.Run("help commands", func(t *testing.T) {
+	t.Run("help commands", func(_ *testing.T) {
 		// In development mode, help output goes to logger, not stdout
 		// Just verify the commands don't error out
 		helper.RunCommandExpectSuccess("--help")
@@ -112,7 +112,7 @@ func TestCLIConfigCommands(t *testing.T) {
 	helper, cleanup := setupCLITest(t)
 	defer cleanup()
 
-	t.Run("config operations", func(t *testing.T) {
+	t.Run("config operations", func(_ *testing.T) {
 		// Test config show
 		helper.RunCommandExpectSuccess("config", "show")
 

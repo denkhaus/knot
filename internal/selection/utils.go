@@ -299,6 +299,7 @@ type ProjectCharacteristics struct {
 type ProjectComplexity int
 
 const (
+	// ComplexitySimple represents simple project complexity
 	ComplexitySimple ProjectComplexity = iota
 	ComplexityMedium
 	ComplexityComplex
@@ -345,11 +346,11 @@ func (tsc *TaskStateCounter) CountActionable(tasks []*types.Task, analyzer Depen
 
 // PerformanceMonitor tracks selection performance metrics
 type PerformanceMonitor struct {
-	selections []SelectionMetrics
+	selections []Metrics
 }
 
-// SelectionMetrics holds metrics for a single selection operation
-type SelectionMetrics struct {
+// Metrics holds metrics for a single selection operation (renamed from SelectionMetrics to avoid stuttering)
+type Metrics struct {
 	TaskCount       int           `json:"task_count"`
 	ActionableCount int           `json:"actionable_count"`
 	Strategy        Strategy      `json:"strategy"`
@@ -361,13 +362,13 @@ type SelectionMetrics struct {
 // NewPerformanceMonitor creates a new performance monitor
 func NewPerformanceMonitor() *PerformanceMonitor {
 	return &PerformanceMonitor{
-		selections: make([]SelectionMetrics, 0),
+		selections: make([]Metrics, 0),
 	}
 }
 
 // RecordSelection records metrics for a selection operation
 func (pm *PerformanceMonitor) RecordSelection(result *SelectionResult, taskCount, actionableCount int, memoryUsage int64) {
-	metrics := SelectionMetrics{
+	metrics := Metrics{
 		TaskCount:       taskCount,
 		ActionableCount: actionableCount,
 		Strategy:        result.Strategy,
@@ -404,6 +405,6 @@ func (pm *PerformanceMonitor) GetAverageExecutionTime(strategy Strategy) time.Du
 }
 
 // GetMetrics returns all recorded metrics
-func (pm *PerformanceMonitor) GetMetrics() []SelectionMetrics {
+func (pm *PerformanceMonitor) GetMetrics() []Metrics {
 	return pm.selections
 }

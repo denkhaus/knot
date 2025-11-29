@@ -1,3 +1,4 @@
+// Package main provides mage build targets for the knot project
 package main
 
 import (
@@ -138,7 +139,7 @@ func (Actionable) TestStrategies() error {
 }
 
 // testStrategy tests a specific actionable strategy
-func testStrategy(strategy, description, expectedBehavior string) bool {
+func testStrategy(strategy, _description, expectedBehavior string) bool {
 	// Run actionable command
 	cmd := fmt.Sprintf("actionable --strategy=%s --json", strategy)
 	outputFile := filepath.Join(testResultsDir, fmt.Sprintf("actionable_%s.json", strategy))

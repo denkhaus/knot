@@ -19,6 +19,7 @@ func NewQuietFlag() cli.Flag {
 	}
 }
 
+// NewTaskLimitFlag creates a flag for limiting the number of tasks shown
 func NewTaskLimitFlag() cli.Flag {
 	return &cli.IntFlag{
 		Name:    "limit",
@@ -29,6 +30,7 @@ func NewTaskLimitFlag() cli.Flag {
 	}
 }
 
+// NewTaskIDFlag creates a flag for specifying a task ID
 func NewTaskIDFlag() cli.Flag {
 	return &cli.StringFlag{
 		Name:     "id",
@@ -37,6 +39,7 @@ func NewTaskIDFlag() cli.Flag {
 	}
 }
 
+// NewLogLevelFlag creates a flag for setting the log level
 func NewLogLevelFlag() cli.Flag {
 	return &cli.StringFlag{
 		Name:  "log-level",

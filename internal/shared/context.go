@@ -34,6 +34,7 @@ func NewAppContext(projectManager manager.ProjectManager, logger *zap.Logger) *A
 	}
 }
 
+// SetActor sets the current actor/user for the context
 func (p *AppContext) SetActor(actor string) {
 	p.Actor = actor
 }

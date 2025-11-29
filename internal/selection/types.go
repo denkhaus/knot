@@ -11,6 +11,7 @@ import (
 type Strategy int
 
 const (
+	// StrategyCreationOrder represents selection by creation order (FIFO)
 	StrategyCreationOrder Strategy = iota
 	StrategyDependencyAware
 	StrategyDepthFirst

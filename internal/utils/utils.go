@@ -7,6 +7,9 @@
 // Key Functions:
 //   - Min: Returns the minimum of two integers
 //   - IsTaskReady: Checks if a task has all its dependencies completed
+// Package utils provides utility functions for task management and data processing
+//
+// Key utilities:
 //   - OutputTasksAsJSON: Formats tasks as JSON for output
 //   - ConvertUUIDsToStrings: Converts UUID slices to string slices for logging
 package utils
@@ -20,7 +23,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// Helper function for min
+// Min returns the minimum of two integers
 func Min(a, b int) int {
 	if a < b {
 		return a
@@ -28,7 +31,7 @@ func Min(a, b int) int {
 	return b
 }
 
-// isTaskReady checks if a task has all its dependencies completed
+// IsTaskReady checks if a task has all its dependencies completed
 func IsTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool {
 	// If task has no dependencies, it's ready
 	if len(task.Dependencies) == 0 {
@@ -46,7 +49,7 @@ func IsTaskReady(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool {
 	return true
 }
 
-// outputTasksAsJSON outputs tasks in JSON format
+// OutputTasksAsJSON outputs tasks in JSON format
 func OutputTasksAsJSON(tasks []*types.Task) error {
 	jsonData, err := json.MarshalIndent(tasks, "", "  ")
 	if err != nil {
@@ -80,7 +83,7 @@ func ParsePriority(priority string) types.TaskPriority {
 	}
 }
 
-// Helper function to convert UUID slice to strings for logging
+// ConvertUUIDsToStrings converts UUID slice to string slice for logging
 func ConvertUUIDsToStrings(uuids []uuid.UUID) []string {
 	result := make([]string, len(uuids))
 	for i, u := range uuids {

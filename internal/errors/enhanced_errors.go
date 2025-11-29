@@ -1,3 +1,4 @@
+// Package errors provides enhanced error handling with detailed context and suggestions
 package errors
 
 import (
@@ -192,7 +193,7 @@ func TooManyTasksError(currentCount, maxAllowed int, depth int) *EnhancedError {
 }
 
 // NewValidationError creates an enhanced error for validation failures
-func NewValidationError(message string, cause error) *EnhancedError {
+func NewValidationError(_message string, cause error) *EnhancedError {
 	return &EnhancedError{
 		Operation:   "input validation",
 		Cause:       cause,

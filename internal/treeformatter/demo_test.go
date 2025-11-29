@@ -9,7 +9,7 @@ import (
 )
 
 // TestDemoTreeFormat demonstrates the target format as specified in the brain memory
-func TestDemoTreeFormat(t *testing.T) {
+func TestDemoTreeFormat(_ *testing.T) {
 	formatter := NewDefaultFormatter()
 	formatter.config.ShowEmojis = true
 

@@ -24,7 +24,7 @@ var _ manager.ProjectManager = (*MockProjectManager)(nil)
 // NewMockProjectManager creates a new instance of MockProjectManager.
 func NewMockProjectManager() *MockProjectManager {
 	return &MockProjectManager{
-		ListProjectsFunc: func(ctx context.Context) ([]*types.Project, error) {
+		ListProjectsFunc: func(_ctx context.Context) ([]*types.Project, error) {
 			return []*types.Project{}, nil // Default: return empty list, no error
 		},
 		GetConfigFunc: manager.DefaultConfig,
@@ -34,10 +34,10 @@ func NewMockProjectManager() *MockProjectManager {
 // Implement ProjectManager interface methods.
 // Only implement the methods used by the health commands.
 
-func (m *MockProjectManager) CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error) {
+func (m *MockProjectManager) CreateProject(_ctx context.Context, title, description, actor string) (*types.Project, error) {
 	panic("not implemented")
 }
-func (m *MockProjectManager) GetProject(ctx context.Context, projectID uuid.UUID) (*types.Project, error) {
+func (m *MockProjectManager) GetProject(_ctx context.Context, projectID uuid.UUID) (*types.Project, error) {
 	panic("not implemented")
 }
 func (m *MockProjectManager) UpdateProject(ctx context.Context, projectID uuid.UUID, title, description string, actor string) (*types.Project, error) {
@@ -145,7 +145,7 @@ func (m *MockProjectManager) GetDependentTasks(ctx context.Context, taskID uuid.
 func (m *MockProjectManager) GetConfig() *manager.Config {
 	return m.GetConfigFunc()
 }
-func (m *MockProjectManager) UpdateConfig(config *manager.Config) {
+func (m *MockProjectManager) UpdateConfig(_config *manager.Config) {
 	panic("not implemented")
 }
 func (m *MockProjectManager) LoadConfigFromFile() error {

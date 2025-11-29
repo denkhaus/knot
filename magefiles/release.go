@@ -35,13 +35,13 @@ func (Release) Release() error {
 	if tag, err := sh.Output("git", "describe", "--tags", "--exact-match", "HEAD"); err == nil && tag != "" {
 		fmt.Printf("Creating release for tag: %s\n", strings.TrimSpace(tag))
 		return sh.Run("goreleaser", "release", "--clean")
-	} else {
-		fmt.Println("Warning: Not on a git tag. Releases should be created from tagged commits.")
-		fmt.Println("To create a release, tag your commit first:")
-		fmt.Println("  git tag -a v1.2.3 -m 'Release v1.2.3'")
-		fmt.Println("  git push origin v1.2.3")
-		return fmt.Errorf("not on a git tag - cannot create release")
 	}
+
+	fmt.Println("Warning: Not on a git tag. Releases should be created from tagged commits.")
+	fmt.Println("To create a release, tag your commit first:")
+	fmt.Println("  git tag -a v1.2.3 -m 'Release v1.2.3'")
+	fmt.Println("  git push origin v1.2.3")
+	return fmt.Errorf("not on a git tag - cannot create release")
 }
 
 // Snapshot creates a snapshot release (pre-release) using goreleaser

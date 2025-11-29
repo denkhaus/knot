@@ -56,7 +56,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 
 // ShowAction displays the current configuration
 func ShowAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
+	return func(_ *cli.Context) error {
 		config := appCtx.ProjectManager.GetConfig()
 
 		fmt.Println("Current Knot Configuration:")
@@ -133,7 +133,7 @@ func SetAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 // ResetAction resets configuration to defaults
 func ResetAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
+	return func(_ *cli.Context) error {
 		// Reset to default config
 		defaultConfig := manager.DefaultConfig()
 		appCtx.ProjectManager.UpdateConfig(defaultConfig)

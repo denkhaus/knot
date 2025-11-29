@@ -81,7 +81,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 	}
 }
 
-func statesAction(appCtx *shared.AppContext) cli.ActionFunc {
+func statesAction(_appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		fromState := c.String("from")
 		showMatrix := c.Bool("matrix")

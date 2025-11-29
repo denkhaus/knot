@@ -17,6 +17,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// Log is the global logger instance
 var Log *zap.Logger
 
 func init() {

@@ -103,13 +103,13 @@ func (f *CommandFactory) createAction(appCtx *shared.AppContext) cli.ActionFunc 
 }
 
 // parseConfig parses configuration from CLI context
-func (f *CommandFactory) parseConfig(c *cli.Context, appCtx *shared.AppContext) (*VisualizationConfig, error) {
+func (f *CommandFactory) parseConfig(c *cli.Context, appCtx *shared.AppContext) (*Config, error) {
 	projectID, err := shared.ResolveProjectID(c, appCtx)
 	if err != nil {
 		return nil, err
 	}
 
-	config := &VisualizationConfig{
+	config := &Config{
 		TaskID:     c.String("task-id"),
 		MaxDepth:   c.Int("depth"),
 		ShowBlocks: c.Bool("blocks"),
@@ -135,7 +135,7 @@ func (f *CommandFactory) parseConfig(c *cli.Context, appCtx *shared.AppContext) 
 }
 
 // validateConfig validates the configuration
-func (f *CommandFactory) validateConfig(config *VisualizationConfig) error {
+func (f *CommandFactory) validateConfig(config *Config) error {
 	// Validate task ID if provided
 	if config.TaskID != "" {
 		if _, err := uuid.Parse(config.TaskID); err != nil {
@@ -152,7 +152,7 @@ func (f *CommandFactory) validateConfig(config *VisualizationConfig) error {
 }
 
 // executeVisualization executes the visualization based on configuration
-func (f *CommandFactory) executeVisualization(appCtx *shared.AppContext, config *VisualizationConfig) error {
+func (f *CommandFactory) executeVisualization(appCtx *shared.AppContext, config *Config) error {
 	// Get project tasks
 	projectID, err := uuid.Parse(config.ProjectID)
 	if err != nil {
@@ -184,7 +184,7 @@ func (f *CommandFactory) executeVisualization(appCtx *shared.AppContext, config 
 }
 
 // executeTaskVisualization handles task-specific visualization
-func (f *CommandFactory) executeTaskVisualization(analyzer *Analyzer, renderer *Renderer, config *VisualizationConfig) error {
+func (f *CommandFactory) executeTaskVisualization(analyzer *Analyzer, renderer *Renderer, config *Config) error {
 	taskID, err := uuid.Parse(config.TaskID)
 	if err != nil {
 		return fmt.Errorf("invalid task ID: %w", err)
@@ -209,7 +209,7 @@ func (f *CommandFactory) executeTaskVisualization(analyzer *Analyzer, renderer *
 }
 
 // executeTreeVisualization handles tree visualization
-func (f *CommandFactory) executeTreeVisualization(analyzer *Analyzer, renderer *Renderer, config *VisualizationConfig) error {
+func (f *CommandFactory) executeTreeVisualization(analyzer *Analyzer, renderer *Renderer, config *Config) error {
 	result, err := analyzer.AnalyzeProject()
 	if err != nil {
 		return err
@@ -227,7 +227,7 @@ func (f *CommandFactory) executeTreeVisualization(analyzer *Analyzer, renderer *
 }
 
 // executeGraphVisualization handles graph visualization
-func (f *CommandFactory) executeGraphVisualization(analyzer *Analyzer, renderer *Renderer, config *VisualizationConfig) error {
+func (f *CommandFactory) executeGraphVisualization(analyzer *Analyzer, renderer *Renderer, config *Config) error {
 	result, err := analyzer.AnalyzeProject()
 	if err != nil {
 		return err
@@ -245,7 +245,7 @@ func (f *CommandFactory) executeGraphVisualization(analyzer *Analyzer, renderer 
 }
 
 // executeBlocksVisualization handles blocking visualization
-func (f *CommandFactory) executeBlocksVisualization(analyzer *Analyzer, renderer *Renderer, config *VisualizationConfig) error {
+func (f *CommandFactory) executeBlocksVisualization(analyzer *Analyzer, renderer *Renderer, config *Config) error {
 	result, err := analyzer.AnalyzeProject()
 	if err != nil {
 		return err
@@ -264,7 +264,7 @@ func (f *CommandFactory) executeBlocksVisualization(analyzer *Analyzer, renderer
 }
 
 // executeProjectVisualization handles project overview visualization
-func (f *CommandFactory) executeProjectVisualization(analyzer *Analyzer, renderer *Renderer, config *VisualizationConfig) error {
+func (f *CommandFactory) executeProjectVisualization(analyzer *Analyzer, renderer *Renderer, config *Config) error {
 	result, err := analyzer.AnalyzeProject()
 	if err != nil {
 		return err

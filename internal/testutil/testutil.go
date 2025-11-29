@@ -217,10 +217,12 @@ type MockAppContext struct {
 	Actor   string
 }
 
+// SetActor sets the current actor for the mock context
 func (m *MockAppContext) SetActor(actor string) {
 	m.Actor = actor
 }
 
+// ProjectManager returns the mock project manager
 func (m *MockAppContext) ProjectManager() manager.ProjectManager {
 	return m.Manager
 }

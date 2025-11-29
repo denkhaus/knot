@@ -8,28 +8,44 @@ import (
 type TaskIcon string
 
 const (
-	IconCompleted  TaskIcon = "[DONE]"
+	// IconCompleted represents a completed task
+	IconCompleted TaskIcon = "[DONE]"
+	// IconInProgress represents a task currently being worked on
 	IconInProgress TaskIcon = "[WORK]"
-	IconReady      TaskIcon = "[READY]"
-	IconBlocked    TaskIcon = "[BLOCK]"
-	IconCycle      TaskIcon = "[CYCLE]"
-	IconUnknown    TaskIcon = "[UNKNOWN]"
+	// IconReady represents a task that's ready to start
+	IconReady TaskIcon = "[READY]"
+	// IconBlocked represents a task that's blocked
+	IconBlocked TaskIcon = "[BLOCK]"
+	// IconCycle represents a cyclical dependency
+	IconCycle TaskIcon = "[CYCLE]"
+	// IconUnknown represents an unknown task state
+	IconUnknown TaskIcon = "[UNKNOWN]"
+	// IconDependency represents a task dependency
 	IconDependency TaskIcon = "->"
-	IconBlocks     TaskIcon = "=>"
-	IconFolder     TaskIcon = "+"
-	IconFile       TaskIcon = "-"
-	IconWarning    TaskIcon = "[!]"
+	// IconBlocks represents a blocking relationship
+	IconBlocks TaskIcon = "=>"
+	// IconFolder represents a folder/group
+	IconFolder TaskIcon = "+"
+	// IconFile represents an individual file/task
+	IconFile TaskIcon = "-"
+	// IconWarning represents a warning indicator
+	IconWarning TaskIcon = "[!]"
 )
 
-// VisualizationMode represents different visualization types
-type VisualizationMode string
+// Mode represents different visualization types (renamed from VisualizationMode to avoid stuttering)
+type Mode string
 
 const (
-	ModeTask    VisualizationMode = "task"
-	ModeProject VisualizationMode = "project"
-	ModeTree    VisualizationMode = "tree"
-	ModeGraph   VisualizationMode = "graph"
-	ModeBlocks  VisualizationMode = "blocks"
+	// ModeTask represents task-focused visualization
+	ModeTask Mode = "task"
+	// ModeProject represents project-focused visualization
+	ModeProject Mode = "project"
+	// ModeTree represents tree-style visualization
+	ModeTree Mode = "tree"
+	// ModeGraph represents graph-style visualization
+	ModeGraph Mode = "graph"
+	// ModeBlocks represents block-based visualization
+	ModeBlocks Mode = "blocks"
 )
 
 // TaskRelationship represents the relationship between tasks
@@ -44,13 +60,15 @@ type TaskRelationship struct {
 type RelationshipType string
 
 const (
+	// RelationshipDependency represents a dependency relationship
 	RelationshipDependency RelationshipType = "dependency"
-	RelationshipBlocks     RelationshipType = "blocks"
+	// RelationshipBlocks represents a blocking relationship
+	RelationshipBlocks RelationshipType = "blocks"
 )
 
-// VisualizationConfig holds configuration for visualization
-type VisualizationConfig struct {
-	Mode       VisualizationMode
+// Config holds configuration for visualization (renamed from VisualizationConfig to avoid stuttering)
+type Config struct {
+	Mode       Mode
 	TaskID     string
 	MaxDepth   int
 	ShowBlocks bool

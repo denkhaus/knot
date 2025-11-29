@@ -1,3 +1,4 @@
+// Package task provides task deletion functionality with dependency checking and safety measures
 package task
 
 import (
@@ -18,7 +19,7 @@ import (
 
 // printDeletionTree displays tasks using the unified tree format for deletion operations
 // Task Reference: 12a4b5a6-908d-411d-959a-462cb3d3d1c2 | Brain Reference: e4bea247-7f1f-4712-8188-b9b0b4ecb3ea
-func printDeletionTree(header string, rootTask *types.Task, descendants []*types.Task, showState bool) {
+func printDeletionTree(header string, rootTask *types.Task, descendants []*types.Task, _showState bool) {
 	// Create tree formatter with emoji support
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
 		ShowEmojis:  true,
@@ -47,14 +48,14 @@ func printDeletionTree(header string, rootTask *types.Task, descendants []*types
 	}
 }
 
-// TaskNode represents a node in the hierarchical tree structure
-type TaskNode struct {
+// Node represents a node in the hierarchical tree structure (renamed from Node to avoid stuttering)
+type Node struct {
 	Task     *types.Task
-	Children []*TaskNode
+	Children []*Node
 }
 
 // buildTaskHierarchy creates a hierarchical tree structure from a flat list of descendants
-func buildTaskHierarchy(rootTaskID uuid.UUID, descendants []*types.Task) []*TaskNode {
+func buildTaskHierarchy(rootTaskID uuid.UUID, descendants []*types.Task) []*Node {
 	// Create task lookup map
 	taskMap := make(map[uuid.UUID]*types.Task)
 	for _, task := range descendants {
@@ -80,16 +81,16 @@ func buildTaskHierarchy(rootTaskID uuid.UUID, descendants []*types.Task) []*Task
 	}
 
 	// Build node map
-	nodeMap := make(map[uuid.UUID]*TaskNode)
+	nodeMap := make(map[uuid.UUID]*Node)
 	for _, task := range descendants {
-		nodeMap[task.ID] = &TaskNode{
+		nodeMap[task.ID] = &Node{
 			Task:     task,
-			Children: []*TaskNode{},
+			Children: []*Node{},
 		}
 	}
 
 	// Build hierarchy
-	var roots []*TaskNode
+	var roots []*Node
 	for _, task := range descendants {
 		node := nodeMap[task.ID]
 
@@ -105,15 +106,15 @@ func buildTaskHierarchy(rootTaskID uuid.UUID, descendants []*types.Task) []*Task
 	}
 
 	// Sort children recursively
-	sortTaskNodes(roots)
+	sortNodes(roots)
 
 	return roots
 }
 
-// sortTaskNodes recursively sorts task nodes and their children by title
-func sortTaskNodes(nodes []*TaskNode) {
+// sortNodes recursively sorts task nodes and their children by title
+func sortNodes(nodes []*Node) {
 	for _, node := range nodes {
-		sortTaskNodes(node.Children)
+		sortNodes(node.Children)
 	}
 	// Sort the slice itself
 	for i := 0; i < len(nodes)-1; i++ {
@@ -126,7 +127,7 @@ func sortTaskNodes(nodes []*TaskNode) {
 }
 
 // printDeletionHierarchicalTree prints the deletion tree with enhanced structure (similar to regular task tree)
-func printDeletionHierarchicalTree(formatter treeformatter.TreeFormatter, nodes []*TaskNode) {
+func printDeletionHierarchicalTree(formatter treeformatter.TreeFormatter, nodes []*Node) {
 	// Print first level children with proper tree structure
 	for i, node := range nodes {
 		isLast := i == len(nodes)-1
@@ -163,7 +164,7 @@ func printDeletionHierarchicalTree(formatter treeformatter.TreeFormatter, nodes 
 }
 
 // printDeletionNodeChildren recursively prints children of a node with enhanced structure
-func printDeletionNodeChildren(formatter treeformatter.TreeFormatter, node *TaskNode, prefix string) {
+func printDeletionNodeChildren(formatter treeformatter.TreeFormatter, node *Node, prefix string) {
 	for i, child := range node.Children {
 		isLast := i == len(node.Children)-1
 
@@ -305,26 +306,27 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 				}
 
 				fmt.Printf("Task permanently deleted: %s\n", task.Title)
-			}
-			return nil
+		}
+		return nil
+	}
+
+	// First call - mark for deletion
+	if dryRun {
+		if deleteAll {
+			totalTasks := 1 + len(descendants)
+			fmt.Printf("DRY RUN: Task subtree would be marked for deletion (%d tasks, no actual changes made)\n", totalTasks)
 		} else {
-			// First call - mark for deletion
-			if dryRun {
-				if deleteAll {
-					totalTasks := 1 + len(descendants)
-					fmt.Printf("DRY RUN: Task subtree would be marked for deletion (%d tasks, no actual changes made)\n", totalTasks)
-				} else {
-					fmt.Printf("DRY RUN: Task would be marked for deletion (no actual changes made)\n")
-				}
-				return nil
-			}
+			fmt.Printf("DRY RUN: Task would be marked for deletion (no actual changes made)\n")
+		}
+		return nil
+	}
 
-			// Show what will be marked for deletion
-			if deleteAll {
-				printDeletionTree("Task subtree to be marked for deletion:", task, descendants, true)
+	// Show what will be marked for deletion
+	if deleteAll {
+			printDeletionTree("Task subtree to be marked for deletion:", task, descendants, true)
 
-				totalTasks := 1 + len(descendants)
-				fmt.Printf("Total tasks to mark for deletion: %d\n", totalTasks)
+			totalTasks := 1 + len(descendants)
+			fmt.Printf("Total tasks to mark for deletion: %d\n", totalTasks)
 
 				// Check for dependencies on any task in the subtree
 				err = checkSubtreeDependencies(appCtx, task, descendants)
@@ -378,7 +380,6 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 
 			return nil
-		}
 	}
 }
 

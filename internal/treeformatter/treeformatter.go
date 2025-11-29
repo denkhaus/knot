@@ -112,7 +112,7 @@ func (f *DefaultTreeFormatter) GetTreePrefix(isLast bool, depth int, parentPrefi
 }
 
 // GetParentPrefix returns the prefix for calculating child prefixes
-func (f *DefaultTreeFormatter) GetParentPrefix(prefix string, isLast bool) string {
+func (f *DefaultTreeFormatter) GetParentPrefix(prefix string, _isLast bool) string {
 	if strings.HasSuffix(prefix, "└── ") {
 		return strings.TrimSuffix(prefix, "└── ") + "   "
 	}

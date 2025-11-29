@@ -166,7 +166,7 @@ func TestSetAction(t *testing.T) {
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
+		t.Run(tt.name, func(_ *testing.T) {
 			// Create CLI context with flags
 			app := &cli.App{}
 			set := flag.NewFlagSet("test", flag.ContinueOnError)
@@ -229,7 +229,7 @@ func TestSetActionWithValidValues(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(fmt.Sprintf("set %s to %s", tc.key, tc.value), func(t *testing.T) {
+		t.Run(fmt.Sprintf("set %s to %s", tc.key, tc.value), func(_ *testing.T) {
 			app := &cli.App{}
 			set := flag.NewFlagSet("test", flag.ContinueOnError)
 			set.String("key", "", "config key")
@@ -420,7 +420,7 @@ func TestSetActionWithDifferentValues(t *testing.T) {
 	}
 
 	for key, value := range testParams {
-		t.Run(fmt.Sprintf("set %s", key), func(t *testing.T) {
+		t.Run(fmt.Sprintf("set %s", key), func(_ *testing.T) {
 			app := &cli.App{}
 			set := flag.NewFlagSet("test", flag.ContinueOnError)
 			set.String("key", "", "config key")
@@ -523,7 +523,7 @@ func TestSetActionErrorMessages(t *testing.T) {
 	}
 
 	for _, tc := range testCases {
-		t.Run(tc.name, func(t *testing.T) {
+		t.Run(tc.name, func(_ *testing.T) {
 			app := &cli.App{}
 			set := flag.NewFlagSet("test", flag.ContinueOnError)
 			set.String("key", "", "config key")

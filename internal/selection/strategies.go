@@ -18,7 +18,7 @@ func priorityToScore(priority types.TaskPriority) float64 {
 type CreationOrderStrategy struct{}
 
 // CalculateScore returns a score based on creation time (lower is better for older tasks)
-func (s *CreationOrderStrategy) CalculateScore(score *TaskScore, config *Config) float64 {
+func (s *CreationOrderStrategy) CalculateScore(score *TaskScore, _config *Config) float64 {
 	// Convert timestamp to score - older tasks get higher scores (inverted)
 	timestamp := score.Task.CreatedAt.Unix()
 	// Use max timestamp - current timestamp to invert (older = higher score)
@@ -60,7 +60,7 @@ func (s *DependencyAwareStrategy) GetStrategyName() string {
 type PriorityStrategy struct{}
 
 // CalculateScore returns a score based primarily on priority with dependents as tiebreaker
-func (s *PriorityStrategy) CalculateScore(score *TaskScore, config *Config) float64 {
+func (s *PriorityStrategy) CalculateScore(score *TaskScore, _config *Config) float64 {
 	// Priority is the main factor (lower number = higher priority = higher score)
 	priorityScore := priorityToScore(score.Priority) * 100
 
