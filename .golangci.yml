@@ -39,13 +39,7 @@ linters-settings:
   funlen:
     lines: 500
     statements: 100
-  maintainidx:
-    target: 20
 
 formatters:
   enable:
     - gofmt
-
-issues:
-  max-issues-per-linter: 0
-  max-same-issues: 3
