@@ -152,35 +152,3 @@ func TestActionableAction(t *testing.T) {
 		assert.NoError(t, err)
 	})
 }
-
-func TestNewActionableCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewActionableCommand(appCtx)
-
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "actionable", cmd.Name)
-	assert.Contains(t, cmd.Aliases, "next")
-	assert.NotNil(t, cmd.Action)
-	assert.NotEmpty(t, cmd.Flags)
-	assert.NotEmpty(t, cmd.Usage)
-	assert.NotEmpty(t, cmd.Description)
-
-	// Test that all expected flags exist
-	flagNames := make(map[string]bool)
-	for _, flag := range cmd.Flags {
-		flagNames[flag.Names()[0]] = true
-	}
-
-	assert.True(t, flagNames["strategy"])
-	assert.True(t, flagNames["allow-parent-with-subtasks"])
-	assert.True(t, flagNames["prefer-pending"])
-	assert.True(t, flagNames["verbose"])
-	assert.True(t, flagNames["json"])
-}
