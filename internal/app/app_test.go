@@ -63,7 +63,7 @@ func TestAppNew(t *testing.T) {
 	assert.NotNil(t, app)
 	assert.NotNil(t, app.App)
 	assert.NotNil(t, app.context)
-	assert.Equal(t, "knot", app.App.Name)
+	assert.Equal(t, "knot", app.Name)
 }
 
 func TestAppRun(t *testing.T) {
@@ -146,8 +146,8 @@ func TestAppRunWithError(t *testing.T) {
 	assert.NotNil(t, app)
 
 	// We can test that the app has the expected structure
-	assert.NotEmpty(t, app.App.Commands)
-	assert.NotEmpty(t, app.App.Flags)
+	assert.NotEmpty(t, app.Commands)
+	assert.NotEmpty(t, app.Flags)
 }
 
 func TestSetVersionFromBuild(t *testing.T) {
@@ -160,7 +160,7 @@ func TestSetVersionFromBuild(t *testing.T) {
 
 	// Check that version was set, though we can't easily verify the internal version variable
 	// since it's not exposed, we'll just ensure app creation still works
-	assert.Equal(t, "knot", app.App.Name) // This will still be knot regardless of version
+	assert.Equal(t, "knot", app.Name) // This will still be knot regardless of version
 }
 
 func TestAppWithMemoryRepository(t *testing.T) {
@@ -191,7 +191,7 @@ func TestAppWithMemoryRepository(t *testing.T) {
 		context: appCtx,
 	}
 
-	assert.Equal(t, "knot-test", app.App.Name)
+	assert.Equal(t, "knot-test", app.Name)
 	assert.NotNil(t, app.context)
 }
 
@@ -226,7 +226,7 @@ func TestAppCommandsStructure(t *testing.T) {
 	}
 
 	commandsMap := make(map[string]*cli.Command)
-	for _, cmd := range app.App.Commands {
+	for _, cmd := range app.Commands {
 		commandsMap[cmd.Name] = cmd
 	}
 
@@ -243,7 +243,7 @@ func TestAppFlags(t *testing.T) {
 	expectedFlags := []string{"actor", "log-level"}
 
 	flagsMap := make(map[string]cli.Flag)
-	for _, flag := range app.App.Flags {
+	for _, flag := range app.Flags {
 		flagsMap[flag.Names()[0]] = flag
 	}
 
@@ -255,12 +255,12 @@ func TestAppFlags(t *testing.T) {
 func TestAppBeforeHook(t *testing.T) {
 	app, err := New()
 	require.NoError(t, err)
-	require.NotNil(t, app.App.Before)
+	require.NotNil(t, app.Before)
 
 	// Test that Before hook exists and doesn't cause panic
 	// The actual functionality is complex to test without a proper context
 	// so we just verify the function exists and can be called safely
-	assert.NotNil(t, app.App.Before)
+	assert.NotNil(t, app.Before)
 }
 
 func TestAppIntegration(t *testing.T) {

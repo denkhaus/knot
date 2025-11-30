@@ -17,11 +17,20 @@ linters:
     - goconst
     - funlen
 
-linters-settings:
-  funlen:
-    lines: 120
-    statements: 50
+  settings:
+    funlen:
+      lines: 120
+      statements: 50
 
 formatters:
   enable:
     - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: false
+      rewrite-rules:
+        - pattern: interface{}
+          replacement: any
+        - pattern: a[b:len(a)]
+          replacement: a[b:]

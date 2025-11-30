@@ -15,36 +15,6 @@ const (
 	ShellZsh  ShellType = "zsh"
 )
 
-// Command creates the shell completion command (renamed from CompletionCommand to avoid stuttering)
-func Command(appCtx *shared.AppContext) *cli.Command {
-	return &cli.Command{
-		Name:  "completion",
-		Usage: "Generate shell completion scripts",
-		Description: `Generate shell completion scripts for bash and zsh.
-These scripts enable tab completion for knot commands, flags, and dynamic values.
-
-Examples:
-  knot completion bash > /etc/bash_completion.d/knot
-  knot completion zsh > /usr/local/share/zsh-completions/_knot
-  source <(knot completion bash)
-
-Installation:
-  # Bash (system-wide)
-  knot completion bash | sudo tee /etc/bash_completion.d/knot
-
-  # Bash (user-specific)
-  knot completion bash > ~/.local/share/bash-completion/completions/knot
-
-  # Zsh (system-wide)
-  knot completion zsh | sudo tee /usr/local/share/zsh-completions/_knot
-
-  # Zsh (user-specific)
-  mkdir -p ~/.zsh/completions
-  knot completion zsh > ~/.zsh/completions/_knot`,
-		Action: CompletionAction(appCtx),
-	}
-}
-
 // CompletionAction implements the shell completion functionality
 func CompletionAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {

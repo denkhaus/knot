@@ -202,11 +202,11 @@ func (sv *StateValidator) ValidateTransitionStrict(from, to types.TaskState, tas
 }
 
 // ValidateTransitionLenient validates with lenient rules (warnings become suggestions)
-func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, task *types.Task) (error, []string) {
+func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, task *types.Task) ([]string, error) {
 	// Check if transition is allowed
 	transition := StateTransition{From: from, To: to}
 	if !sv.allowedTransitions[transition] {
-		return sv.createInvalidTransitionError(from, to, task), nil
+		return nil, sv.createInvalidTransitionError(from, to, task)
 	}
 
 	var warnings []string
@@ -223,7 +223,7 @@ func (sv *StateValidator) ValidateTransitionLenient(from, to types.TaskState, ta
 		}
 	}
 
-	return nil, warnings
+	return warnings, nil
 }
 
 // createInvalidTransitionError creates an enhanced error for invalid transitions

@@ -17,7 +17,8 @@
       "Bash(go vet:*)",
       "Bash(golangci-lint help:*)",
       "Bash(go mod:*)",
-      "Bash(goimports:*)"
+      "Bash(goimports:*)",
+      "Bash(gh auth status:*)"
     ],
     "deny": [],
     "ask": []

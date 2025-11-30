@@ -274,7 +274,7 @@ func TestDeletionPendingLenientValidation(t *testing.T) {
 
 	t.Run("lenient validation still prevents invalid transitions", func(t *testing.T) {
 		// Even in lenient mode, deletion-pending protection should be enforced
-		err, warnings := validator.ValidateTransitionLenient(types.TaskStateDeletionPending, types.TaskStatePending, task)
+		warnings, err := validator.ValidateTransitionLenient(types.TaskStateDeletionPending, types.TaskStatePending, task)
 
 		// Should still error (not just warn) because this is a security/data integrity rule
 		assert.Error(t, err, "Lenient validation should still prevent deletion-pending transitions")
@@ -295,7 +295,7 @@ func TestDeletionPendingLenientValidation(t *testing.T) {
 			Complexity: 5,
 		}
 
-		err, warnings := validator.ValidateTransitionLenient(types.TaskStatePending, types.TaskStateDeletionPending, pendingTask)
+		warnings, err := validator.ValidateTransitionLenient(types.TaskStatePending, types.TaskStateDeletionPending, pendingTask)
 		assert.NoError(t, err, "Valid transition to deletion-pending should work in lenient mode")
 		assert.Empty(t, warnings, "Should not generate warnings for valid transitions")
 	})

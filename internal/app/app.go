@@ -17,14 +17,7 @@ import (
 	"os"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/commands/completion"
-	configCommands "github.com/denkhaus/knot/v2/internal/commands/config"
-	"github.com/denkhaus/knot/v2/internal/commands/dependency"
-	"github.com/denkhaus/knot/v2/internal/commands/health"
-	"github.com/denkhaus/knot/v2/internal/commands/project"
-	"github.com/denkhaus/knot/v2/internal/commands/task"
-	"github.com/denkhaus/knot/v2/internal/commands/template"
-	validationCommands "github.com/denkhaus/knot/v2/internal/commands/validation"
+	"github.com/denkhaus/knot/v2/internal/commands"
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
@@ -93,37 +86,7 @@ func isUserInputError(err error) bool {
 
 // New creates a new CLI application with all dependencies initialized
 func New() (*App, error) {
-	// Initialize logger
-	appLogger := logger.GetLogger()
-
-	// Initialize repository (SQLite with fallback to in-memory)
-	var repo types.Repository
-	var err error
-
-	repo, err = sqlite.NewRepository("",
-		sqlite.WithLogger(appLogger),
-		sqlite.WithAutoMigrate(true),
-	)
-	if err != nil {
-		appLogger.Warn("Failed to initialize SQLite repository, falling back to in-memory", zap.Error(err))
-		repo = inmemory.NewMemoryRepository()
-	} else {
-		appLogger.Info("SQLite repository initialized successfully")
-
-		// Initialize templates automatically after successful database setup
-		if err := templates.CheckAndSeedIfNeeded(); err != nil {
-			appLogger.Warn("Failed to seed templates during initialization", zap.Error(err))
-		} else {
-			appLogger.Debug("Template seeding check completed successfully")
-		}
-	}
-
-	// Initialize project manager
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
-
-	// Create application context
-	appCtx := shared.NewAppContext(projectManager, appLogger)
+	appCtx := createAppContext()
 
 	// Create CLI app
 	cliApp := &cli.App{
@@ -160,91 +123,19 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 			return nil
 		},
 		Commands: []*cli.Command{
-			{
-				Name:        "project",
-				Aliases:     []string{"p"},
-				Usage:       "Project management commands",
-				Subcommands: project.Commands(appCtx),
-				Flags: []cli.Flag{
-					shared.NewJSONFlag(),
-				},
-			},
-			{
-				Name:        "task",
-				Aliases:     []string{"t"},
-				Usage:       "Task management commands",
-				Subcommands: task.Commands(appCtx),
-			},
-			{
-				Name:        "template",
-				Aliases:     []string{"tmpl"},
-				Usage:       "Task template management commands",
-				Subcommands: template.Commands(appCtx),
-			},
-			{
-				Name:        "dependency",
-				Aliases:     []string{"dep"},
-				Usage:       "Task dependency management",
-				Subcommands: dependency.Commands(appCtx),
-			},
-			{
-				Name:        "config",
-				Aliases:     []string{"cfg"},
-				Usage:       "Configuration management",
-				Subcommands: configCommands.Commands(appCtx),
-			},
-			{
-				Name:        "health",
-				Usage:       "Database health and connectivity checks",
-				Subcommands: health.Commands(appCtx),
-			},
-			{
-				Name:        "validate",
-				Usage:       "Task state validation and transition checks",
-				Subcommands: validationCommands.Commands(appCtx),
-			},
-			{
-				Name:   "ready",
-				Usage:  "Show tasks with no blockers (ready to work on)",
-				Action: task.ReadyAction(appCtx),
-				Flags: []cli.Flag{
-					shared.NewTaskLimitFlag(),
-					shared.NewJSONFlag(),
-				},
-			},
-			{
-				Name:   "blocked",
-				Usage:  "Show tasks blocked by dependencies",
-				Action: task.BlockedAction(appCtx),
-				Flags: []cli.Flag{
-					shared.NewTaskLimitFlag(),
-					shared.NewJSONFlag(),
-				},
-			},
-			task.NewActionableCommand(appCtx),
-			{
-				Name:   "breakdown",
-				Usage:  "Find tasks that need breakdown based on complexity",
-				Action: task.BreakdownAction(appCtx),
-				Flags: []cli.Flag{
-					shared.NewTaskLimitFlag(),
-					shared.NewJSONFlag(),
-					shared.NewQuietFlag(),
-					&cli.IntFlag{
-						Name:    "threshold",
-						Aliases: []string{"t"},
-						Usage:   "Complexity threshold for breakdown (default: 8)",
-						Value:   8,
-						EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
-					},
-				},
-			},
-			{
-				Name:   "get-started",
-				Usage:  "Get started guide for LLM agents with available commands and usage",
-				Action: task.GetStartedAction(appCtx),
-			},
-			completion.Command(appCtx),
+			commands.NewProjectCommand(appCtx),
+			commands.NewTaskCommand(appCtx),
+			commands.NewTemplateCommand(appCtx),
+			commands.NewDependencyCommand(appCtx),
+			commands.NewConfigCommand(appCtx),
+			commands.NewHealthCommand(appCtx),
+			commands.NewValidateCommand(appCtx),
+			commands.NewReadyCommand(appCtx),
+			commands.NewBlockedCommand(appCtx),
+			commands.NewActionableCommand(appCtx),
+			commands.NewBreakdownCommand(appCtx),
+			commands.NewGetStartedCommand(appCtx),
+			commands.NewCompletionCommand(appCtx),
 		},
 	}
 
@@ -273,4 +164,38 @@ func (a *App) Run(args []string) error {
 	}
 
 	return nil
+}
+
+func createAppContext() *shared.AppContext {
+	// Initialize logger
+	appLogger := logger.GetLogger()
+
+	// Initialize repository (SQLite with fallback to in-memory)
+	var repo types.Repository
+	var err error
+
+	repo, err = sqlite.NewRepository("",
+		sqlite.WithLogger(appLogger),
+		sqlite.WithAutoMigrate(true),
+	)
+	if err != nil {
+		appLogger.Warn("Failed to initialize SQLite repository, falling back to in-memory", zap.Error(err))
+		repo = inmemory.NewMemoryRepository()
+	} else {
+		appLogger.Info("SQLite repository initialized successfully")
+
+		// Initialize templates automatically after successful database setup
+		if err := templates.CheckAndSeedIfNeeded(); err != nil {
+			appLogger.Warn("Failed to seed templates during initialization", zap.Error(err))
+		} else {
+			appLogger.Debug("Template seeding check completed successfully")
+		}
+	}
+
+	// Initialize project manager
+	config := manager.DefaultConfig()
+	projectManager := manager.NewManagerWithRepository(repo, config)
+
+	// Create application context
+	return shared.NewAppContext(projectManager, appLogger)
 }

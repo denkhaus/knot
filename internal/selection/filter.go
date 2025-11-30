@@ -88,9 +88,10 @@ func (tf *DefaultTaskFilter) SeparateInProgressTasks(tasks []*types.Task) (inPro
 	pending = make([]*types.Task, 0)
 
 	for _, task := range tasks {
-		if task.State == types.TaskStateInProgress {
+		switch task.State {
+		case types.TaskStateInProgress:
 			inProgress = append(inProgress, task)
-		} else if task.State == types.TaskStatePending {
+		case types.TaskStatePending:
 			pending = append(pending, task)
 		}
 	}

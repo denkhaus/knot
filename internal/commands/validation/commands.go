@@ -171,7 +171,7 @@ func transitionAction(appCtx *shared.AppContext) cli.ActionFunc {
 		fmt.Println()
 
 		if lenient {
-			err, warnings := validator.ValidateTransitionLenient(task.State, targetState, task)
+			warnings, err := validator.ValidateTransitionLenient(task.State, targetState, task)
 			if err != nil {
 				fmt.Printf("Transition INVALID: %v\n", err)
 				return err
