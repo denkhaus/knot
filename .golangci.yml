@@ -15,18 +15,12 @@ linters:
     - nakedret
     - gocritic
     - goconst
+    - funlen
 
 linters-settings:
   funlen:
     lines: 120
     statements: 50
-
-  revive:
-    rules:
-      - name: exported
-        severity: warning
-      - name: var-naming
-        severity: warning
 
 formatters:
   enable:
