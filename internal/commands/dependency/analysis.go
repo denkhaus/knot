@@ -148,7 +148,7 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		cycles := detectCycles(tasks)
-		result := map[string]interface{}{
+		result := map[string]any{
 			"project_id":   projectID,
 			"total_tasks":  len(tasks),
 			"cycles_found": len(cycles),
@@ -158,9 +158,9 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		if jsonOutput {
 			// Convert cycles to detailed output
-			var detailedCycles []map[string]interface{}
+			var detailedCycles []map[string]any
 			for _, cycle := range cycles {
-				var detailedCycle []map[string]interface{}
+				var detailedCycle []map[string]any
 				for _, taskID := range cycle {
 					// Find task details
 					var task *types.Task
@@ -171,7 +171,7 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 						}
 					}
 
-					taskInfo := map[string]interface{}{
+					taskInfo := map[string]any{
 						"id": taskID,
 					}
 					if task != nil {
@@ -183,7 +183,7 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 					}
 					detailedCycle = append(detailedCycle, taskInfo)
 				}
-				detailedCycles = append(detailedCycles, map[string]interface{}{
+				detailedCycles = append(detailedCycles, map[string]any{
 					"cycle":  detailedCycle,
 					"length": len(cycle),
 				})

@@ -103,7 +103,7 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Output JSON if requested
 		if c.Bool("json") {
-			output := map[string]interface{}{
+			output := map[string]any{
 				"task":            selectedTask,
 				"strategy":        strategy.String(),
 				"strategy_reason": strategyReason,

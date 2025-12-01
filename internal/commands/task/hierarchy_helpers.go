@@ -199,19 +199,25 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 		IndentSize:  2,
 	})
 
-	// Print current task with proper tree prefix
-	taskLine := formatter.FormatTaskLine(task)
-	if currentDepth == 0 {
-		// Root task - no prefix
-		fmt.Printf("┌─ %s\n", taskLine)
-	} else {
-		fmt.Printf("%s%s\n", prefix, taskLine)
-	}
-
-	// Get children (maintaining existing logic)
+	// Get children first to determine if this is a leaf or parent node
 	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
 	if err != nil {
 		return err
+	}
+
+	// Print current task with proper tree prefix
+	taskLine := formatter.FormatTaskLine(task)
+	if currentDepth == 0 {
+		// Root task - check if it has children to determine appropriate prefix
+		if len(children) > 0 {
+			// Root task with children - use parent symbol
+			fmt.Printf("┌─ %s\n", taskLine)
+		} else {
+			// Root task without children - use leaf symbol
+			fmt.Printf("├─ %s\n", taskLine)
+		}
+	} else {
+		fmt.Printf("%s%s\n", prefix, taskLine)
 	}
 
 	// Sort children (maintaining existing logic)

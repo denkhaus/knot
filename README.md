@@ -439,6 +439,35 @@ export KNOT_COMPLEXITY_THRESHOLD=8
 export KNOT_LOG_LEVEL=debug
 ```
 
+### Global Flags
+
+Knot supports global flags that can be used with any command:
+
+#### `--log-level`
+
+Control the verbosity of log output across all knot commands.
+
+**Usage:**
+```bash
+# Suppress all logging
+knot --log-level off task list
+
+# Show only errors (default for most operations)
+knot --log-level error project list
+
+# Show detailed debug information
+knot --log-level debug actionable
+```
+
+**Available Log Levels:**
+- `off` - No logging output
+- `error` - Only error messages
+- `warn` - Warnings and errors
+- `info` - Informational messages, warnings, and errors
+- `debug` - All log output including debug information
+
+**Note:** The `--log-level` flag replaces the `KNOT_LOG_LEVEL` environment variable configuration. Command-line flags take precedence over environment variables.
+
 ### Complex Filtering
 
 ```bash

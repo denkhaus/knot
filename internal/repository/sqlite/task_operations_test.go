@@ -361,9 +361,10 @@ func TestGetTasksWithDependencies(t *testing.T) {
 		// Verify parent task
 		var retrievedParent, retrievedChild *types.Task
 		for _, task := range tasks {
-			if task.ID == parentTask.ID {
+			switch task.ID {
+			case parentTask.ID:
 				retrievedParent = task
-			} else if task.ID == childTask.ID {
+			case childTask.ID:
 				retrievedChild = task
 			}
 		}

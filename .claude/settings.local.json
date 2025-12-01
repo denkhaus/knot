@@ -18,7 +18,13 @@
       "Bash(golangci-lint help:*)",
       "Bash(go mod:*)",
       "Bash(goimports:*)",
-      "Bash(gh auth status:*)"
+      "Bash(gh auth status:*)",
+      "mcp__brain__search_memories",
+      "mcp__container-use__environment_file_read",
+      "mcp__container-use__environment_run_cmd",
+      "mcp__container-use__environment_file_edit",
+      "mcp__container-use__environment_file_write",
+      "mcp__container-use__environment_file_delete"
     ],
     "deny": [],
     "ask": []

@@ -100,7 +100,7 @@ func TestNewCompletionCommand(t *testing.T) {
 	assert.Equal(t, "Generate shell completion scripts", cmd.Usage)
 	assert.NotNil(t, cmd.Action)
 	assert.NotEmpty(t, cmd.Description)
-	assert.Empty(t, cmd.Flags) // No flags expected
+	assert.Empty(t, cmd.Flags)       // No flags expected
 	assert.Empty(t, cmd.Subcommands) // No subcommands expected
 }
 
@@ -210,7 +210,7 @@ func TestNewGetStartedCommand(t *testing.T) {
 	assert.Equal(t, "get-started", cmd.Name)
 	assert.Equal(t, "Get started guide for LLM agents with available commands and usage", cmd.Usage)
 	assert.NotNil(t, cmd.Action)
-	assert.Empty(t, cmd.Flags) // No flags expected
+	assert.Empty(t, cmd.Flags)       // No flags expected
 	assert.Empty(t, cmd.Subcommands) // No subcommands expected
 }
 
@@ -537,9 +537,10 @@ func TestCommandFlagTypes(t *testing.T) {
 				strategyFlag = f
 			}
 		case *cli.BoolFlag:
-			if f.Name == "json" {
+			switch f.Name {
+			case "json":
 				jsonFlag = f
-			} else if f.Name == "verbose" {
+			case "verbose":
 				verboseFlag = f
 			}
 		}

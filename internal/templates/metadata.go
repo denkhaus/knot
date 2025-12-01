@@ -119,13 +119,13 @@ func ListSeededTemplates() (map[string]SeededTemplateInfo, error) {
 }
 
 // GetSeedingStats returns statistics about seeded templates
-func GetSeedingStats() (map[string]interface{}, error) {
+func GetSeedingStats() (map[string]any, error) {
 	metadata, err := LoadSeedingMetadata()
 	if err != nil {
 		return nil, err
 	}
 
-	stats := map[string]interface{}{
+	stats := map[string]any{
 		"total_seeded":   len(metadata.SeededTemplates),
 		"last_seed_time": metadata.LastSeedTime,
 		"templates":      make([]map[string]string, 0),

@@ -114,10 +114,10 @@ func (r *Renderer) RenderGraph(result *ProjectAnalysisResult) error {
 
 // RenderJSON renders analysis as JSON
 func (r *Renderer) RenderJSON(taskResult *TaskAnalysisResult, projectResult *ProjectAnalysisResult) error {
-	var data interface{}
+	var data any
 
 	if taskResult != nil {
-		data = map[string]interface{}{
+		data = map[string]any{
 			"type":       "task_analysis",
 			"task":       r.taskToMap(taskResult.Task),
 			"upstream":   r.tasksToMap(taskResult.UpstreamTasks),
@@ -127,7 +127,7 @@ func (r *Renderer) RenderJSON(taskResult *TaskAnalysisResult, projectResult *Pro
 			"in_cycle":   taskResult.InCycle,
 		}
 	} else {
-		data = map[string]interface{}{
+		data = map[string]any{
 			"type":            "project_analysis",
 			"total_tasks":     projectResult.TotalTasks,
 			"tasks_with_deps": projectResult.TasksWithDeps,
@@ -288,7 +288,7 @@ func (r *Renderer) renderTaskTree(task *types.Task, relationships []TaskRelation
 	}
 }
 
-func (r *Renderer) getTaskIcon(task *types.Task, _ interface{}) TaskIcon {
+func (r *Renderer) getTaskIcon(task *types.Task, _ any) TaskIcon {
 	switch task.State {
 	case shared.TaskStateCompleted:
 		return IconCompleted
@@ -309,7 +309,7 @@ func (r *Renderer) isTaskBlocked(task *types.Task) bool {
 	return len(task.Dependencies) > 0 && task.State == "pending"
 }
 
-func (r *Renderer) findDirectDependents(taskID interface{}, relationships []TaskRelationship) []*types.Task {
+func (r *Renderer) findDirectDependents(taskID any, relationships []TaskRelationship) []*types.Task {
 	var dependents []*types.Task
 	for _, rel := range relationships {
 		if rel.FromTask.ID.String() == fmt.Sprintf("%v", taskID) {
@@ -330,11 +330,11 @@ func (r *Renderer) Render() error {
 }
 
 // Helper conversion methods
-func (r *Renderer) taskToMap(task *types.Task) map[string]interface{} {
+func (r *Renderer) taskToMap(task *types.Task) map[string]any {
 	if task == nil {
 		return nil
 	}
-	return map[string]interface{}{
+	return map[string]any{
 		"id":         task.ID.String(),
 		"title":      task.Title,
 		"state":      task.State,
@@ -343,8 +343,8 @@ func (r *Renderer) taskToMap(task *types.Task) map[string]interface{} {
 	}
 }
 
-func (r *Renderer) tasksToMap(tasks []*types.Task) []map[string]interface{} {
-	result := make([]map[string]interface{}, 0, len(tasks))
+func (r *Renderer) tasksToMap(tasks []*types.Task) []map[string]any {
+	result := make([]map[string]any, 0, len(tasks))
 	for _, task := range tasks {
 		if task != nil {
 			result = append(result, r.taskToMap(task))

@@ -442,7 +442,7 @@ func infoAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Check if JSON output is requested
 		if c.Bool("json") {
-			info := map[string]interface{}{
+			info := map[string]any{
 				"template": template,
 				"source":   source,
 				"filePath": filePath,
