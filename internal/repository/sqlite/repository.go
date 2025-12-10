@@ -204,7 +204,7 @@ func (r *sqliteRepository) getSQLiteConnectionString(dbPath string) (string, err
 	// Use default database path if empty
 	if dbPath == "" {
 		var err error
-		dbPath, err = GetDatabasePath()
+		dbPath, err = GetWorkspaceDatabasePath()
 		if err != nil {
 			return "", fmt.Errorf("failed to get default database path: %w", err)
 		}

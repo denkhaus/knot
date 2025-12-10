@@ -24,6 +24,42 @@ const (
 	DatabaseName   = "knot.db"
 )
 
+// FindWorkspaceRoot searches for the workspace root by traversing up the directory tree
+// It looks for .knot directory first, then .git directory as a fallback
+// Returns the workspace root path or error if not found
+func FindWorkspaceRoot() (string, error) {
+	cwd, err := os.Getwd()
+	if err != nil {
+		return "", fmt.Errorf("failed to get current working directory: %w", err)
+	}
+
+	dir := cwd
+	
+	for {
+		// Check if .knot exists in current directory
+		knotDir := filepath.Join(dir, ProjectDirName)
+		if stat, err := os.Stat(knotDir); err == nil && stat.IsDir() {
+			return dir, nil
+		}
+		
+		// Check if .git exists (likely workspace root)
+		gitDir := filepath.Join(dir, ".git")
+		if stat, err := os.Stat(gitDir); err == nil && stat.IsDir() {
+			return dir, nil
+		}
+		
+		// Move to parent directory
+		parent := filepath.Dir(dir)
+		if parent == dir {
+			// Reached filesystem root
+			break
+		}
+		dir = parent
+	}
+	
+	return "", fmt.Errorf("workspace root not found (no .knot or .git directory found in path hierarchy)")
+}
+
 // GetProjectDir returns the .knot directory path in the current working directory
 func GetProjectDir() (string, error) {
 	cwd, err := os.Getwd()
@@ -32,6 +68,18 @@ func GetProjectDir() (string, error) {
 	}
 
 	projectDir := filepath.Join(cwd, ProjectDirName)
+	return projectDir, nil
+}
+
+// GetWorkspaceProjectDir returns the .knot directory path in the workspace root
+// This is the preferred method as it ensures only one .knot per workspace
+func GetWorkspaceProjectDir() (string, error) {
+	workspaceRoot, err := FindWorkspaceRoot()
+	if err != nil {
+		return "", err
+	}
+
+	projectDir := filepath.Join(workspaceRoot, ProjectDirName)
 	return projectDir, nil
 }
 
@@ -45,6 +93,23 @@ func EnsureProjectDir() (string, error) {
 	// Create directory if it doesn't exist with secure permissions (owner only)
 	if err := os.MkdirAll(projectDir, 0o700); err != nil {
 		return "", fmt.Errorf("failed to create project directory: %w", err)
+	}
+
+	// Verify and fix directory permissions are secure, even for existing directories
+	return ensureSecureDirectory(projectDir)
+}
+
+// EnsureWorkspaceProjectDir creates the .knot directory in the workspace root if it doesn't exist
+// This is the preferred method as it ensures only one .knot per workspace
+func EnsureWorkspaceProjectDir() (string, error) {
+	projectDir, err := GetWorkspaceProjectDir()
+	if err != nil {
+		return "", err
+	}
+
+	// Create directory if it doesn't exist with secure permissions (owner only)
+	if err := os.MkdirAll(projectDir, 0o700); err != nil {
+		return "", fmt.Errorf("failed to create workspace project directory: %w", err)
 	}
 
 	// Verify and fix directory permissions are secure, even for existing directories
@@ -84,9 +149,33 @@ func GetDatabasePath() (string, error) {
 	return dbPath, nil
 }
 
+// GetWorkspaceDatabasePath returns the full path to the SQLite database file in workspace root
+// This is the preferred method as it ensures only one database per workspace
+func GetWorkspaceDatabasePath() (string, error) {
+	projectDir, err := EnsureWorkspaceProjectDir()
+	if err != nil {
+		return "", err
+	}
+
+	dbPath := filepath.Join(projectDir, DatabaseName)
+	return dbPath, nil
+}
+
 // GetSQLiteConnectionString returns the SQLite connection string
 func GetSQLiteConnectionString() (string, error) {
 	dbPath, err := GetDatabasePath()
+	if err != nil {
+		return "", err
+	}
+
+	// SQLite connection string - simple path format
+	return dbPath, nil
+}
+
+// GetWorkspaceSQLiteConnectionString returns the SQLite connection string for workspace
+// This is the preferred method as it ensures only one database per workspace
+func GetWorkspaceSQLiteConnectionString() (string, error) {
+	dbPath, err := GetWorkspaceDatabasePath()
 	if err != nil {
 		return "", err
 	}
