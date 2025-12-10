@@ -660,8 +660,13 @@ func TestSecurityFeatures(t *testing.T) {
 		err = os.Chdir(tempDir)
 		require.NoError(t, err)
 
+		// Create a .git directory to establish workspace root
+		gitDir := filepath.Join(tempDir, ".git")
+		err = os.Mkdir(gitDir, 0755)
+		require.NoError(t, err)
+
 		// Test secure directory creation
-		projectDir, err := EnsureProjectDir()
+		projectDir, err := EnsureWorkspaceProjectDir()
 		assert.NoError(t, err)
 
 		// Verify permissions
@@ -671,12 +676,36 @@ func TestSecurityFeatures(t *testing.T) {
 	})
 
 	t.Run("database file permissions", func(t *testing.T) {
+		// Test in a temporary workspace with git directory
+		tempDir, err := os.MkdirTemp("", "knot_security_test_*")
+		require.NoError(t, err)
+		defer func() {
+			if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+				t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+			}
+		}()
+
+		// Create a .git directory to establish workspace root
+		gitDir := filepath.Join(tempDir, ".git")
+		err = os.Mkdir(gitDir, 0755)
+		require.NoError(t, err)
+
+		// Change to temp directory
+		originalCwd, err := os.Getwd()
+		require.NoError(t, err)
+		defer func() {
+			_ = os.Chdir(originalCwd) // Ignore error during cleanup
+		}()
+
+		err = os.Chdir(tempDir)
+		require.NoError(t, err)
+
 		ctx := context.Background()
 		repo, cleanup := setupTestRepository(t)
 		defer cleanup()
 
 		// Get the database path
-		dbPath, err := GetDatabasePath()
+		dbPath, err := GetWorkspaceDatabasePath()
 		assert.NoError(t, err)
 
 		// Create a project to ensure the database file is created
