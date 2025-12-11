@@ -3,6 +3,8 @@ package sqlite
 import (
 	"context"
 	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -13,16 +15,37 @@ import (
 
 // TestEntRepositoryInterface tests that the ent-based repository implements all Repository interface methods correctly
 func TestEntRepositoryInterface(t *testing.T) {
-	// Skip if no database URL is provided (for CI/CD environments without database)
-	databaseURL := getDatabaseURL()
-	if databaseURL == "" {
-		t.Skip("Skipping ent repository test - no database URL provided")
-	}
+	// Create a temporary database file for testing
+	tempDir, err := os.MkdirTemp("", "knot_ent_test_*")
+	require.NoError(t, err)
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+			t.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+		}
+	}()
+
+	// Create a .git directory to establish workspace root
+	gitDir := filepath.Join(tempDir, ".git")
+	err = os.Mkdir(gitDir, 0755)
+	require.NoError(t, err)
+
+	// Change to temp directory to ensure workspace root discovery works
+	originalCwd, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		_ = os.Chdir(originalCwd) // Ignore error during cleanup
+	}()
+
+	err = os.Chdir(tempDir)
+	require.NoError(t, err)
+
+	// Create database path
+	dbPath := filepath.Join(tempDir, "test.db")
 
 	ctx := context.Background()
 
 	// Create repository
-	repo, err := NewRepository(databaseURL, WithAutoMigrate(true))
+	repo, err := NewRepository(dbPath, WithAutoMigrate(true))
 	require.NoError(t, err, "Failed to create ent repository")
 	defer func() {
 		if closer, ok := repo.(interface{ Close() error }); ok {
@@ -304,22 +327,46 @@ func TestEntRepositoryInterface(t *testing.T) {
 	})
 }
 
-// getDatabaseURL returns a test database URL or empty string if not available
-func getDatabaseURL() string {
-	// In a real test environment, this would come from environment variables
-	// For now, return empty to skip tests when no database is available
-	return ""
-}
 
 // BenchmarkEntRepository benchmarks the ent repository performance
 func BenchmarkEntRepository(b *testing.B) {
-	databaseURL := getDatabaseURL()
-	if databaseURL == "" {
-		b.Skip("Skipping benchmark - no database URL provided")
+	// Create a temporary database file for benchmarking
+	tempDir, err := os.MkdirTemp("", "knot_ent_bench_*")
+	if err != nil {
+		b.Fatalf("Failed to create temp directory: %v", err)
+	}
+	defer func() {
+		if err := os.RemoveAll(tempDir); err != nil && !os.IsNotExist(err) {
+			b.Logf("Warning: failed to remove temp directory %s: %v", tempDir, err)
+		}
+	}()
+
+	// Create a .git directory to establish workspace root
+	gitDir := filepath.Join(tempDir, ".git")
+	err = os.Mkdir(gitDir, 0755)
+	if err != nil {
+		b.Fatalf("Failed to create .git directory: %v", err)
 	}
 
+	// Change to temp directory to ensure workspace root discovery works
+	originalCwd, err := os.Getwd()
+	if err != nil {
+		b.Fatalf("Failed to get current directory: %v", err)
+	}
+	defer func() {
+		_ = os.Chdir(originalCwd) // Ignore error during cleanup
+	}()
+
+	err = os.Chdir(tempDir)
+	if err != nil {
+		b.Fatalf("Failed to change to temp directory: %v", err)
+	}
+
+	// Create database path
+	dbPath := filepath.Join(tempDir, "bench.db")
+
 	ctx := context.Background()
-	repo, err := NewRepository(databaseURL, WithAutoMigrate(true))
+	repo, err := NewRepository(dbPath, WithAutoMigrate(true))
 	if err != nil {
 		b.Fatalf("Failed to create repository: %v", err)
 	}
