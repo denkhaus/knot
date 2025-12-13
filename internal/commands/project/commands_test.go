@@ -210,7 +210,6 @@ func TestGetAction(t *testing.T) {
 	}
 }
 
-
 func TestProjectCommandsIntegration(t *testing.T) {
 	// Integration test to ensure all project commands work together
 	config := testutil.NewTestConfig(t)

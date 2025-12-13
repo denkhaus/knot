@@ -420,20 +420,6 @@ func TestUpdateAction(t *testing.T) {
 	}
 }
 
-// createTestAppContext creates a test app context
-func createTestAppContext(t *testing.T) *shared.AppContext {
-	t.Helper()
-
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	_ = testutil.CreateTestProject(t, mgr) // Create but don't use the project directly
-
-	return &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-}
-
 // createTestAppContextWithProject creates a test app context and returns the project ID
 func createTestAppContextWithProject(t *testing.T) (*shared.AppContext, uuid.UUID) {
 	t.Helper()

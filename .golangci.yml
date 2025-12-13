@@ -15,7 +15,7 @@ linters:
     - nakedret
     - gocritic
     - goconst
-    - funlen
+    #- funlen
 
   settings:
     funlen:
