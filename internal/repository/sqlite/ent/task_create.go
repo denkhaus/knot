@@ -180,6 +180,34 @@ func (_c *TaskCreate) SetNillableCompletedAt(v *time.Time) *TaskCreate {
 	return _c
 }
 
+// SetCreatedBy sets the "created_by" field.
+func (_c *TaskCreate) SetCreatedBy(v string) *TaskCreate {
+	_c.mutation.SetCreatedBy(v)
+	return _c
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableCreatedBy(v *string) *TaskCreate {
+	if v != nil {
+		_c.SetCreatedBy(*v)
+	}
+	return _c
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_c *TaskCreate) SetUpdatedBy(v string) *TaskCreate {
+	_c.mutation.SetUpdatedBy(v)
+	return _c
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_c *TaskCreate) SetNillableUpdatedBy(v *string) *TaskCreate {
+	if v != nil {
+		_c.SetUpdatedBy(*v)
+	}
+	return _c
+}
+
 // SetID sets the "id" field.
 func (_c *TaskCreate) SetID(v uuid.UUID) *TaskCreate {
 	_c.mutation.SetID(v)
@@ -412,6 +440,14 @@ func (_c *TaskCreate) createSpec() (*Task, *sqlgraph.CreateSpec) {
 	if value, ok := _c.mutation.CompletedAt(); ok {
 		_spec.SetField(task.FieldCompletedAt, field.TypeTime, value)
 		_node.CompletedAt = &value
+	}
+	if value, ok := _c.mutation.CreatedBy(); ok {
+		_spec.SetField(task.FieldCreatedBy, field.TypeString, value)
+		_node.CreatedBy = value
+	}
+	if value, ok := _c.mutation.UpdatedBy(); ok {
+		_spec.SetField(task.FieldUpdatedBy, field.TypeString, value)
+		_node.UpdatedBy = value
 	}
 	if nodes := _c.mutation.ProjectIDs(); len(nodes) > 0 {
 		edge := &sqlgraph.EdgeSpec{

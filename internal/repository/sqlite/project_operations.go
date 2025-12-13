@@ -38,15 +38,23 @@ func (r *sqliteRepository) GetProject(ctx context.Context, id uuid.UUID) (*types
 
 // UpdateProject updates an existing project using ent
 func (r *sqliteRepository) UpdateProject(ctx context.Context, project *types.Project) error {
-	err := r.client.Project.UpdateOneID(project.ID).
+	update := r.client.Project.UpdateOneID(project.ID).
 		SetTitle(project.Title).
 		SetDescription(project.Description).
 		SetState(projectStateToEntState(project.State)).
 		SetUpdatedAt(project.UpdatedAt).
 		SetTotalTasks(project.TotalTasks).
 		SetCompletedTasks(project.CompletedTasks).
-		SetProgress(project.Progress).
-		Exec(ctx)
+		SetProgress(project.Progress)
+
+	if project.CreatedBy != "" {
+		update.SetCreatedBy(project.CreatedBy)
+	}
+	if project.UpdatedBy != "" {
+		update.SetUpdatedBy(project.UpdatedBy)
+	}
+
+	err := update.Exec(ctx)
 
 	if err != nil {
 		if ent.IsNotFound(err) {

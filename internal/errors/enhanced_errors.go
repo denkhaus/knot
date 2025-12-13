@@ -91,8 +91,8 @@ func InvalidTaskStateError(state string) *EnhancedError {
 		Operation:   "validating task state",
 		Cause:       fmt.Errorf("invalid task state: '%s'", state),
 		Suggestion:  fmt.Sprintf("Use one of the valid states: %s", strings.Join(validStates, ", ")),
-		Example:     "knot task update-state --id <task-id> --state completed",
-		HelpCommand: "knot task update-state --help",
+		Example:     "knot task update --id <task-id> --state completed",
+		HelpCommand: "knot task update --help",
 	}
 }
 

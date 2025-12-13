@@ -210,11 +210,6 @@ func TestGetAction(t *testing.T) {
 	}
 }
 
-// TestValidateProjectIDFunction is deprecated - project validation now happens through context
-// This test is kept for backward compatibility but should be removed in future versions
-func TestValidateProjectIDFunction_Deprecated(t *testing.T) {
-	t.Skip("Skipping deprecated validateProjectID test - project validation now uses context system")
-}
 
 func TestProjectCommandsIntegration(t *testing.T) {
 	// Integration test to ensure all project commands work together

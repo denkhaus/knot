@@ -26,7 +26,9 @@
       "mcp__container-use__environment_file_write",
       "mcp__container-use__environment_file_delete",
       "mcp__container-use__environment_config",
-      "mcp__container-use__environment_file_list"
+      "mcp__container-use__environment_file_list",
+      "Bash(bd:*)",
+      "Bash(go generate)"
     ],
     "deny": [],
     "ask": []

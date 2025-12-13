@@ -14,6 +14,7 @@ package config
 import (
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
@@ -57,22 +58,24 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 // ShowAction displays the current configuration
 func ShowAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(_ *cli.Context) error {
-		config := appCtx.ProjectManager.GetConfig()
+		cfg := appCtx.ProjectManager.GetConfig()
 
 		fmt.Println("Current Knot Configuration:")
 		fmt.Println()
-		fmt.Printf("  Complexity Threshold:    %d (tasks >= this need breakdown)\n", config.ComplexityThreshold)
-		fmt.Printf("  Max Depth:               %d (maximum hierarchy levels)\n", config.MaxDepth)
-		fmt.Printf("  Max Tasks Per Depth:     %d (maximum tasks per level)\n", config.MaxTasksPerDepth)
-		fmt.Printf("  Max Description Length:  %d (maximum characters)\n", config.MaxDescriptionLength)
-		fmt.Printf("  Auto Reduce Complexity:  %t (automatically reduce parent complexity when subtasks added)\n", config.AutoReduceComplexity)
+		fmt.Printf("  Complexity Threshold:    %d (tasks >= this need breakdown)\n", cfg.ComplexityThreshold)
+		fmt.Printf("  Max Depth:               %d (maximum hierarchy levels)\n", cfg.MaxDepth)
+		fmt.Printf("  Max Tasks Per Depth:     %d (maximum tasks per level)\n", cfg.MaxTasksPerDepth)
+		fmt.Printf("  Max Description Length:  %d (maximum characters)\n", cfg.MaxDescriptionLength)
+		fmt.Printf("  Auto Reduce Complexity:  %t (automatically reduce parent complexity when subtasks added)\n", cfg.AutoReduceComplexity)
 		fmt.Println()
 
-		// Show config file location - TODO: implement GetConfigPath method
-		// configPath, err := config.GetConfigPath()
-		// if err == nil {
-		// 	fmt.Printf("Configuration file: %s\n", configPath)
-		// }
+		// Show config file location
+		configPath, err := config.GetConfigPath()
+		if err == nil {
+			fmt.Printf("Configuration file:        %s\n", configPath)
+		} else {
+			fmt.Printf("Configuration file:        Unable to determine path (%s)\n", err.Error())
+		}
 
 		return nil
 	}

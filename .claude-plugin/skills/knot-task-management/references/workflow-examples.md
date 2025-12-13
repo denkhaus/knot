@@ -46,7 +46,7 @@ knot dependency add --task-id <documentation-id> --depends-on <endpoints-id>
 
 ```bash
 # Check for tasks needing breakdown
-knot breakdown
+knot status breakdown
 
 # Break down authentication endpoints (complexity 9)
 knot task create --parent-id <endpoints-id> --title "Implement registration endpoint" --complexity 4
@@ -66,17 +66,17 @@ knot task create --parent-id <jwt-id> --title "Implement token refresh logic" --
 
 ```bash
 # Find next actionable task
-knot actionable
+knot status actionable
 # Output: "Research authentication best practices"
 
 # Start working
-knot task update-state --id <research-id> --state in-progress
+knot task update --id <research-id> --state in-progress
 
 # Complete research
-knot task update-state --id <research-id> --state completed
+knot task update --id <research-id> --state completed
 
 # Continue with next task
-knot actionable
+knot status actionable
 # Output: "Design authentication system architecture"
 ```
 
@@ -89,7 +89,7 @@ knot actionable
 knot task create --title "Investigate: User login fails with valid credentials" --description "Users report login failures despite correct username/password" --complexity 4
 
 # Start investigation
-knot task update-state --id <investigation-id> --state in-progress
+knot task update --id <investigation-id> --state in-progress
 ```
 
 ### During Investigation - Discovering Root Cause
@@ -148,7 +148,7 @@ knot task create --parent-id <test-migration-id> --title "Verify no data corrupt
 knot task create --title "HOTFIX: Security vulnerability in password reset" --description "Password reset tokens are predictable, allowing account takeover" --complexity 9
 
 # Immediately set to in-progress
-knot task update-state --id <hotfix-id> --state in-progress
+knot task update --id <hotfix-id> --state in-progress
 
 # Break down immediately (complexity 9)
 knot task create --parent-id <hotfix-id> --title "Disable password reset functionality immediately" --complexity 2
@@ -173,16 +173,16 @@ knot dependency add --task-id <deploy-id> --depends-on <test-id>
 
 ```bash
 # Find first task
-knot actionable
+knot status actionable
 # Output: "Disable password reset functionality immediately"
 
 # Work through critical sequence
-knot task update-state --id <disable-id> --state in-progress
+knot task update --id <disable-id> --state in-progress
 # ... implement disable ...
-knot task update-state --id <disable-id> --state completed
+knot task update --id <disable-id> --state completed
 
 # Continue to next critical task
-knot actionable
+knot status actionable
 # Output: "Implement secure token generation"
 ```
 
@@ -234,11 +234,11 @@ knot dependency add --task-id <recommendation-id> --depends-on <poc-id>
 knot project get-selected
 
 # Find today's tasks
-knot actionable
+knot status actionable
 
 # Review project health
-knot breakdown
-knot blocked
+knot status breakdown
+knot status blocked
 
 # Plan work based on actionable tasks
 ```
@@ -259,16 +259,16 @@ knot dependency add --task-id <validation-id> --depends-on <current-task-id>
 
 ```bash
 # Update any completed tasks
-knot task update-state --id <completed-task-id> --state completed
+knot task update --id <completed-task-id> --state completed
 
 # Check tomorrow's work
-knot actionable
+knot status actionable
 
 # Review project progress
 knot project get --id <project-id>
 
 # Note any blockers or issues
-knot blocked
+knot status blocked
 ```
 
 These examples demonstrate how KNOT provides structure for complex workflows while maintaining flexibility for real-world development and task planning scenarios.

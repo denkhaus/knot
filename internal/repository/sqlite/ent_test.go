@@ -327,7 +327,6 @@ func TestEntRepositoryInterface(t *testing.T) {
 	})
 }
 
-
 // BenchmarkEntRepository benchmarks the ent repository performance
 func BenchmarkEntRepository(b *testing.B) {
 	// Create a temporary database file for benchmarking

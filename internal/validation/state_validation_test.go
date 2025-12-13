@@ -143,7 +143,7 @@ func TestValidationErrorMessages(t *testing.T) {
 
 	// Should have example command
 	assert.NotEmpty(t, enhancedErr.Example, "Should provide example")
-	assert.Contains(t, enhancedErr.Example, "knot task update-state", "Should show correct command")
+	assert.Contains(t, enhancedErr.Example, "knot task update", "Should show correct command")
 	assert.Contains(t, enhancedErr.Example, task.ID.String(), "Should include task ID")
 }
 

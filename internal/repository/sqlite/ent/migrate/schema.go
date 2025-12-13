@@ -85,6 +85,8 @@ var (
 		{Name: "created_at", Type: field.TypeTime},
 		{Name: "updated_at", Type: field.TypeTime},
 		{Name: "completed_at", Type: field.TypeTime, Nullable: true},
+		{Name: "created_by", Type: field.TypeString, Nullable: true},
+		{Name: "updated_by", Type: field.TypeString, Nullable: true},
 		{Name: "project_id", Type: field.TypeUUID},
 		{Name: "parent_id", Type: field.TypeUUID, Nullable: true},
 	}
@@ -96,13 +98,13 @@ var (
 		ForeignKeys: []*schema.ForeignKey{
 			{
 				Symbol:     "tasks_projects_tasks",
-				Columns:    []*schema.Column{TasksColumns[12]},
+				Columns:    []*schema.Column{TasksColumns[14]},
 				RefColumns: []*schema.Column{ProjectsColumns[0]},
 				OnDelete:   schema.NoAction,
 			},
 			{
 				Symbol:     "tasks_tasks_children",
-				Columns:    []*schema.Column{TasksColumns[13]},
+				Columns:    []*schema.Column{TasksColumns[15]},
 				RefColumns: []*schema.Column{TasksColumns[0]},
 				OnDelete:   schema.SetNull,
 			},
@@ -111,12 +113,12 @@ var (
 			{
 				Name:    "task_project_id",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[12]},
+				Columns: []*schema.Column{TasksColumns[14]},
 			},
 			{
 				Name:    "task_parent_id",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[13]},
+				Columns: []*schema.Column{TasksColumns[15]},
 			},
 			{
 				Name:    "task_state",
@@ -151,27 +153,27 @@ var (
 			{
 				Name:    "task_project_id_state",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[12], TasksColumns[3]},
+				Columns: []*schema.Column{TasksColumns[14], TasksColumns[3]},
 			},
 			{
 				Name:    "task_project_id_priority",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[12], TasksColumns[4]},
+				Columns: []*schema.Column{TasksColumns[14], TasksColumns[4]},
 			},
 			{
 				Name:    "task_project_id_assigned_agent",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[12], TasksColumns[8]},
+				Columns: []*schema.Column{TasksColumns[14], TasksColumns[8]},
 			},
 			{
 				Name:    "task_project_id_parent_id",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[12], TasksColumns[13]},
+				Columns: []*schema.Column{TasksColumns[14], TasksColumns[15]},
 			},
 			{
 				Name:    "task_project_id_depth",
 				Unique:  false,
-				Columns: []*schema.Column{TasksColumns[12], TasksColumns[6]},
+				Columns: []*schema.Column{TasksColumns[14], TasksColumns[6]},
 			},
 			{
 				Name:    "task_state_complexity",

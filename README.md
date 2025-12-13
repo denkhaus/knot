@@ -109,9 +109,9 @@ knot project select --id <project-uuid>
 # Now work seamlessly without repeating project ID
 knot task create --title "Implement feature" --complexity 5
 knot task list
-knot ready
-knot blocked
-knot actionable
+knot status ready
+knot status blocked
+knot status actionable
 
 # Check which project is currently selected
 knot project get-selected
@@ -150,13 +150,8 @@ knot task create --title "Feature X" --complexity 7
 # Create subtask
 knot task create --title "Subtask" --parent-id <parent-task-uuid>
 
-# Update task state
-knot task update-state --id <task-uuid> --state in-progress
-
-# Update task details
-knot task update-title --id <task-uuid> --title "New Title"
-knot task update-description --id <task-uuid> --description "New desc"
-knot task update-priority --id <task-uuid> --priority high
+# Update task details (consolidated update command)
+knot task update --id <task-uuid> --title "New Title" --description "New desc" --priority high --state in-progress
 
 # Get detailed task information
 knot task get --id <task-uuid>
@@ -232,23 +227,23 @@ knot dependency validate
 knot project select --id <project-uuid>
 
 # Find ready tasks (no blockers)
-knot ready --limit 5
+knot status ready --limit 5
 
 # Find blocked tasks
-knot blocked --limit 10
+knot status blocked --limit 10
 
 # Get next actionable task with intelligent strategy selection
-knot actionable                                   # Use auto-recommended strategy
-knot actionable --strategy dependency-aware     # Prioritize tasks that unblock others
-knot actionable --strategy depth-first          # Complete subtasks before moving to other branches
-knot actionable --strategy priority             # Focus on high-priority tasks first
-knot actionable --strategy creation-order       # Original knot behavior (oldest first)
-knot actionable --strategy critical-path        # Focus on tasks affecting project timeline
-knot actionable --verbose                      # Show detailed selection reasoning and alternatives
-knot actionable --json                         # Output result as JSON
+knot status actionable                                   # Use auto-recommended strategy
+knot status actionable --strategy dependency-aware     # Prioritize tasks that unblock others
+knot status actionable --strategy depth-first          # Complete subtasks before moving to other branches
+knot status actionable --strategy priority             # Focus on high-priority tasks first
+knot status actionable --strategy creation-order       # Original knot behavior (oldest first)
+knot status actionable --strategy critical-path        # Focus on tasks affecting project timeline
+knot status actionable --verbose                      # Show detailed selection reasoning and alternatives
+knot status actionable --json                         # Output result as JSON
 
 # Find tasks needing breakdown
-knot breakdown --threshold 8
+knot status breakdown --threshold 8
 ```
 
 ### Bulk Operations
@@ -257,8 +252,8 @@ knot breakdown --threshold 8
 # Select project first (if not already selected)
 knot project select --id <project-uuid>
 
-# Bulk update tasks
-knot task bulk-update --task-ids "<task-uuid-1>,<task-uuid-2>,<task-uuid-3>" --state completed
+# Note: Individual task updates should use the consolidated update command
+# Multiple task updates should be done individually or through scripts
 
 # Bulk create from JSON
 knot task bulk-create --file tasks.json
@@ -413,7 +408,7 @@ knot project select --id <project-uuid>
 # Get JSON output for tasks and analysis
 knot task list --json
 knot task get --id <task-uuid> --json
-knot ready --json
+knot status ready --json
 knot project list --json
 ```
 
@@ -456,7 +451,7 @@ knot --log-level off task list
 knot --log-level error project list
 
 # Show detailed debug information
-knot --log-level debug actionable
+knot --log-level debug status actionable
 ```
 
 **Available Log Levels:**
@@ -700,15 +695,15 @@ knot project select --id $PROJECT_ID
 knot template apply --name "feature-development"
 
 # Find ready work
-knot ready
+knot status ready
 
 # Start working on first task
-TASK_ID=$(knot ready --json | jq -r '.[0].id')
-knot task update-state --id $TASK_ID --state in-progress
+TASK_ID=$(knot status ready --json | jq -r '.[0].id')
+knot task update --id $TASK_ID --state in-progress
 
 # Complete task and find next
-knot task update-state --id $TASK_ID --state completed
-knot actionable
+knot task update --id $TASK_ID --state completed
+knot status actionable
 ```
 
 ### Bug Fix Workflow
@@ -724,8 +719,8 @@ knot template apply --name "bug-fix" \
   --var priority="High"
 
 # Track progress
-knot blocked
-knot ready
+knot status blocked
+knot status ready
 ```
 
 ### Dependency Management

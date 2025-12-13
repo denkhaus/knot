@@ -194,7 +194,7 @@ func transitionAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		fmt.Printf("\nTo apply this transition:\n")
-		fmt.Printf("   knot task update-state --id %s --state %s\n", taskID, toState)
+		fmt.Printf("   knot task update --id %s --state %s\n", taskID, toState)
 
 		return nil
 	}

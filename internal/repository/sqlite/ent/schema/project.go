@@ -46,6 +46,10 @@ func (Project) Fields() []ent.Field {
 			Default(0.0).
 			Min(0.0).
 			Max(100.0),
+		field.String("created_by").
+			Optional(),
+		field.String("updated_by").
+			Optional(),
 	}
 }
 

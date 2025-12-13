@@ -87,55 +87,11 @@ func NewTaskCommand(appCtx *shared.AppContext) *cli.Command {
 	}
 }
 
-func NewBreakdownCommand(appCtx *shared.AppContext) *cli.Command {
-	return &cli.Command{
-		Name:   "breakdown",
-		Usage:  "Find tasks that need breakdown based on complexity",
-		Action: task.BreakdownAction(appCtx),
-		Flags: []cli.Flag{
-			shared.NewTaskLimitFlag(),
-			shared.NewJSONFlag(),
-			shared.NewQuietFlag(),
-			&cli.IntFlag{
-				Name:    "threshold",
-				Aliases: []string{"t"},
-				Usage:   "Complexity threshold for breakdown (default: 8)",
-				Value:   8,
-				EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
-			},
-		},
-	}
-}
-
-func NewBlockedCommand(appCtx *shared.AppContext) *cli.Command {
-	return &cli.Command{
-		Name:   "blocked",
-		Usage:  "Show tasks blocked by dependencies",
-		Action: task.BlockedAction(appCtx),
-		Flags: []cli.Flag{
-			shared.NewTaskLimitFlag(),
-			shared.NewJSONFlag(),
-		},
-	}
-}
-
 func NewGetStartedCommand(appCtx *shared.AppContext) *cli.Command {
 	return &cli.Command{
 		Name:   "get-started",
 		Usage:  "Get started guide for LLM agents with available commands and usage",
 		Action: task.GetStartedAction(appCtx),
-	}
-}
-
-func NewReadyCommand(appCtx *shared.AppContext) *cli.Command {
-	return &cli.Command{
-		Name:   "ready",
-		Usage:  "Show tasks with no blockers (ready to work on)",
-		Action: task.ReadyAction(appCtx),
-		Flags: []cli.Flag{
-			shared.NewTaskLimitFlag(),
-			shared.NewJSONFlag(),
-		},
 	}
 }
 
@@ -159,13 +115,31 @@ func NewProjectCommand(appCtx *shared.AppContext) *cli.Command {
 	}
 }
 
-// NewActionableCommand creates the enhanced actionable command with new flags
-func NewActionableCommand(appCtx *shared.AppContext) *cli.Command {
+// NewStatusCommand creates a status command with subcommands for different status views
+func NewStatusCommand(appCtx *shared.AppContext) *cli.Command {
 	return &cli.Command{
-		Name:    "actionable",
-		Aliases: []string{"next"},
-		Usage:   "Find the next actionable task using intelligent selection",
-		Description: `Find the next actionable task using dependency-aware selection strategies.
+		Name:    "status",
+		Usage:   "Show tasks by status (actionable, ready, blocked, breakdown)",
+		Aliases: []string{"st"},
+		Description: `Status commands provide different views into your task workflow:
+
+  actionable: Find the next actionable task using intelligent selection
+  ready:     Show tasks with no blockers (ready to work on)
+  blocked:   Show tasks blocked by dependencies
+  breakdown: Find tasks that need breakdown based on complexity
+
+Examples:
+  knot status actionable                           # Use default dependency-aware strategy
+  knot status actionable --strategy=priority      # Focus on high-priority tasks
+  knot status ready --json                        # Show ready tasks in JSON format
+  knot status blocked --limit=10                  # Show first 10 blocked tasks
+  knot status breakdown --threshold=5             # Find tasks needing breakdown (complexity >= 5)`,
+		Subcommands: []*cli.Command{
+			{
+				Name:    "actionable",
+				Aliases: []string{"next", "act"},
+				Usage:   "Find the next actionable task using intelligent selection",
+				Description: `Find the next actionable task using dependency-aware selection strategies.
 
 Available strategies:
   - dependency-aware: Prioritizes tasks that unblock others (default)
@@ -175,33 +149,73 @@ Available strategies:
   - critical-path: Focus on tasks affecting project timeline
 
 Examples:
-  knot task actionable                           # Use default dependency-aware strategy
-  knot task actionable --strategy=depth-first   # Prioritize completing branches
-  knot task actionable --strategy=priority      # Focus on high-priority tasks
-  knot task actionable --verbose --json         # Detailed JSON output`,
-		Action: task.ActionableAction(appCtx),
-		Flags: []cli.Flag{
-			&cli.StringFlag{
-				Name:    "strategy",
-				Aliases: []string{"s"},
-				Usage:   "Selection strategy: dependency-aware, depth-first, priority, creation-order, critical-path (auto-recommended if not specified)",
+  knot status actionable                           # Use default dependency-aware strategy
+  knot status actionable --strategy=depth-first   # Prioritize completing branches
+  knot status actionable --strategy=priority      # Focus on high-priority tasks
+  knot status actionable --verbose --json         # Detailed JSON output`,
+				Action: task.ActionableAction(appCtx),
+				Flags: []cli.Flag{
+					&cli.StringFlag{
+						Name:    "strategy",
+						Aliases: []string{"s"},
+						Usage:   "Selection strategy: dependency-aware, depth-first, priority, creation-order, critical-path (auto-recommended if not specified)",
+					},
+					&cli.BoolFlag{
+						Name:  "allow-parent-with-subtasks",
+						Usage: "Allow selection of parent tasks even when subtasks exist",
+					},
+					&cli.BoolFlag{
+						Name:  "prefer-pending",
+						Usage: "Prefer pending tasks over in-progress tasks",
+					},
+					&cli.BoolFlag{
+						Name:    "verbose",
+						Aliases: []string{"v"},
+						Usage:   "Show detailed selection reasoning and alternatives",
+					},
+					&cli.BoolFlag{
+						Name:  "json",
+						Usage: "Output result as JSON",
+					},
+				},
 			},
-			&cli.BoolFlag{
-				Name:  "allow-parent-with-subtasks",
-				Usage: "Allow selection of parent tasks even when subtasks exist",
+			{
+				Name:    "ready",
+				Aliases: []string{"rd"},
+				Usage:   "Show tasks with no blockers (ready to work on)",
+				Action:  task.ReadyAction(appCtx),
+				Flags: []cli.Flag{
+					shared.NewTaskLimitFlag(),
+					shared.NewJSONFlag(),
+				},
 			},
-			&cli.BoolFlag{
-				Name:  "prefer-pending",
-				Usage: "Prefer pending tasks over in-progress tasks",
+			{
+				Name:    "blocked",
+				Aliases: []string{"blk"},
+				Usage:   "Show tasks blocked by dependencies",
+				Action:  task.BlockedAction(appCtx),
+				Flags: []cli.Flag{
+					shared.NewTaskLimitFlag(),
+					shared.NewJSONFlag(),
+				},
 			},
-			&cli.BoolFlag{
-				Name:    "verbose",
-				Aliases: []string{"v"},
-				Usage:   "Show detailed selection reasoning and alternatives",
-			},
-			&cli.BoolFlag{
-				Name:  "json",
-				Usage: "Output result as JSON",
+			{
+				Name:    "breakdown",
+				Aliases: []string{"bd"},
+				Usage:   "Find tasks that need breakdown based on complexity",
+				Action:  task.BreakdownAction(appCtx),
+				Flags: []cli.Flag{
+					shared.NewTaskLimitFlag(),
+					shared.NewJSONFlag(),
+					shared.NewQuietFlag(),
+					&cli.IntFlag{
+						Name:    "threshold",
+						Aliases: []string{"t"},
+						Usage:   "Complexity threshold for breakdown (default: 8)",
+						Value:   8,
+						EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
+					},
+				},
 			},
 		},
 	}

@@ -2,6 +2,7 @@ package sqlite
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -730,5 +731,108 @@ func TestSecurityFeatures(t *testing.T) {
 			// This is acceptable for database files that don't contain highly sensitive data
 			assert.True(t, perms <= os.FileMode(0644), "Database file should not have world-writable permissions, got %o", perms)
 		}
+	})
+}
+
+// TestErrorMapping tests the mapError function to ensure proper error type mapping
+func TestErrorMapping(t *testing.T) {
+	repo, cleanup := setupTestRepository(t)
+	defer cleanup()
+
+	sqliteRepo := repo.(*sqliteRepository)
+
+	t.Run("nil error returns nil", func(t *testing.T) {
+		err := sqliteRepo.mapError("test-operation", nil)
+		assert.NoError(t, err)
+	})
+
+	t.Run("validation error mapping", func(t *testing.T) {
+		// Simulate a validation error by wrapping it
+		validationErr := fmt.Errorf("validation failed: invalid value")
+
+		err := sqliteRepo.mapError("test-validation", validationErr)
+		assert.Error(t, err)
+
+		// For this test, we'll check that it doesn't map to known types
+		assert.False(t, IsValidationError(err))
+		assert.False(t, IsNotFoundError(err))
+	})
+
+	t.Run("not found error mapping", func(t *testing.T) {
+		// Test by trying to get a non-existent task (will produce a real NotFoundError)
+		ctx := context.Background()
+		nonExistentID := uuid.New()
+
+		_, err := sqliteRepo.GetTask(ctx, nonExistentID)
+		assert.Error(t, err)
+		assert.True(t, IsNotFoundError(err))
+		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("transaction error mapping", func(t *testing.T) {
+		// Create a transaction-like error
+		txErr := fmt.Errorf("transaction: database is locked")
+
+		err := sqliteRepo.mapError("test-transaction", txErr)
+		assert.Error(t, err)
+
+		// Check if it's our TransactionError type
+		var repoErr *RepositoryError
+		assert.True(t, errors.As(err, &repoErr))
+		assert.Equal(t, ErrorTypeTransactionError, repoErr.Type)
+		assert.Contains(t, err.Error(), "transaction error")
+	})
+
+	t.Run("fallback to connection error", func(t *testing.T) {
+		// Create an unknown error
+		unknownErr := fmt.Errorf("some unknown database error")
+
+		err := sqliteRepo.mapError("test-operation", unknownErr)
+		assert.Error(t, err)
+
+		// Check if it's our ConnectionError type
+		var repoErr *RepositoryError
+		assert.True(t, errors.As(err, &repoErr))
+		assert.Equal(t, ErrorTypeConnectionError, repoErr.Type)
+		assert.Contains(t, err.Error(), "database operation failed: test-operation")
+	})
+}
+
+// TestErrorTypeHelpers tests the error type helper functions
+func TestErrorTypeHelpers(t *testing.T) {
+	t.Run("NewQueryError creates correct error type", func(t *testing.T) {
+		err := NewQueryError("task", fmt.Errorf("test error"))
+
+		var repoErr *RepositoryError
+		assert.True(t, errors.As(err, &repoErr))
+		assert.Equal(t, ErrorTypeQueryError, repoErr.Type)
+		assert.Contains(t, err.Error(), "expected single task but got multiple results")
+	})
+
+	t.Run("NewFieldError creates correct error type", func(t *testing.T) {
+		err := NewFieldError("children", fmt.Errorf("test error"))
+
+		var repoErr *RepositoryError
+		assert.True(t, errors.As(err, &repoErr))
+		assert.Equal(t, ErrorTypeFieldError, repoErr.Type)
+		assert.Contains(t, err.Error(), "field children was not loaded")
+	})
+
+	t.Run("NewUniqueConstraintError creates correct error type", func(t *testing.T) {
+		err := NewUniqueConstraintError("title", fmt.Errorf("test error"))
+
+		var repoErr *RepositoryError
+		assert.True(t, errors.As(err, &repoErr))
+		assert.Equal(t, ErrorTypeUniqueConstraintError, repoErr.Type)
+		assert.Contains(t, err.Error(), "unique constraint violated on field title")
+	})
+
+	t.Run("NewForeignKeyError creates correct error type", func(t *testing.T) {
+		err := NewForeignKeyError("parent_id does not exist", fmt.Errorf("test error"))
+
+		var repoErr *RepositoryError
+		assert.True(t, errors.As(err, &repoErr))
+		assert.Equal(t, ErrorTypeForeignKeyError, repoErr.Type)
+		assert.Contains(t, err.Error(), "foreign key constraint violation: parent_id does not exist")
 	})
 }

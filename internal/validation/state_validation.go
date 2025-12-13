@@ -100,8 +100,8 @@ func (sv *StateValidator) addValidationRules() {
 						Operation:   "validating state transition",
 						Cause:       fmt.Errorf("direct transition from pending to completed"),
 						Suggestion:  "Consider transitioning to in-progress first to track work progress",
-						Example:     "knot task update-state --id " + task.ID.String() + " --state in-progress",
-						HelpCommand: "knot task update-state --help",
+						Example:     "knot task update --id " + task.ID.String() + " --state in-progress",
+						HelpCommand: "knot task update --help",
 					}
 				}
 				return nil
@@ -232,7 +232,7 @@ func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState,
 
 	var example string
 	if len(validTransitions) > 0 {
-		example = fmt.Sprintf("knot task update-state --id %s --state %s", task.ID.String(), validTransitions[0])
+		example = fmt.Sprintf("knot task update --id %s --state %s", task.ID.String(), validTransitions[0])
 	} else {
 		example = fmt.Sprintf("knot task delete --id %s  # only deletion allowed", task.ID.String())
 	}
@@ -242,7 +242,7 @@ func (sv *StateValidator) createInvalidTransitionError(from, to types.TaskState,
 		Cause:       fmt.Errorf("invalid state transition from '%s' to '%s'", from, to),
 		Suggestion:  fmt.Sprintf("Valid transitions from '%s': %v", from, validTransitions),
 		Example:     example,
-		HelpCommand: "knot task update-state --help",
+		HelpCommand: "knot task update --help",
 	}
 }
 

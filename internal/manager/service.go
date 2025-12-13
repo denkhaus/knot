@@ -486,6 +486,28 @@ func (s *service) UpdateTaskPriority(ctx context.Context, taskID uuid.UUID, prio
 	return s.repo.GetTask(ctx, taskID)
 }
 
+func (s *service) UpdateTaskComplexity(ctx context.Context, taskID uuid.UUID, complexity int, actor string) (*types.Task, error) {
+	// Validate complexity
+	if err := knoterrors.ValidateComplexity(complexity); err != nil {
+		return nil, err
+	}
+
+	task, err := s.repo.GetTask(ctx, taskID)
+	if err != nil {
+		return nil, err
+	}
+
+	task.Complexity = complexity
+	task.UpdatedBy = actor
+	task.UpdatedAt = time.Now()
+
+	if err := s.repo.UpdateTask(ctx, task); err != nil {
+		return nil, fmt.Errorf("failed to update task complexity: %w", err)
+	}
+
+	return s.repo.GetTask(ctx, taskID)
+}
+
 func (s *service) DeleteTask(ctx context.Context, taskID uuid.UUID, actor string) error {
 	return s.repo.DeleteTask(ctx, taskID)
 }

@@ -80,6 +80,12 @@ func projectToEntProjectCreate(p *types.Project, client *ent.Client) *ent.Projec
 	if p.Progress > 0 {
 		create.SetProgress(p.Progress)
 	}
+	if p.CreatedBy != "" {
+		create.SetCreatedBy(p.CreatedBy)
+	}
+	if p.UpdatedBy != "" {
+		create.SetUpdatedBy(p.UpdatedBy)
+	}
 
 	return create
 }
@@ -154,6 +160,12 @@ func taskToEntTaskCreate(t *types.Task, client *ent.Client) *ent.TaskCreate {
 	if t.CompletedAt != nil {
 		create.SetCompletedAt(*t.CompletedAt)
 	}
+	if t.CreatedBy != "" {
+		create.SetCreatedBy(t.CreatedBy)
+	}
+	if t.UpdatedBy != "" {
+		create.SetUpdatedBy(t.UpdatedBy)
+	}
 
 	return create
 }
@@ -184,6 +196,9 @@ func taskToEntTaskUpdate(t *types.Task, update *ent.TaskUpdateOne) *ent.TaskUpda
 		update.SetCompletedAt(*t.CompletedAt)
 	} else {
 		update.ClearCompletedAt()
+	}
+	if t.UpdatedBy != "" {
+		update.SetUpdatedBy(t.UpdatedBy)
 	}
 
 	return update

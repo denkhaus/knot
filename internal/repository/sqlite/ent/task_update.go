@@ -241,6 +241,46 @@ func (_u *TaskUpdate) ClearCompletedAt() *TaskUpdate {
 	return _u
 }
 
+// SetCreatedBy sets the "created_by" field.
+func (_u *TaskUpdate) SetCreatedBy(v string) *TaskUpdate {
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableCreatedBy(v *string) *TaskUpdate {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *TaskUpdate) ClearCreatedBy() *TaskUpdate {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *TaskUpdate) SetUpdatedBy(v string) *TaskUpdate {
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *TaskUpdate) SetNillableUpdatedBy(v *string) *TaskUpdate {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *TaskUpdate) ClearUpdatedBy() *TaskUpdate {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // SetProject sets the "project" edge to the Project entity.
 func (_u *TaskUpdate) SetProject(v *Project) *TaskUpdate {
 	return _u.SetProjectID(v.ID)
@@ -435,6 +475,18 @@ func (_u *TaskUpdate) sqlSave(ctx context.Context) (_node int, err error) {
 	}
 	if _u.mutation.CompletedAtCleared() {
 		_spec.ClearField(task.FieldCompletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(task.FieldCreatedBy, field.TypeString, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(task.FieldCreatedBy, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(task.FieldUpdatedBy, field.TypeString, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(task.FieldUpdatedBy, field.TypeString)
 	}
 	if _u.mutation.ProjectCleared() {
 		edge := &sqlgraph.EdgeSpec{
@@ -770,6 +822,46 @@ func (_u *TaskUpdateOne) ClearCompletedAt() *TaskUpdateOne {
 	return _u
 }
 
+// SetCreatedBy sets the "created_by" field.
+func (_u *TaskUpdateOne) SetCreatedBy(v string) *TaskUpdateOne {
+	_u.mutation.SetCreatedBy(v)
+	return _u
+}
+
+// SetNillableCreatedBy sets the "created_by" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableCreatedBy(v *string) *TaskUpdateOne {
+	if v != nil {
+		_u.SetCreatedBy(*v)
+	}
+	return _u
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (_u *TaskUpdateOne) ClearCreatedBy() *TaskUpdateOne {
+	_u.mutation.ClearCreatedBy()
+	return _u
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (_u *TaskUpdateOne) SetUpdatedBy(v string) *TaskUpdateOne {
+	_u.mutation.SetUpdatedBy(v)
+	return _u
+}
+
+// SetNillableUpdatedBy sets the "updated_by" field if the given value is not nil.
+func (_u *TaskUpdateOne) SetNillableUpdatedBy(v *string) *TaskUpdateOne {
+	if v != nil {
+		_u.SetUpdatedBy(*v)
+	}
+	return _u
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (_u *TaskUpdateOne) ClearUpdatedBy() *TaskUpdateOne {
+	_u.mutation.ClearUpdatedBy()
+	return _u
+}
+
 // SetProject sets the "project" edge to the Project entity.
 func (_u *TaskUpdateOne) SetProject(v *Project) *TaskUpdateOne {
 	return _u.SetProjectID(v.ID)
@@ -994,6 +1086,18 @@ func (_u *TaskUpdateOne) sqlSave(ctx context.Context) (_node *Task, err error) {
 	}
 	if _u.mutation.CompletedAtCleared() {
 		_spec.ClearField(task.FieldCompletedAt, field.TypeTime)
+	}
+	if value, ok := _u.mutation.CreatedBy(); ok {
+		_spec.SetField(task.FieldCreatedBy, field.TypeString, value)
+	}
+	if _u.mutation.CreatedByCleared() {
+		_spec.ClearField(task.FieldCreatedBy, field.TypeString)
+	}
+	if value, ok := _u.mutation.UpdatedBy(); ok {
+		_spec.SetField(task.FieldUpdatedBy, field.TypeString, value)
+	}
+	if _u.mutation.UpdatedByCleared() {
+		_spec.ClearField(task.FieldUpdatedBy, field.TypeString)
 	}
 	if _u.mutation.ProjectCleared() {
 		edge := &sqlgraph.EdgeSpec{

@@ -100,8 +100,8 @@ func TestInvalidTaskStateError(t *testing.T) {
 	assert.Contains(t, err.Cause.Error(), "invalid task state")
 	assert.Contains(t, err.Suggestion, "Use one of the valid states")
 	assert.Contains(t, err.Suggestion, "pending, in-progress, completed, blocked, cancelled")
-	assert.Contains(t, err.Example, "knot task update-state")
-	assert.Contains(t, err.HelpCommand, "knot task update-state --help")
+	assert.Contains(t, err.Example, "knot task update")
+	assert.Contains(t, err.HelpCommand, "knot task update --help")
 }
 
 func TestCircularDependencyError(t *testing.T) {

@@ -16,70 +16,6 @@ import (
 	"go.uber.org/zap"
 )
 
-// BulkUpdateAction updates multiple tasks simultaneously
-func BulkUpdateAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
-		taskIDsStr := c.String("task-ids")
-		if taskIDsStr == "" {
-			return fmt.Errorf("task-ids are required")
-		}
-
-		// Parse comma-separated task IDs
-		taskIDStrings := strings.Split(taskIDsStr, ",")
-		var taskIDs []uuid.UUID
-		for _, idStr := range taskIDStrings {
-			idStr = strings.TrimSpace(idStr)
-			taskID, err := uuid.Parse(idStr)
-			if err != nil {
-				return fmt.Errorf("invalid task ID '%s': %w", idStr, err)
-			}
-			taskIDs = append(taskIDs, taskID)
-		}
-
-		if len(taskIDs) == 0 {
-			return fmt.Errorf("no valid task IDs provided")
-		}
-
-		// Build updates struct
-		var updates types.TaskUpdates
-
-		if stateStr := c.String("state"); stateStr != "" {
-			state := types.TaskState(stateStr)
-			updates.State = &state
-		}
-
-		if complexity := c.Int("complexity"); complexity > 0 {
-			updates.Complexity = &complexity
-		}
-
-		if updates.State == nil && updates.Complexity == nil {
-			return fmt.Errorf("at least one field (state or complexity) must be specified")
-		}
-
-		appCtx.Logger.Info("Bulk updating tasks",
-			zap.Int("taskCount", len(taskIDs)),
-			zap.Any("updates", updates))
-
-		actor := shared.GetActorFromContext(c)
-
-		err := appCtx.ProjectManager.BulkUpdateTasks(context.Background(), taskIDs, updates, actor)
-		if err != nil {
-			appCtx.Logger.Error("Failed to bulk update tasks", zap.Error(err))
-			return fmt.Errorf("failed to bulk update tasks: %w", err)
-		}
-
-		fmt.Printf("Successfully updated %d tasks\n", len(taskIDs))
-		if updates.State != nil {
-			fmt.Printf("  State: %s\n", *updates.State)
-		}
-		if updates.Complexity != nil {
-			fmt.Printf("  Complexity: %d\n", *updates.Complexity)
-		}
-
-		return nil
-	}
-}
-
 // DuplicateAction creates a copy of a task
 func DuplicateAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
@@ -362,26 +298,6 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 // BulkCommands returns bulk operation CLI commands
 func BulkCommands(appCtx *shared.AppContext) []*cli.Command {
 	return []*cli.Command{
-		{
-			Name:   "bulk-update",
-			Usage:  "Update multiple tasks simultaneously",
-			Action: BulkUpdateAction(appCtx),
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "task-ids",
-					Usage:    "Comma-separated list of task IDs",
-					Required: true,
-				},
-				&cli.StringFlag{
-					Name:  "state",
-					Usage: "New state (pending, in-progress, completed, blocked, cancelled)",
-				},
-				&cli.IntFlag{
-					Name:  "complexity",
-					Usage: "New complexity (1-10)",
-				},
-			},
-		},
 		{
 			Name:   "bulk-create",
 			Usage:  "Create multiple tasks from JSON file",

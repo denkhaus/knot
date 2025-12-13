@@ -18,15 +18,25 @@ func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return err
 		}
 
-		// TODO: Get complexity threshold from config (default: 8)
+		// Get complexity threshold from config, with CLI override
+		config := appCtx.ProjectManager.GetConfig()
 		complexityThreshold := c.Int("threshold")
 		if complexityThreshold == 0 {
-			complexityThreshold = 8 // Default from original pkg/tools/project
+			complexityThreshold = config.ComplexityThreshold
 		}
 
-		appCtx.Logger.Info("Finding tasks needing breakdown",
-			zap.String("projectID", projectID.String()),
-			zap.Int("threshold", complexityThreshold))
+		// Log info about threshold source
+		if c.Int("threshold") > 0 {
+			appCtx.Logger.Info("Finding tasks needing breakdown",
+				zap.String("projectID", projectID.String()),
+				zap.Int("threshold", complexityThreshold),
+				zap.String("thresholdSource", "cli-override"))
+		} else {
+			appCtx.Logger.Info("Finding tasks needing breakdown",
+				zap.String("projectID", projectID.String()),
+				zap.Int("threshold", complexityThreshold),
+				zap.String("thresholdSource", "config"))
+		}
 
 		// Get all tasks in the project
 		allTasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)

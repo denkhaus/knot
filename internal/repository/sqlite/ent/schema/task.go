@@ -59,6 +59,10 @@ func (Task) Fields() []ent.Field {
 		field.Time("completed_at").
 			Optional().
 			Nillable(),
+		field.String("created_by").
+			Optional(),
+		field.String("updated_by").
+			Optional(),
 	}
 }
 

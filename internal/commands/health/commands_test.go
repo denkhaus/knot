@@ -4,18 +4,20 @@ import (
 	"context"
 	"errors"
 	"io"
-	"os" // Added missing import
+	"os"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mocks"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/mock/gomock"
 	"go.uber.org/zap/zaptest"
 )
 
@@ -28,7 +30,7 @@ func createTestAppContext(t *testing.T) *shared.AppContext {
 }
 
 // createTestAppContextWithMockManager creates a test app context with a mock ProjectManager
-func createTestAppContextWithMockManager(t *testing.T, mockManager manager.ProjectManager) *shared.AppContext {
+func createTestAppContextWithMockManager(t *testing.T, mockManager *mocks.MockProjectManager) *shared.AppContext {
 	logger := zaptest.NewLogger(t)
 	return shared.NewAppContext(mockManager, logger)
 }
@@ -317,6 +319,9 @@ func TestHealthCheckTimeouts(t *testing.T) {
 }
 
 func Test_performHealthCheck(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	tests := []struct {
 		name                 string
 		listProjectsErr      error
@@ -339,10 +344,10 @@ func Test_performHealthCheck(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockMgr := NewMockProjectManager()
-			mockMgr.ListProjectsFunc = func(ctx context.Context) ([]*types.Project, error) {
-				return nil, tt.listProjectsErr
-			}
+			mockMgr := mocks.NewMockProjectManager(ctrl)
+			mockMgr.EXPECT().
+				ListProjects(gomock.Any()).
+				Return([]*types.Project{}, tt.listProjectsErr)
 			appCtx := createTestAppContextWithMockManager(t, mockMgr)
 
 			healthStatus, err := performHealthCheck(context.Background(), appCtx)
@@ -363,6 +368,9 @@ func Test_performHealthCheck(t *testing.T) {
 }
 
 func Test_performPing(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	tests := []struct {
 		name            string
 		listProjectsErr error
@@ -382,10 +390,10 @@ func Test_performPing(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockMgr := NewMockProjectManager()
-			mockMgr.ListProjectsFunc = func(ctx context.Context) ([]*types.Project, error) {
-				return nil, tt.listProjectsErr
-			}
+			mockMgr := mocks.NewMockProjectManager(ctrl)
+			mockMgr.EXPECT().
+				ListProjects(gomock.Any()).
+				Return([]*types.Project{}, tt.listProjectsErr)
 			appCtx := createTestAppContextWithMockManager(t, mockMgr)
 
 			err := performPing(context.Background(), appCtx)
@@ -401,6 +409,9 @@ func Test_performPing(t *testing.T) {
 }
 
 func Test_performValidation(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
 	tests := []struct {
 		name                 string
 		listProjectsErr      error
@@ -432,13 +443,20 @@ func Test_performValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockMgr := NewMockProjectManager()
-			mockMgr.ListProjectsFunc = func(ctx context.Context) ([]*types.Project, error) {
-				return nil, tt.listProjectsErr
+			mockMgr := mocks.NewMockProjectManager(ctrl)
+
+			// Set up expectations based on the test case
+			mockMgr.EXPECT().
+				ListProjects(gomock.Any()).
+				Return([]*types.Project{}, tt.listProjectsErr)
+
+			// Only expect GetConfig if ListProjects succeeds (function short-circuits on error)
+			if tt.listProjectsErr == nil {
+				mockMgr.EXPECT().
+					GetConfig().
+					Return(tt.getConfigReturn)
 			}
-			mockMgr.GetConfigFunc = func() *manager.Config {
-				return tt.getConfigReturn
-			}
+
 			appCtx := createTestAppContextWithMockManager(t, mockMgr)
 
 			err := performValidation(context.Background(), appCtx)

@@ -83,7 +83,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		},
 		{
 			Name:   "list",
-			Usage:  "List tasks with advanced filtering options",
+			Usage:  "List tasks with filtering options",
 			Action: listAction(appCtx),
 			Flags: []cli.Flag{
 				shared.NewJSONFlag(),
@@ -99,16 +99,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 					Usage:   "Filter by task priority (low, medium, high)",
 				},
 				&cli.IntFlag{
-					Name:  "complexity-min",
-					Usage: "Filter by minimum complexity (1-10)",
-				},
-				&cli.IntFlag{
-					Name:  "complexity-max",
-					Usage: "Filter by maximum complexity (1-10)",
-				},
-				&cli.IntFlag{
 					Name:  "complexity",
-					Usage: "Filter by exact complexity (1-10)",
+					Usage: "Minimum complexity filter - shows tasks with this complexity or higher (1-10)",
 				},
 				&cli.StringFlag{
 					Name:    "search",
@@ -116,29 +108,25 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 					Usage:   "Search in task titles and descriptions",
 				},
 				&cli.IntFlag{
-					Name:  "depth-max",
-					Usage: "Filter by maximum depth in hierarchy",
-				},
-				&cli.IntFlag{
 					Name:    "limit",
 					Aliases: []string{"l"},
-					Usage:   "Maximum number of tasks to show",
-				},
-				&cli.StringFlag{
-					Name:  "sort",
-					Usage: "Sort by field (title, complexity, state, priority, created, depth, hierarchy)",
-					Value: "hierarchy",
-				},
-				&cli.BoolFlag{
-					Name:  "reverse",
-					Usage: "Reverse sort order",
+					Usage:   "Maximum number of tasks to show (default: 20)",
+					Value:   20,
 				},
 			},
 		},
 		{
-			Name:   "update-state",
-			Usage:  "Update task state",
-			Action: updateStateAction(appCtx),
+			Name:  "update",
+			Usage: "Update task fields",
+			Description: `Update one or more task fields in a single command.
+This follows the single responsibility principle by having one command handle all updates.
+
+Examples:
+  knot task update --id <task-id> --state in-progress
+  knot task update --id <task-id> --title "New title" --priority high
+  knot task update --id <task-id> --description "New description" --complexity 6
+  knot task update --id <task-id> --state completed --title "Done" --complexity 3`,
+			Action: updateAction(appCtx),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
@@ -146,64 +134,29 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 					Required: true,
 				},
 				&cli.StringFlag{
-					Name:     "state",
-					Aliases:  []string{"s"},
-					Usage:    "New state (pending, in-progress, completed, blocked, cancelled)",
-					Required: true,
-				},
-			},
-		},
-		{
-			Name:   "update-title",
-			Usage:  "Update task title",
-			Action: updateTitleAction(appCtx),
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "id",
-					Usage:    "Task ID",
-					Required: true,
+					Name:    "title",
+					Aliases: []string{"t"},
+					Usage:   "New task title",
 				},
 				&cli.StringFlag{
-					Name:     "title",
-					Aliases:  []string{"t"},
-					Usage:    "New task title",
-					Required: true,
-				},
-			},
-		},
-		{
-			Name:   "update-description",
-			Usage:  "Update task description",
-			Action: updateDescriptionAction(appCtx),
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "id",
-					Usage:    "Task ID",
-					Required: true,
+					Name:    "description",
+					Aliases: []string{"d"},
+					Usage:   "New task description",
 				},
 				&cli.StringFlag{
-					Name:     "description",
-					Aliases:  []string{"d"},
-					Usage:    "New task description",
-					Required: true,
-				},
-			},
-		},
-		{
-			Name:   "update-priority",
-			Usage:  "Update task priority",
-			Action: updatePriorityAction(appCtx),
-			Flags: []cli.Flag{
-				&cli.StringFlag{
-					Name:     "id",
-					Usage:    "Task ID",
-					Required: true,
+					Name:    "state",
+					Aliases: []string{"s"},
+					Usage:   "New state (pending, in-progress, completed, blocked, cancelled)",
 				},
 				&cli.StringFlag{
-					Name:     "priority",
-					Aliases:  []string{"p"},
-					Usage:    "New task priority (low, medium, high)",
-					Required: true,
+					Name:    "priority",
+					Aliases: []string{"p"},
+					Usage:   "New task priority (low, medium, high)",
+				},
+				&cli.IntFlag{
+					Name:    "complexity",
+					Aliases: []string{"c"},
+					Usage:   "New task complexity (1-10)",
 				},
 			},
 		},
@@ -309,7 +262,7 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Show workflow reminder for task state management
 		fmt.Printf("\nReminder: Set this task to 'in-progress' before starting work:\n")
-		fmt.Printf("  knot task update-state --id %s --state in-progress\n", task.ID)
+		fmt.Printf("  knot task update --id %s --state in-progress\n", task.ID)
 
 		// Show breakdown suggestion for high complexity tasks
 		if complexity >= 8 {
@@ -400,219 +353,6 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func updateStateAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
-		taskIDStr := c.String("id")
-		taskID, err := uuid.Parse(taskIDStr)
-		if err != nil {
-			return errors.InvalidUUIDError("task-id", taskIDStr)
-		}
-
-		stateStr := c.String("state")
-		actor := c.String("actor")
-
-		// Default to $USER if actor is not provided
-		actor = shared.ResolveActor(actor)
-
-		// Basic state validation
-		if err := errors.ValidateTaskState(stateStr); err != nil {
-			return err
-		}
-
-		newState := types.TaskState(stateStr)
-
-		appCtx.Logger.Info("Updating task state",
-			zap.String("taskID", taskID.String()),
-			zap.String("newState", stateStr),
-			zap.String("actor", actor))
-
-		// Resolve project context to ensure task belongs to current project
-		projectID, err := shared.ResolveProjectID(c, appCtx)
-		if err != nil {
-			appCtx.Logger.Error("Failed to resolve project context", zap.Error(err))
-			return err
-		}
-
-		appCtx.Logger.Info("Task update-state debug",
-			zap.String("taskID", taskID.String()),
-			zap.String("currentProjectID", projectID.String()),
-			zap.String("newState", stateStr),
-			zap.String("actor", actor))
-
-		// Get current task to preserve other fields
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
-		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
-			return errors.TaskNotFoundError(taskID)
-		}
-
-		// Validate task belongs to current project
-		if task.ProjectID != projectID {
-			return fmt.Errorf("task %s belongs to project %s, but current project is %s",
-				taskID, task.ProjectID, projectID)
-		}
-
-		// Validate state transition
-		validator := validation.NewStateValidator()
-		if err := validator.ValidateTransition(task.State, newState, task); err != nil {
-			// EnhancedError already contains user-friendly formatting
-			// No need to log this as it's a user input validation error
-			return err
-		}
-
-		// Update task state
-		updatedTask, err := appCtx.ProjectManager.UpdateTaskState(context.Background(), taskID, newState, actor)
-		if err != nil {
-			appCtx.Logger.Error("Failed to update task state", zap.Error(err))
-			return errors.WrapWithSuggestion(err, "updating task state")
-		}
-
-		appCtx.Logger.Info("Task state updated successfully", zap.String("actor", actor))
-		fmt.Printf("Updated task state: %s -> %s\n", task.State, updatedTask.State)
-		fmt.Printf("  Updated by: %s\n", actor)
-		return nil
-	}
-}
-
-func updateTitleAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
-		taskIDStr := c.String("id")
-		taskID, err := uuid.Parse(taskIDStr)
-		if err != nil {
-			return errors.InvalidUUIDError("task-id", taskIDStr)
-		}
-
-		newTitle := c.String("title")
-		actor := c.String("actor")
-		if newTitle == "" {
-			return fmt.Errorf("title cannot be empty")
-		}
-
-		// Default to $USER if actor is not provided
-		actor = shared.ResolveActor(actor)
-
-		appCtx.Logger.Info("Updating task title",
-			zap.String("taskID", taskID.String()),
-			zap.String("newTitle", newTitle),
-			zap.String("actor", actor))
-
-		// Get current task to check if it exists and get old title
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
-		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
-			return errors.TaskNotFoundError(taskID)
-		}
-
-		oldTitle := task.Title
-
-		// Update task title
-		updatedTask, err := appCtx.ProjectManager.UpdateTaskTitle(context.Background(), taskID, newTitle, actor)
-		if err != nil {
-			appCtx.Logger.Error("Failed to update task title", zap.Error(err))
-			return errors.WrapWithSuggestion(err, "updating task title")
-		}
-
-		appCtx.Logger.Info("Task title updated successfully", zap.String("actor", actor))
-		fmt.Printf("Updated task title: \"%s\" -> \"%s\"\n", oldTitle, updatedTask.Title)
-		fmt.Printf("  Updated by: %s\n", actor)
-		return nil
-	}
-}
-
-func updateDescriptionAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
-		taskIDStr := c.String("id")
-		taskID, err := uuid.Parse(taskIDStr)
-		if err != nil {
-			return errors.InvalidUUIDError("task-id", taskIDStr)
-		}
-
-		newDescription := c.String("description")
-		actor := c.String("actor")
-
-		// Default to $USER if actor is not provided
-		actor = shared.ResolveActor(actor)
-
-		appCtx.Logger.Info("Updating task description",
-			zap.String("taskID", taskID.String()),
-			zap.String("newDescription", newDescription),
-			zap.String("actor", actor))
-
-		// Get current task to check if it exists and get old description
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
-		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
-			return errors.TaskNotFoundError(taskID)
-		}
-
-		oldDescription := task.Description
-
-		// Update task description
-		updatedTask, err := appCtx.ProjectManager.UpdateTaskDescription(context.Background(), taskID, newDescription, actor)
-		if err != nil {
-			appCtx.Logger.Error("Failed to update task description", zap.Error(err))
-			return errors.WrapWithSuggestion(err, "updating task description")
-		}
-
-		appCtx.Logger.Info("Task description updated successfully", zap.String("actor", actor))
-		if oldDescription == "" {
-			fmt.Printf("Updated task description: (empty) -> \"%s\"\n", updatedTask.Description)
-		} else {
-			fmt.Printf("Updated task description: \"%s\" -> \"%s\"\n", oldDescription, updatedTask.Description)
-		}
-		fmt.Printf("  Updated by: %s\n", actor)
-		return nil
-	}
-}
-
-func updatePriorityAction(appCtx *shared.AppContext) cli.ActionFunc {
-	return func(c *cli.Context) error {
-		taskIDStr := c.String("id")
-		taskID, err := uuid.Parse(taskIDStr)
-		if err != nil {
-			return errors.InvalidUUIDError("task-id", taskIDStr)
-		}
-
-		priority := c.String("priority")
-		actor := c.String("actor")
-
-		// Default to $USER if actor is not provided
-		actor = shared.ResolveActor(actor)
-
-		// Validate priority
-		validator := validation.NewInputValidator()
-		if err := validator.ValidateTaskPriority(priority); err != nil {
-			return errors.NewValidationError("invalid priority", err)
-		}
-
-		appCtx.Logger.Info("Updating task priority",
-			zap.String("taskID", taskID.String()),
-			zap.String("newPriority", priority),
-			zap.String("actor", actor))
-
-		// Get current task to check if it exists and get old priority
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
-		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
-			return errors.TaskNotFoundError(taskID)
-		}
-
-		oldPriority := task.Priority
-
-		// Update task priority using the service method
-		updatedTask, err := appCtx.ProjectManager.UpdateTaskPriority(context.Background(), taskID, utils.ParsePriority(priority), actor)
-		if err != nil {
-			appCtx.Logger.Error("Failed to update task priority", zap.Error(err))
-			return errors.WrapWithSuggestion(err, "updating task priority")
-		}
-
-		appCtx.Logger.Info("Task priority updated successfully", zap.String("actor", actor))
-		fmt.Printf("Updated task priority: \"%s\" -> \"%s\"\n", oldPriority.ToExternalString(), updatedTask.Priority.ToExternalString())
-		fmt.Printf("  Updated by: %s\n", actor)
-		return nil
-	}
-}
-
 func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("id")
@@ -674,6 +414,7 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 // Helper functions for task filtering, sorting, and limiting
 
 // applyTaskFilters applies all specified filters to the task list
+// Knot Task 75010287-8330-4001-8f31-a824ce6c5d09: Simplified task list flags
 func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task {
 	var filtered []*types.Task
 
@@ -692,26 +433,9 @@ func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task {
 			}
 		}
 
-		// Complexity filters
+		// Complexity filter - now acts as minimum complexity
 		if complexity := c.Int("complexity"); complexity > 0 {
-			if task.Complexity != complexity {
-				continue
-			}
-		}
-		if complexityMin := c.Int("complexity-min"); complexityMin > 0 {
-			if task.Complexity < complexityMin {
-				continue
-			}
-		}
-		if complexityMax := c.Int("complexity-max"); complexityMax > 0 {
-			if task.Complexity > complexityMax {
-				continue
-			}
-		}
-
-		// Depth filter
-		if depthMax := c.Int("depth-max"); depthMax >= 0 {
-			if task.Depth > depthMax {
+			if task.Complexity < complexity {
 				continue
 			}
 		}
@@ -733,49 +457,20 @@ func applyTaskFilters(tasks []*types.Task, c *cli.Context) []*types.Task {
 	return filtered
 }
 
-// applyTaskSorting sorts the task list based on the specified criteria
+// applyTaskSorting sorts the task list using hierarchy as default
+// Knot Task 75010287-8330-4001-8f31-a824ce6c5d09: Simplified to hierarchy sort only
 func applyTaskSorting(tasks []*types.Task, c *cli.Context) []*types.Task {
-	sortField := c.String("sort")
-	reverse := c.Bool("reverse")
-
 	// Make a copy to avoid modifying the original slice
 	sorted := make([]*types.Task, len(tasks))
 	copy(sorted, tasks)
 
 	sort.Slice(sorted, func(i, j int) bool {
-		var less bool
-
-		switch sortField {
-		case "title":
-			less = strings.ToLower(sorted[i].Title) < strings.ToLower(sorted[j].Title)
-		case "complexity":
-			less = sorted[i].Complexity < sorted[j].Complexity
-		case "state":
-			less = string(sorted[i].State) < string(sorted[j].State)
-		case "priority":
-			// Sort by priority: high -> medium -> low
-			priorityOrder := map[string]int{"high": 0, "medium": 1, "low": 2}
-			less = priorityOrder[sorted[i].Priority.ToExternalString()] < priorityOrder[sorted[j].Priority.ToExternalString()]
-		case "depth":
-			less = sorted[i].Depth < sorted[j].Depth
-		case "hierarchy":
-			// Hierarchical sort: first by depth, then by creation time within each level
-			if sorted[i].Depth != sorted[j].Depth {
-				less = sorted[i].Depth < sorted[j].Depth
-			} else {
-				less = sorted[i].ID.String() < sorted[j].ID.String()
-			}
-		case "created":
-			fallthrough
-		default:
-			// Default sort by creation time (using ID as proxy since tasks are created sequentially)
-			less = sorted[i].ID.String() < sorted[j].ID.String()
+		// Hierarchical sort: first by depth, then by creation time within each level
+		if sorted[i].Depth != sorted[j].Depth {
+			return sorted[i].Depth < sorted[j].Depth
 		}
-
-		if reverse {
-			return !less
-		}
-		return less
+		// Within the same depth, sort by creation time using ID as proxy
+		return sorted[i].ID.String() < sorted[j].ID.String()
 	})
 
 	return sorted
@@ -791,15 +486,11 @@ func applyTaskLimit(tasks []*types.Task, c *cli.Context) []*types.Task {
 }
 
 // hasFiltersApplied checks if any filters were applied
+// Knot Task 75010287-8330-4001-8f31-a824ce6c5d09: Simplified filter checks
 func hasFiltersApplied(c *cli.Context) bool {
 	return c.String("state") != "" ||
 		c.String("priority") != "" ||
 		c.Int("complexity") > 0 ||
-		c.Int("complexity-min") > 0 ||
-		c.Int("complexity-max") > 0 ||
-		c.Int("depth-max") >= 0 ||
 		c.String("search") != "" ||
-		c.Int("limit") > 0 ||
-		c.String("sort") != "created" ||
-		c.Bool("reverse")
+		c.Int("limit") > 0 && c.Int("limit") < 20 // Only count as filter if less than default
 }

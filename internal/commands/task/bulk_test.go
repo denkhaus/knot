@@ -32,11 +32,13 @@ func TestBulkCommands(t *testing.T) {
 		commandNames[cmd.Name] = true
 	}
 
-	assert.True(t, commandNames["bulk-update"])
 	assert.True(t, commandNames["duplicate"])
 	assert.True(t, commandNames["list-by-state"])
 	assert.True(t, commandNames["bulk-create"])
 	assert.True(t, commandNames["bulk-delete"])
+
+	// Ensure bulk-update is not present
+	assert.False(t, commandNames["bulk-update"], "bulk-update command should have been removed")
 }
 
 func TestListByStateAction(t *testing.T) {

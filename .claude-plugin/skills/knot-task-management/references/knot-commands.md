@@ -55,7 +55,7 @@ knot task create --parent-id <parent-task-id> --title "Subtask Title" --complexi
 
 ### Update Task State
 ```bash
-knot task update-state --id <task-id> --state in-progress|completed|pending|blocked
+knot task update --id <task-id> --state in-progress|completed|pending|blocked
 ```
 - Updates task progress state
 - Critical for workflow management
@@ -94,31 +94,31 @@ knot dependency list --task-id <task-id>
 
 ### Find Actionable Tasks
 ```bash
-knot actionable
+knot status actionable
 ```
 - Shows tasks ready to start (no unmet dependencies)
 - Primary command for finding next work
 
 ### Find Tasks Needing Breakdown
 ```bash
-knot breakdown
+knot status breakdown
 ```
 - Shows tasks with complexity ≥8 that need subtasks
 - Use for task complexity management
 
 ### Find Blocked Tasks
 ```bash
-knot blocked
+knot status blocked
 ```
 - Shows tasks blocked by dependencies
 - Use for identifying workflow issues
 
 ### Find Ready Tasks
 ```bash
-knot ready
+knot status ready
 ```
 - Shows tasks ready to work on
-- Alternative to `knot actionable`
+- Alternative to `knot status actionable`
 
 ## Template Commands
 

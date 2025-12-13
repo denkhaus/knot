@@ -123,78 +123,6 @@ func TestNewTaskCommand(t *testing.T) {
 	assert.Empty(t, cmd.Flags) // No flags expected
 }
 
-func TestNewBreakdownCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewBreakdownCommand(appCtx)
-
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "breakdown", cmd.Name)
-	assert.Equal(t, "Find tasks that need breakdown based on complexity", cmd.Usage)
-	assert.NotNil(t, cmd.Action)
-	assert.NotEmpty(t, cmd.Flags)
-	assert.Empty(t, cmd.Subcommands) // No subcommands expected
-
-	// Check for expected flags
-	flagNames := make(map[string]bool)
-	for _, flag := range cmd.Flags {
-		flagNames[flag.Names()[0]] = true
-	}
-
-	assert.True(t, flagNames["limit"])
-	assert.True(t, flagNames["json"])
-	assert.True(t, flagNames["quiet"])
-	assert.True(t, flagNames["threshold"])
-
-	// Check specific flag properties
-	var thresholdFlag *cli.IntFlag
-	for _, flag := range cmd.Flags {
-		if intFlag, ok := flag.(*cli.IntFlag); ok && intFlag.Name == "threshold" {
-			thresholdFlag = intFlag
-			break
-		}
-	}
-	assert.NotNil(t, thresholdFlag)
-	assert.Equal(t, 8, thresholdFlag.Value)
-	assert.Equal(t, []string{"t"}, thresholdFlag.Aliases)
-	assert.Equal(t, "Complexity threshold for breakdown (default: 8)", thresholdFlag.Usage)
-	assert.Contains(t, thresholdFlag.EnvVars, "KNOT_COMPLEXITY_THRESHOLD")
-}
-
-func TestNewBlockedCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewBlockedCommand(appCtx)
-
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "blocked", cmd.Name)
-	assert.Equal(t, "Show tasks blocked by dependencies", cmd.Usage)
-	assert.NotNil(t, cmd.Action)
-	assert.NotEmpty(t, cmd.Flags)
-	assert.Empty(t, cmd.Subcommands) // No subcommands expected
-
-	// Check for expected flags
-	flagNames := make(map[string]bool)
-	for _, flag := range cmd.Flags {
-		flagNames[flag.Names()[0]] = true
-	}
-
-	assert.True(t, flagNames["limit"])
-	assert.True(t, flagNames["json"])
-}
-
 func TestNewGetStartedCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
 	mgr := config.SetupTestManager(t)
@@ -212,34 +140,6 @@ func TestNewGetStartedCommand(t *testing.T) {
 	assert.NotNil(t, cmd.Action)
 	assert.Empty(t, cmd.Flags)       // No flags expected
 	assert.Empty(t, cmd.Subcommands) // No subcommands expected
-}
-
-func TestNewReadyCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewReadyCommand(appCtx)
-
-	assert.NotNil(t, cmd)
-	assert.Equal(t, "ready", cmd.Name)
-	assert.Equal(t, "Show tasks with no blockers (ready to work on)", cmd.Usage)
-	assert.NotNil(t, cmd.Action)
-	assert.NotEmpty(t, cmd.Flags)
-	assert.Empty(t, cmd.Subcommands) // No subcommands expected
-
-	// Check for expected flags
-	flagNames := make(map[string]bool)
-	for _, flag := range cmd.Flags {
-		flagNames[flag.Names()[0]] = true
-	}
-
-	assert.True(t, flagNames["limit"])
-	assert.True(t, flagNames["json"])
 }
 
 func TestNewValidateCommand(t *testing.T) {
@@ -286,7 +186,7 @@ func TestNewProjectCommand(t *testing.T) {
 	assert.True(t, flagNames["json"])
 }
 
-func TestNewActionableCommand(t *testing.T) {
+func TestNewStatusCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
 	mgr := config.SetupTestManager(t)
 
@@ -295,61 +195,25 @@ func TestNewActionableCommand(t *testing.T) {
 		Logger:         config.Logger,
 	}
 
-	cmd := NewActionableCommand(appCtx)
+	cmd := NewStatusCommand(appCtx)
 
 	assert.NotNil(t, cmd)
-	assert.Equal(t, "actionable", cmd.Name)
-	assert.Equal(t, []string{"next"}, cmd.Aliases)
-	assert.NotNil(t, cmd.Action)
-	assert.NotEmpty(t, cmd.Flags)
+	assert.Equal(t, "status", cmd.Name)
+	assert.Equal(t, []string{"st"}, cmd.Aliases)
+	assert.NotNil(t, cmd.Subcommands)
 	assert.NotEmpty(t, cmd.Usage)
 	assert.NotEmpty(t, cmd.Description)
-	assert.Empty(t, cmd.Subcommands) // No subcommands expected
 
-	// Test that all expected flags exist
-	flagNames := make(map[string]bool)
-	for _, flag := range cmd.Flags {
-		flagNames[flag.Names()[0]] = true
+	// Check that all expected subcommands exist
+	subcommandNames := make(map[string]bool)
+	for _, subcmd := range cmd.Subcommands {
+		subcommandNames[subcmd.Name] = true
 	}
 
-	assert.True(t, flagNames["strategy"])
-	assert.True(t, flagNames["allow-parent-with-subtasks"])
-	assert.True(t, flagNames["prefer-pending"])
-	assert.True(t, flagNames["verbose"])
-	assert.True(t, flagNames["json"])
-
-	// Check specific flag properties
-	var strategyFlag *cli.StringFlag
-	for _, flag := range cmd.Flags {
-		if stringFlag, ok := flag.(*cli.StringFlag); ok && stringFlag.Name == "strategy" {
-			strategyFlag = stringFlag
-			break
-		}
-	}
-	assert.NotNil(t, strategyFlag)
-	assert.Equal(t, []string{"s"}, strategyFlag.Aliases)
-	assert.Contains(t, strategyFlag.Usage, "dependency-aware")
-	assert.Contains(t, strategyFlag.Usage, "depth-first")
-	assert.Contains(t, strategyFlag.Usage, "priority")
-	assert.Contains(t, strategyFlag.Usage, "creation-order")
-	assert.Contains(t, strategyFlag.Usage, "critical-path")
-
-	// Check boolean flags
-	for _, flag := range cmd.Flags {
-		if boolFlag, ok := flag.(*cli.BoolFlag); ok {
-			switch boolFlag.Name {
-			case "allow-parent-with-subtasks":
-				assert.Equal(t, "Allow selection of parent tasks even when subtasks exist", boolFlag.Usage)
-			case "prefer-pending":
-				assert.Equal(t, "Prefer pending tasks over in-progress tasks", boolFlag.Usage)
-			case "verbose":
-				assert.Equal(t, []string{"v"}, boolFlag.Aliases)
-				assert.Contains(t, boolFlag.Usage, "detailed selection reasoning")
-			case "json":
-				assert.Equal(t, "Output result as JSON", boolFlag.Usage)
-			}
-		}
-	}
+	assert.True(t, subcommandNames["actionable"])
+	assert.True(t, subcommandNames["ready"])
+	assert.True(t, subcommandNames["blocked"])
+	assert.True(t, subcommandNames["breakdown"])
 }
 
 // Integration tests for command behavior and edge cases
@@ -362,13 +226,10 @@ func TestCommandsWithNilAppContext(t *testing.T) {
 	assert.NotNil(t, NewConfigCommand(nil))
 	assert.NotNil(t, NewCompletionCommand(nil))
 	assert.NotNil(t, NewTaskCommand(nil))
-	assert.NotNil(t, NewBreakdownCommand(nil))
-	assert.NotNil(t, NewBlockedCommand(nil))
+	assert.NotNil(t, NewStatusCommand(nil))
 	assert.NotNil(t, NewGetStartedCommand(nil))
-	assert.NotNil(t, NewReadyCommand(nil))
 	assert.NotNil(t, NewValidateCommand(nil))
 	assert.NotNil(t, NewProjectCommand(nil))
-	assert.NotNil(t, NewActionableCommand(nil))
 }
 
 func TestCommandNamesUniqueness(t *testing.T) {
@@ -388,13 +249,10 @@ func TestCommandNamesUniqueness(t *testing.T) {
 		NewConfigCommand(appCtx),
 		NewCompletionCommand(appCtx),
 		NewTaskCommand(appCtx),
-		NewBreakdownCommand(appCtx),
-		NewBlockedCommand(appCtx),
+		NewStatusCommand(appCtx),
 		NewGetStartedCommand(appCtx),
-		NewReadyCommand(appCtx),
 		NewValidateCommand(appCtx),
 		NewProjectCommand(appCtx),
-		NewActionableCommand(appCtx),
 	}
 
 	// Check for duplicate names
@@ -438,13 +296,10 @@ func TestCommandsWithValidAppContext(t *testing.T) {
 		NewConfigCommand,
 		NewCompletionCommand,
 		NewTaskCommand,
-		NewBreakdownCommand,
-		NewBlockedCommand,
+		NewStatusCommand,
 		NewGetStartedCommand,
-		NewReadyCommand,
 		NewValidateCommand,
 		NewProjectCommand,
-		NewActionableCommand,
 	}
 
 	for i, createCmd := range cmds {
@@ -470,12 +325,8 @@ func TestCommandStructureConsistency(t *testing.T) {
 
 	// Test that commands with actions don't have subcommands
 	actionCmds := []*cli.Command{
-		NewBreakdownCommand(appCtx),
-		NewBlockedCommand(appCtx),
 		NewGetStartedCommand(appCtx),
-		NewReadyCommand(appCtx),
 		NewCompletionCommand(appCtx),
-		NewActionableCommand(appCtx),
 	}
 
 	for _, cmd := range actionCmds {
@@ -490,6 +341,7 @@ func TestCommandStructureConsistency(t *testing.T) {
 		NewHealthCommand(appCtx),
 		NewConfigCommand(appCtx),
 		NewTaskCommand(appCtx),
+		NewStatusCommand(appCtx),
 		NewValidateCommand(appCtx),
 		NewProjectCommand(appCtx),
 	}
@@ -509,22 +361,20 @@ func TestCommandFlagTypes(t *testing.T) {
 		Logger:         config.Logger,
 	}
 
-	// Test breakdown command has correct flag types
-	breakdownCmd := NewBreakdownCommand(appCtx)
-	assert.Len(t, breakdownCmd.Flags, 4, "Breakdown command should have 4 flags")
+	// Test status command subcommands have correct flag types
+	statusCmd := NewStatusCommand(appCtx)
+	assert.NotEmpty(t, statusCmd.Subcommands, "Status command should have subcommands")
 
-	var thresholdFlag *cli.IntFlag
-	for _, flag := range breakdownCmd.Flags {
-		if intFlag, ok := flag.(*cli.IntFlag); ok {
-			thresholdFlag = intFlag
+	// Find actionable subcommand and test its flags
+	var actionableCmd *cli.Command
+	for _, subcmd := range statusCmd.Subcommands {
+		if subcmd.Name == "actionable" {
+			actionableCmd = subcmd
 			break
 		}
 	}
-	assert.NotNil(t, thresholdFlag, "Should have an IntFlag for threshold")
-
-	// Test actionable command has correct flag types
-	actionableCmd := NewActionableCommand(appCtx)
-	assert.Len(t, actionableCmd.Flags, 5, "Actionable command should have 5 flags")
+	assert.NotNil(t, actionableCmd, "Should have actionable subcommand")
+	assert.Len(t, actionableCmd.Flags, 5, "Actionable subcommand should have 5 flags")
 
 	var strategyFlag *cli.StringFlag
 	var jsonFlag *cli.BoolFlag
@@ -550,4 +400,24 @@ func TestCommandFlagTypes(t *testing.T) {
 	assert.NotNil(t, jsonFlag, "Should have a BoolFlag for json")
 	assert.NotNil(t, verboseFlag, "Should have a BoolFlag for verbose")
 	assert.Equal(t, []string{"v"}, verboseFlag.Aliases, "Verbose flag should have 'v' alias")
+
+	// Find breakdown subcommand and test its flags
+	var breakdownCmd *cli.Command
+	for _, subcmd := range statusCmd.Subcommands {
+		if subcmd.Name == "breakdown" {
+			breakdownCmd = subcmd
+			break
+		}
+	}
+	assert.NotNil(t, breakdownCmd, "Should have breakdown subcommand")
+	assert.Len(t, breakdownCmd.Flags, 4, "Breakdown subcommand should have 4 flags")
+
+	var thresholdFlag *cli.IntFlag
+	for _, flag := range breakdownCmd.Flags {
+		if intFlag, ok := flag.(*cli.IntFlag); ok && intFlag.Name == "threshold" {
+			thresholdFlag = intFlag
+			break
+		}
+	}
+	assert.NotNil(t, thresholdFlag, "Should have an IntFlag for threshold")
 }

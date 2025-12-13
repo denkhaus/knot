@@ -25,6 +25,10 @@ const (
 	ErrorTypeTransactionError
 	ErrorTypeMigrationError
 	ErrorTypeValidationError
+	ErrorTypeQueryError
+	ErrorTypeFieldError
+	ErrorTypeUniqueConstraintError
+	ErrorTypeForeignKeyError
 )
 
 // Error returns the error message
@@ -123,6 +127,42 @@ func NewValidationError(message string, cause error) *RepositoryError {
 	return &RepositoryError{
 		Type:    ErrorTypeValidationError,
 		Message: message,
+		Cause:   cause,
+	}
+}
+
+// NewQueryError creates a query error for non-singular results
+func NewQueryError(entity string, cause error) *RepositoryError {
+	return &RepositoryError{
+		Type:    ErrorTypeQueryError,
+		Message: fmt.Sprintf("query expected single %s but got multiple results", entity),
+		Cause:   cause,
+	}
+}
+
+// NewFieldError creates a field error for unloaded edges
+func NewFieldError(field string, cause error) *RepositoryError {
+	return &RepositoryError{
+		Type:    ErrorTypeFieldError,
+		Message: fmt.Sprintf("field %s was not loaded in query", field),
+		Cause:   cause,
+	}
+}
+
+// NewUniqueConstraintError creates a unique constraint violation error
+func NewUniqueConstraintError(field string, cause error) *RepositoryError {
+	return &RepositoryError{
+		Type:    ErrorTypeUniqueConstraintError,
+		Message: fmt.Sprintf("unique constraint violated on field %s", field),
+		Cause:   cause,
+	}
+}
+
+// NewForeignKeyError creates a foreign key constraint error
+func NewForeignKeyError(message string, cause error) *RepositoryError {
+	return &RepositoryError{
+		Type:    ErrorTypeForeignKeyError,
+		Message: fmt.Sprintf("foreign key constraint violation: %s", message),
 		Cause:   cause,
 	}
 }

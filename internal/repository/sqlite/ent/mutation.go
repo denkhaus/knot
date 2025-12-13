@@ -1643,6 +1643,8 @@ type TaskMutation struct {
 	created_at      *time.Time
 	updated_at      *time.Time
 	completed_at    *time.Time
+	created_by      *string
+	updated_by      *string
 	clearedFields   map[string]struct{}
 	project         *uuid.UUID
 	clearedproject  bool
@@ -2354,6 +2356,104 @@ func (m *TaskMutation) ResetCompletedAt() {
 	delete(m.clearedFields, task.FieldCompletedAt)
 }
 
+// SetCreatedBy sets the "created_by" field.
+func (m *TaskMutation) SetCreatedBy(s string) {
+	m.created_by = &s
+}
+
+// CreatedBy returns the value of the "created_by" field in the mutation.
+func (m *TaskMutation) CreatedBy() (r string, exists bool) {
+	v := m.created_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldCreatedBy returns the old "created_by" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldCreatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldCreatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldCreatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldCreatedBy: %w", err)
+	}
+	return oldValue.CreatedBy, nil
+}
+
+// ClearCreatedBy clears the value of the "created_by" field.
+func (m *TaskMutation) ClearCreatedBy() {
+	m.created_by = nil
+	m.clearedFields[task.FieldCreatedBy] = struct{}{}
+}
+
+// CreatedByCleared returns if the "created_by" field was cleared in this mutation.
+func (m *TaskMutation) CreatedByCleared() bool {
+	_, ok := m.clearedFields[task.FieldCreatedBy]
+	return ok
+}
+
+// ResetCreatedBy resets all changes to the "created_by" field.
+func (m *TaskMutation) ResetCreatedBy() {
+	m.created_by = nil
+	delete(m.clearedFields, task.FieldCreatedBy)
+}
+
+// SetUpdatedBy sets the "updated_by" field.
+func (m *TaskMutation) SetUpdatedBy(s string) {
+	m.updated_by = &s
+}
+
+// UpdatedBy returns the value of the "updated_by" field in the mutation.
+func (m *TaskMutation) UpdatedBy() (r string, exists bool) {
+	v := m.updated_by
+	if v == nil {
+		return
+	}
+	return *v, true
+}
+
+// OldUpdatedBy returns the old "updated_by" field's value of the Task entity.
+// If the Task object wasn't provided to the builder, the object is fetched from the database.
+// An error is returned if the mutation operation is not UpdateOne, or the database query fails.
+func (m *TaskMutation) OldUpdatedBy(ctx context.Context) (v string, err error) {
+	if !m.op.Is(OpUpdateOne) {
+		return v, errors.New("OldUpdatedBy is only allowed on UpdateOne operations")
+	}
+	if m.id == nil || m.oldValue == nil {
+		return v, errors.New("OldUpdatedBy requires an ID field in the mutation")
+	}
+	oldValue, err := m.oldValue(ctx)
+	if err != nil {
+		return v, fmt.Errorf("querying old value for OldUpdatedBy: %w", err)
+	}
+	return oldValue.UpdatedBy, nil
+}
+
+// ClearUpdatedBy clears the value of the "updated_by" field.
+func (m *TaskMutation) ClearUpdatedBy() {
+	m.updated_by = nil
+	m.clearedFields[task.FieldUpdatedBy] = struct{}{}
+}
+
+// UpdatedByCleared returns if the "updated_by" field was cleared in this mutation.
+func (m *TaskMutation) UpdatedByCleared() bool {
+	_, ok := m.clearedFields[task.FieldUpdatedBy]
+	return ok
+}
+
+// ResetUpdatedBy resets all changes to the "updated_by" field.
+func (m *TaskMutation) ResetUpdatedBy() {
+	m.updated_by = nil
+	delete(m.clearedFields, task.FieldUpdatedBy)
+}
+
 // ClearProject clears the "project" edge to the Project entity.
 func (m *TaskMutation) ClearProject() {
 	m.clearedproject = true
@@ -2496,7 +2596,7 @@ func (m *TaskMutation) Type() string {
 // order to get all numeric fields that were incremented/decremented, call
 // AddedFields().
 func (m *TaskMutation) Fields() []string {
-	fields := make([]string, 0, 13)
+	fields := make([]string, 0, 15)
 	if m.project != nil {
 		fields = append(fields, task.FieldProjectID)
 	}
@@ -2536,6 +2636,12 @@ func (m *TaskMutation) Fields() []string {
 	if m.completed_at != nil {
 		fields = append(fields, task.FieldCompletedAt)
 	}
+	if m.created_by != nil {
+		fields = append(fields, task.FieldCreatedBy)
+	}
+	if m.updated_by != nil {
+		fields = append(fields, task.FieldUpdatedBy)
+	}
 	return fields
 }
 
@@ -2570,6 +2676,10 @@ func (m *TaskMutation) Field(name string) (ent.Value, bool) {
 		return m.UpdatedAt()
 	case task.FieldCompletedAt:
 		return m.CompletedAt()
+	case task.FieldCreatedBy:
+		return m.CreatedBy()
+	case task.FieldUpdatedBy:
+		return m.UpdatedBy()
 	}
 	return nil, false
 }
@@ -2605,6 +2715,10 @@ func (m *TaskMutation) OldField(ctx context.Context, name string) (ent.Value, er
 		return m.OldUpdatedAt(ctx)
 	case task.FieldCompletedAt:
 		return m.OldCompletedAt(ctx)
+	case task.FieldCreatedBy:
+		return m.OldCreatedBy(ctx)
+	case task.FieldUpdatedBy:
+		return m.OldUpdatedBy(ctx)
 	}
 	return nil, fmt.Errorf("unknown Task field %s", name)
 }
@@ -2705,6 +2819,20 @@ func (m *TaskMutation) SetField(name string, value ent.Value) error {
 		}
 		m.SetCompletedAt(v)
 		return nil
+	case task.FieldCreatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetCreatedBy(v)
+		return nil
+	case task.FieldUpdatedBy:
+		v, ok := value.(string)
+		if !ok {
+			return fmt.Errorf("unexpected type %T for field %s", value, name)
+		}
+		m.SetUpdatedBy(v)
+		return nil
 	}
 	return fmt.Errorf("unknown Task field %s", name)
 }
@@ -2789,6 +2917,12 @@ func (m *TaskMutation) ClearedFields() []string {
 	if m.FieldCleared(task.FieldCompletedAt) {
 		fields = append(fields, task.FieldCompletedAt)
 	}
+	if m.FieldCleared(task.FieldCreatedBy) {
+		fields = append(fields, task.FieldCreatedBy)
+	}
+	if m.FieldCleared(task.FieldUpdatedBy) {
+		fields = append(fields, task.FieldUpdatedBy)
+	}
 	return fields
 }
 
@@ -2817,6 +2951,12 @@ func (m *TaskMutation) ClearField(name string) error {
 		return nil
 	case task.FieldCompletedAt:
 		m.ClearCompletedAt()
+		return nil
+	case task.FieldCreatedBy:
+		m.ClearCreatedBy()
+		return nil
+	case task.FieldUpdatedBy:
+		m.ClearUpdatedBy()
 		return nil
 	}
 	return fmt.Errorf("unknown Task nullable field %s", name)
@@ -2864,6 +3004,12 @@ func (m *TaskMutation) ResetField(name string) error {
 		return nil
 	case task.FieldCompletedAt:
 		m.ResetCompletedAt()
+		return nil
+	case task.FieldCreatedBy:
+		m.ResetCreatedBy()
+		return nil
+	case task.FieldUpdatedBy:
+		m.ResetUpdatedBy()
 		return nil
 	}
 	return fmt.Errorf("unknown Task field %s", name)

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
@@ -122,12 +123,60 @@ func (r *sqliteRepository) mapError(operation string, err error) error {
 		return NewNotFoundError("resource", "unknown")
 	}
 
+	if ent.IsValidationError(err) {
+		return NewValidationError("validation error", err)
+	}
+
+	if ent.IsNotSingular(err) {
+		return NewQueryError("resource", err)
+	}
+
+	if ent.IsNotLoaded(err) {
+		return NewFieldError("field", err)
+	}
+
 	if ent.IsConstraintError(err) {
+		// Check for specific constraint types
+		if isUniqueConstraintError(err) {
+			return NewUniqueConstraintError("field", err)
+		}
+		if isForeignKeyConstraintError(err) {
+			return NewForeignKeyError("referenced entity does not exist", err)
+		}
 		return NewConstraintViolationError("constraint violation", err)
 	}
 
-	// TODO: Add more specific error mapping for different ent error types
+	// Check for transaction errors
+	if isTransactionError(err) {
+		return NewTransactionError("transaction error", err)
+	}
+
+	// Fallback to generic connection error
 	return NewConnectionError(fmt.Sprintf("database operation failed: %s", operation), err)
+}
+
+// isUniqueConstraintError checks if the error is a unique constraint violation
+func isUniqueConstraintError(err error) bool {
+	errStr := err.Error()
+	return strings.Contains(errStr, "UNIQUE constraint failed") ||
+		strings.Contains(errStr, "column.*is not unique")
+}
+
+// isForeignKeyConstraintError checks if the error is a foreign key constraint violation
+func isForeignKeyConstraintError(err error) bool {
+	errStr := err.Error()
+	return strings.Contains(errStr, "FOREIGN KEY constraint failed") ||
+		strings.Contains(errStr, "foreign key constraint")
+}
+
+// isTransactionError checks if the error is a transaction-related error
+func isTransactionError(err error) bool {
+	errStr := err.Error()
+	return strings.Contains(errStr, "transaction") ||
+		strings.Contains(errStr, "database is locked") ||
+		strings.Contains(errStr, "BEGIN TRANSACTION") ||
+		strings.Contains(errStr, "COMMIT") ||
+		strings.Contains(errStr, "ROLLBACK")
 }
 
 // configureSQLiteOptimizations applies SQLite-specific performance optimizations

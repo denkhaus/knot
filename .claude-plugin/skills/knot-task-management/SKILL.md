@@ -72,7 +72,7 @@ KNOT automatically prevents circular dependencies:
 ### 3. Break Down Complex Work
 
 - Tasks with complexity ≥8 **MUST** be broken down into subtasks
-- Use `knot breakdown` to identify tasks needing breakdown
+- Use `knot status breakdown` to identify tasks needing breakdown
 - Create hierarchical task structures for complex projects
 
 ### 4. Dependency Management
@@ -105,9 +105,9 @@ knot task create --title "Task Title" --description "Detailed task description" 
 # Create subtask under parent task
 knot task create --parent-id <parent-task-id> --title "Subtask Title" --complexity 3
 
-# Update task state
-knot task update-state --id <task-id> --state in-progress
-knot task update-state --id <task-id> --state completed
+# Update task state (consolidated update command)
+knot task update --id <task-id> --state in-progress
+knot task update --id <task-id> --state completed
 
 # List tasks with hierarchy
 knot task list --depth-max 3
@@ -120,16 +120,16 @@ knot task list --depth-max 3
 knot dependency add --task-id <task-a-id> --depends-on <task-b-id>
 
 # Find next actionable tasks
-knot actionable
+knot status actionable
 
 # Check tasks needing breakdown
-knot breakdown
+knot status breakdown
 
 # See blocked tasks
-knot blocked
+knot status blocked
 
 # Check ready tasks
-knot ready
+knot status ready
 ```
 
 ## Task Complexity Guidelines
@@ -154,13 +154,13 @@ knot ready
 1. **Check current project**: `knot project get-selected`
 2. **Create task** if not exists: `knot task create`
 3. **Set dependencies** if needed: `knot dependency add`
-4. **Check for breakdown**: `knot breakdown`
+4. **Check for breakdown**: `knot status breakdown`
 5. **Break down complex tasks** if required
 
 ### Starting Work
 
-1. **Find next task**: `knot actionable`
-2. **Update state**: `knot task update-state --id <task-id> --state in-progress`
+1. **Find next task**: `knot status actionable`
+2. **Update state**: `knot task update --id <task-id> --state in-progress`
 3. **Work on task systematically**
 
 ### During Work
@@ -173,8 +173,8 @@ knot ready
 ### Completing Work
 
 1. **Verify task completion** fully
-2. **Update state**: `knot task update-state --id <task-id> --state completed`
-3. **Check next actionable**: `knot actionable`
+2. **Update state**: `knot task update --id <task-id> --state completed`
+3. **Check next actionable**: `knot status actionable`
 4. **Continue systematic workflow**
 
 ## Dynamic Task Creation Patterns
@@ -260,7 +260,7 @@ Project: Web Application Development
 2. **Break down complex tasks into subtasks**
 3. **Set dependencies between levels**
 4. **Work through actionable tasks systematically**
-5. **Use `knot actionable` to find next ready task**
+5. **Use `knot status actionable` to find next ready task**
 
 ## Dependency Management Best Practices
 
@@ -313,7 +313,7 @@ knot dependency add --task-id <testing-id> --depends-on <fix-id>
 
 ### Daily Workflow Routine
 
-1. **Morning check**: `knot actionable` to see ready tasks
+1. **Morning check**: `knot status actionable` to see ready tasks
 2. **Work systematically** through actionable tasks
 3. **Create new tasks** as work emerges
 4. **Update states** immediately when starting/finishing
@@ -326,10 +326,10 @@ knot dependency add --task-id <testing-id> --depends-on <fix-id>
 knot project get --id <project-id>
 
 # Review blocked tasks
-knot blocked
+knot status blocked
 
 # Identify tasks needing breakdown
-knot breakdown
+knot status breakdown
 
 # Review overall task structure
 knot task list --depth-max 3
@@ -345,7 +345,7 @@ knot task list --depth-max 3
 - [ ] **Break down tasks with complexity ≥8**
 - [ ] **Set dependencies between related tasks**
 - [ ] **Use KNOT as single source of truth**
-- [ ] **Check `knot actionable` to find next task**
+- [ ] **Check `knot status actionable` to find next task**
 
 ### NEVER DO
 
@@ -361,8 +361,8 @@ knot task list --depth-max 3
 
 1. **Select project**: `knot project get-selected`
 2. **Create implementation task**: `knot task create`
-3. **Check dependencies**: `knot actionable`
-4. **Set task in-progress**: `knot task update-state --state in-progress`
+3. **Check dependencies**: `knot status actionable`
+4. **Set task in-progress**: `knot task update --state in-progress`
 
 ### During Development
 
@@ -374,21 +374,21 @@ knot task list --depth-max 3
 ### After Completion
 
 1. **Verify work completion**
-2. **Update task state**: `knot task update-state --state completed`
-3. **Check next task**: `knot actionable`
+2. **Update task state**: `knot task update --state completed`
+3. **Check next task**: `knot status actionable`
 4. **Continue systematic workflow**
 
 ## Troubleshooting Common Issues
 
 ### No Actionable Tasks
 
-- Run `knot blocked` to see what's blocking progress
-- Run `knot breakdown` to check if tasks need breaking down
+- Run `knot status blocked` to see what's blocking progress
+- Run `knot status breakdown` to check if tasks need breaking down
 - Review project structure with `knot task list`
 
 ### Complex Task Management
 
-- Use `knot breakdown` regularly
+- Use `knot status breakdown` regularly
 - Create subtasks for complex work
 - Set clear dependencies between subtasks
 

@@ -283,8 +283,7 @@ func TestAppIntegration(t *testing.T) {
 	assert.NotNil(t, project)
 	assert.Equal(t, "Test Project", project.Title)
 	assert.Equal(t, "Test Description", project.Description)
-	// TODO: Fix CreatedBy field mapping in Ent schema
-	// assert.Equal(t, "test-user", project.CreatedBy)
+	assert.Equal(t, "test-user", project.CreatedBy)
 	assert.NotEqual(t, uuid.Nil, project.ID)
 
 	// Get the project

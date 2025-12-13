@@ -6,12 +6,14 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestBreakdownAction(t *testing.T) {
@@ -240,5 +242,70 @@ func TestBreakdownActionErrorHandling(t *testing.T) {
 		action := BreakdownAction(appCtx)
 		err := action(ctx)
 		assert.Error(t, err) // Should fail because no project is selected
+	})
+}
+
+func TestBreakdownActionUsesConfig(t *testing.T) {
+	// Create a custom config with different threshold
+	customConfig := manager.DefaultConfig()
+	customConfig.ComplexityThreshold = 5
+
+	// Create a test config (defaults to in-memory)
+	testConfig := testutil.NewTestConfig(t)
+
+	// Get the repository from test config
+	repo := testConfig.SetupTestRepository(t)
+
+	// Create manager with custom config
+	mgr := manager.NewManagerWithRepository(repo, customConfig)
+
+	// Create project
+	project := testutil.CreateTestProject(t, mgr)
+
+	// Set project context
+	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	require.NoError(t, err)
+
+	t.Run("uses config threshold when no CLI flag", func(t *testing.T) {
+		// Create tasks with complexity 6 (should need breakdown with threshold 5)
+		_, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Task 1", "Description", 6, types.TaskPriorityMedium, "test-user")
+		require.NoError(t, err)
+		_, err = mgr.CreateTask(context.TODO(), project.ID, nil, "Task 2", "Description", 7, types.TaskPriorityMedium, "test-user")
+		require.NoError(t, err)
+
+		// Create task with complexity 4 (should not need breakdown with threshold 5)
+		_, err = mgr.CreateTask(context.TODO(), project.ID, nil, "Task 3", "Description", 4, types.TaskPriorityMedium, "test-user")
+		require.NoError(t, err)
+
+		app := &cli.App{}
+		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+		// Don't set threshold flag - should use config value
+		flagSet.Int("limit", 0, "")
+
+		ctx := cli.NewContext(app, flagSet, nil)
+
+		appCtx := &shared.AppContext{
+			ProjectManager: mgr,
+			Logger:         zaptest.NewLogger(t),
+		}
+
+		action := BreakdownAction(appCtx)
+		err = action(ctx)
+		assert.NoError(t, err)
+
+		// Get all tasks to verify which ones meet the threshold
+		tasks, err := mgr.ListTasksForProject(context.Background(), project.ID)
+		require.NoError(t, err)
+
+		// Count tasks with complexity >= 5 (our config threshold)
+		expectedCount := 0
+		for _, task := range tasks {
+			if task.Complexity >= 5 {
+				expectedCount++
+			}
+		}
+
+		// Should have 2 tasks that meet the threshold
+		assert.Equal(t, 2, expectedCount)
 	})
 }

@@ -235,7 +235,7 @@ func TestTaskUpdateStateAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := updateStateAction(appCtx)
+			action := updateStateSubAction(appCtx)
 			err := action(ctx)
 
 			if tt.expectError {
@@ -311,7 +311,7 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := updateTitleAction(appCtx)
+			action := updateTitleSubAction(appCtx)
 			err := action(ctx)
 
 			if tt.expectError {
@@ -385,7 +385,7 @@ func TestTaskWorkflow(t *testing.T) {
 
 		updateCtx := cli.NewContext(app, updateFlagSet, nil)
 
-		updateActionFunc := updateStateAction(appCtx)
+		updateActionFunc := updateStateSubAction(appCtx)
 		err = updateActionFunc(updateCtx)
 		assert.NoError(t, err)
 
