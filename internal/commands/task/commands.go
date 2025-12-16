@@ -19,6 +19,7 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/utils"
 
@@ -76,9 +77,9 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			Usage:  "Get a task by ID",
 			Action: getAction(appCtx),
 			Flags: []cli.Flag{
-				shared.NewJSONFlag(),
-				shared.NewQuietFlag(),
-				shared.NewTaskIDFlag(),
+				flags.NewJSONFlag(),
+				flags.NewQuietFlag(),
+				flags.NewTaskIDFlag(),
 			},
 		},
 		{
@@ -86,8 +87,8 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			Usage:  "List tasks with filtering options",
 			Action: listAction(appCtx),
 			Flags: []cli.Flag{
-				shared.NewJSONFlag(),
-				shared.NewQuietFlag(),
+				flags.NewJSONFlag(),
+				flags.NewQuietFlag(),
 				&cli.StringFlag{
 					Name:    "state",
 					Aliases: []string{"s"},

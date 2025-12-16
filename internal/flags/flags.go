@@ -1,4 +1,4 @@
-package shared
+package flags
 
 import "github.com/urfave/cli/v2"
 

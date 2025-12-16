@@ -5,10 +5,12 @@ import (
 	"github.com/denkhaus/knot/v2/internal/commands/config"
 	"github.com/denkhaus/knot/v2/internal/commands/dependency"
 	"github.com/denkhaus/knot/v2/internal/commands/health"
+	cmdmcp "github.com/denkhaus/knot/v2/internal/commands/mcp"
 	"github.com/denkhaus/knot/v2/internal/commands/project"
 	"github.com/denkhaus/knot/v2/internal/commands/task"
 	"github.com/denkhaus/knot/v2/internal/commands/template"
 	"github.com/denkhaus/knot/v2/internal/commands/validation"
+	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
 )
@@ -110,7 +112,7 @@ func NewProjectCommand(appCtx *shared.AppContext) *cli.Command {
 		Usage:       "Project management commands",
 		Subcommands: project.Commands(appCtx),
 		Flags: []cli.Flag{
-			shared.NewJSONFlag(),
+			flags.NewJSONFlag(),
 		},
 	}
 }
@@ -185,8 +187,8 @@ Examples:
 				Usage:   "Show tasks with no blockers (ready to work on)",
 				Action:  task.ReadyAction(appCtx),
 				Flags: []cli.Flag{
-					shared.NewTaskLimitFlag(),
-					shared.NewJSONFlag(),
+					flags.NewTaskLimitFlag(),
+					flags.NewJSONFlag(),
 				},
 			},
 			{
@@ -195,8 +197,8 @@ Examples:
 				Usage:   "Show tasks blocked by dependencies",
 				Action:  task.BlockedAction(appCtx),
 				Flags: []cli.Flag{
-					shared.NewTaskLimitFlag(),
-					shared.NewJSONFlag(),
+					flags.NewTaskLimitFlag(),
+					flags.NewJSONFlag(),
 				},
 			},
 			{
@@ -205,9 +207,9 @@ Examples:
 				Usage:   "Find tasks that need breakdown based on complexity",
 				Action:  task.BreakdownAction(appCtx),
 				Flags: []cli.Flag{
-					shared.NewTaskLimitFlag(),
-					shared.NewJSONFlag(),
-					shared.NewQuietFlag(),
+					flags.NewTaskLimitFlag(),
+					flags.NewJSONFlag(),
+					flags.NewQuietFlag(),
 					&cli.IntFlag{
 						Name:    "threshold",
 						Aliases: []string{"t"},
@@ -218,5 +220,27 @@ Examples:
 				},
 			},
 		},
+	}
+}
+
+// NewMCPCommand creates a Model Context Protocol (MCP) server command
+func NewMCPCommand(appCtx *shared.AppContext) *cli.Command {
+	return &cli.Command{
+		Name:  "mcp",
+		Usage: "Model Context Protocol (MCP) server commands",
+		Description: `Model Context Protocol (MCP) server provides a central hub for multi-project
+task management that can be accessed by MCP-compatible clients.
+
+The MCP server supports:
+  - Multiple concurrent projects with session-based selection
+  - Curated set of core Knot operations
+  - Basic hint system for next-action guidance
+  - Thread-safe operations for multiple clients
+
+Examples:
+  knot mcp server                                    # Start MCP server with defaults
+  knot mcp server --address 0.0.0.0 --port 9090     # Start on custom address/port
+  knot mcp server --log-level debug                 # Enable debug logging`,
+		Subcommands: cmdmcp.Commands(appCtx),
 	}
 }

@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
@@ -66,7 +67,7 @@ Examples:
 				Usage:   "Focus on blocking relationships",
 				Aliases: []string{"b"},
 			},
-			shared.NewJSONFlag(),
+			flags.NewJSONFlag(),
 			&cli.IntFlag{
 				Name:    "depth",
 				Usage:   "Maximum depth to traverse",

@@ -19,6 +19,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/validation"
@@ -53,7 +54,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			Usage:  "List all projects",
 			Action: listAction(appCtx),
 			Flags: []cli.Flag{
-				shared.NewJSONFlag(),
+				flags.NewJSONFlag(),
 			},
 		},
 		{

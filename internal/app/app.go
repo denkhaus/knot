@@ -19,6 +19,7 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/commands"
 	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
@@ -99,7 +100,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 		Authors: []*cli.Author{
 			{
 				Name:  "denkhaus",
-				Email: "denkhaus@example.com",
+				Email: "denkhaus@github.com",
 			},
 		},
 		Flags: []cli.Flag{
@@ -108,7 +109,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Usage:   "Actor name for audit trail (default: $USER)",
 				EnvVars: []string{"KNOT_ACTOR", "USER"},
 			},
-			shared.NewLogLevelFlag(),
+			flags.NewLogLevelFlag(),
 		},
 		Before: func(c *cli.Context) error {
 			// Configure logger based on log-level flag
@@ -133,6 +134,7 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 			commands.NewValidateCommand(appCtx),
 			commands.NewGetStartedCommand(appCtx),
 			commands.NewCompletionCommand(appCtx),
+			commands.NewMCPCommand(appCtx),
 		},
 	}
 

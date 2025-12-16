@@ -6,6 +6,7 @@ import (
 	"sort"
 
 	"github.com/denkhaus/knot/v2/internal/commands/dependency/visualization"
+	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -63,7 +64,7 @@ func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
 			Usage:  "Detect circular dependencies in project",
 			Action: cyclesAction(appCtx),
 			Flags: []cli.Flag{
-				shared.NewJSONFlag(),
+				flags.NewJSONFlag(),
 				&cli.BoolFlag{
 					Name:    "fix",
 					Usage:   "Attempt to automatically fix detected cycles",
