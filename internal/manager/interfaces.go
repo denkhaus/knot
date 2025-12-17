@@ -14,7 +14,7 @@
 // Example Usage:
 //
 //	repo := sqlite.NewRepository("data.db", sqlite.WithAutoMigrate(true))
-//	manager := manager.NewManagerWithRepository(repo, manager.DefaultConfig())
+//	manager := manager.NewManagerWithRepository(repo, config.DefaultConfig())
 //
 //	project, err := manager.CreateProject(ctx, "My Project", "Description", "user")
 //	if err != nil {
@@ -26,6 +26,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
@@ -90,8 +91,8 @@ type ProjectManager interface {
 	GetDependentTasks(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error)
 
 	// Configuration
-	GetConfig() *Config
-	UpdateConfig(config *Config)
+	GetConfig() *config.ManagerConfig
+	UpdateConfig(config *config.ManagerConfig)
 	LoadConfigFromFile() error
 	SaveConfigToFile() error
 
@@ -110,22 +111,3 @@ type ProjectManager interface {
 //	CreateToolSet(opts ...Option) (tool.ToolSet, error)
 // }
 
-// Config holds configuration for the task management system
-type Config struct {
-	MaxTasksPerDepth     int  // Maximum tasks allowed per depth level (applies to all depths)
-	ComplexityThreshold  int  // Threshold for task breakdown suggestions
-	MaxDepth             int  // Maximum allowed depth
-	MaxDescriptionLength int  // Maximum length for descriptions
-	AutoReduceComplexity bool // Automatically reduce parent task complexity when subtasks are added
-}
-
-// DefaultConfig returns a sensible default configuration
-func DefaultConfig() *Config {
-	return &Config{
-		MaxTasksPerDepth:     100, // Increased from 20 to 100 for better scalability
-		ComplexityThreshold:  8,
-		MaxDepth:             5,
-		MaxDescriptionLength: 2000, // Default maximum description length
-		AutoReduceComplexity: true, // Enable auto-reduce by default
-	}
-}

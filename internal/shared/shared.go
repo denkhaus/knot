@@ -5,14 +5,19 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // ResolveProjectID resolves the project ID from stored context
-func ResolveProjectID(c *cli.Context, appCtx *AppContext) (uuid.UUID, error) {
+func ResolveProjectID(c *cli.Context, injector do.Injector) (uuid.UUID, error) {
+
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	// Get project from database stored context
-	if contextProjectID, err := appCtx.ProjectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
+	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
 		return *contextProjectID, nil
 	}
 
@@ -22,20 +27,22 @@ func ResolveProjectID(c *cli.Context, appCtx *AppContext) (uuid.UUID, error) {
 
 // ShowProjectContext displays the current project context if one is selected
 // Returns true if context was shown, false if no project is selected
-func ShowProjectContext(c *cli.Context, appCtx *AppContext) bool {
+func ShowProjectContext(c *cli.Context, injector do.Injector) bool {
+
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 	// Skip context display for JSON output or quiet mode
 	if c.Bool("json") || c.Bool("quiet") {
 		return false
 	}
 
 	// Get selected project
-	selectedProjectID, err := appCtx.ProjectManager.GetSelectedProject(c.Context)
+	selectedProjectID, err := projectManager.GetSelectedProject(c.Context)
 	if err != nil || selectedProjectID == nil {
 		return false
 	}
 
 	// Get project details
-	project, err := appCtx.ProjectManager.GetProject(context.Background(), *selectedProjectID)
+	project, err := projectManager.GetProject(context.Background(), *selectedProjectID)
 	if err != nil {
 		return false
 	}
@@ -46,8 +53,8 @@ func ShowProjectContext(c *cli.Context, appCtx *AppContext) bool {
 }
 
 // ShowProjectContextWithSeparator displays project context with a separator line
-func ShowProjectContextWithSeparator(c *cli.Context, appCtx *AppContext) bool {
-	if ShowProjectContext(c, appCtx) {
+func ShowProjectContextWithSeparator(c *cli.Context, injector do.Injector) bool {
+	if ShowProjectContext(c, injector) {
 		fmt.Println()
 		return true
 	}

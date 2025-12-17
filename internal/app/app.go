@@ -21,14 +21,9 @@ import (
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
-	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/denkhaus/knot/v2/internal/templates"
-	"github.com/denkhaus/knot/v2/internal/types"
+
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
 )
 
 // Version variables that will be set by ldflags during build
@@ -48,7 +43,7 @@ func SetVersionFromBuild(v, c, d string) {
 // App represents the CLI application
 type App struct {
 	*cli.App
-	context *shared.AppContext
+	container *di.Container
 }
 
 // isUserInputError checks if an error is due to user input (like missing required flags)
@@ -87,7 +82,8 @@ func isUserInputError(err error) bool {
 
 // New creates a new CLI application with all dependencies initialized
 func New() (*App, error) {
-	appCtx := createAppContext()
+	// Initialize DI container
+	diContainer := di.NewContainer()
 
 	// Create CLI app
 	cliApp := &cli.App{
@@ -103,50 +99,33 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				Email: "denkhaus@github.com",
 			},
 		},
-		Flags: []cli.Flag{
+		Flags: append([]cli.Flag{
 			&cli.StringFlag{
 				Name:    "actor",
 				Usage:   "Actor name for audit trail (default: $USER)",
 				EnvVars: []string{"KNOT_ACTOR", "USER"},
 			},
 			flags.NewLogLevelFlag(),
-		},
-		Before: func(c *cli.Context) error {
-			// Configure logger based on log-level flag
-			logLevel := c.String("log-level")
-			logger.SetLogLevel(logLevel)
-
-			// Update appCtx logger reference after reconfiguration
-			appCtx.Logger = logger.GetLogger()
-
-			appCtx.SetActor(c.String("actor"))
-			appCtx.Logger.Info("Knot CLI started", zap.String("version", version))
-			return nil
-		},
-		Commands: []*cli.Command{
-			commands.NewProjectCommand(appCtx),
-			commands.NewTaskCommand(appCtx),
-			commands.NewTemplateCommand(appCtx),
-			commands.NewDependencyCommand(appCtx),
-			commands.NewConfigCommand(appCtx),
-			commands.NewHealthCommand(appCtx),
-			commands.NewStatusCommand(appCtx),
-			commands.NewValidateCommand(appCtx),
-			commands.NewGetStartedCommand(appCtx),
-			commands.NewCompletionCommand(appCtx),
-			commands.NewMCPCommand(appCtx),
-		},
+		}, flags.NewManagerConfigFlags()...),
+		Before: commands.NewBeforeCommand(diContainer),
 	}
 
 	return &App{
-		App:     cliApp,
-		context: appCtx,
+		App:       cliApp,
+		container: diContainer,
 	}, nil
 }
 
 // Run starts the CLI application
 func (a *App) Run(args []string) error {
-	defer logger.Sync()
+	defer func() {
+		// Ensure proper shutdown of DI container
+		if a.container != nil {
+			a.container.Shutdown()
+		}
+		// Sync logger
+		logger.Sync()
+	}()
 
 	if err := a.App.Run(args); err != nil {
 		// For user input errors, print them cleanly without JSON logging
@@ -156,45 +135,10 @@ func (a *App) Run(args []string) error {
 			return err
 		}
 
-		// For internal errors, use the logger but also suggest the get-started command
-		a.context.Logger.Error("Application error", zap.Error(err))
+		// For internal errors, suggest the get-started command
 		fmt.Fprintf(os.Stderr, "💡 For help getting started with Knot and a list of all commands, run: knot get-started\n")
 		return err
 	}
 
 	return nil
-}
-
-func createAppContext() *shared.AppContext {
-	// Initialize logger
-	appLogger := logger.GetLogger()
-
-	// Initialize repository (SQLite with fallback to in-memory)
-	var repo types.Repository
-	var err error
-
-	repo, err = sqlite.NewRepository("",
-		sqlite.WithLogger(appLogger),
-		sqlite.WithAutoMigrate(true),
-	)
-	if err != nil {
-		appLogger.Warn("Failed to initialize SQLite repository, falling back to in-memory", zap.Error(err))
-		repo = inmemory.NewMemoryRepository()
-	} else {
-		appLogger.Info("SQLite repository initialized successfully")
-
-		// Initialize templates automatically after successful database setup
-		if err := templates.CheckAndSeedIfNeeded(); err != nil {
-			appLogger.Warn("Failed to seed templates during initialization", zap.Error(err))
-		} else {
-			appLogger.Debug("Template seeding check completed successfully")
-		}
-	}
-
-	// Initialize project manager
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
-
-	// Create application context
-	return shared.NewAppContext(projectManager, appLogger)
 }

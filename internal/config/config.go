@@ -16,13 +16,10 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/denkhaus/knot/v2/internal/manager"
 )
 
 // ConfigFile provides file-based configuration management for Knot
-// Uses the existing manager.Config struct but adds file persistence
-// REFERENCE: pkg/tools/project/interfaces.go lines 64-80 (original Config struct)
+// Uses the ManagerConfig struct with file persistence
 
 // GetConfigPath returns the path to the knot configuration file
 func GetConfigPath() (string, error) {
@@ -38,7 +35,7 @@ func GetConfigPath() (string, error) {
 }
 
 // ValidateConfig checks if the configuration values are valid
-func ValidateConfig(c *manager.Config) error {
+func ValidateConfig(c *ManagerConfig) error {
 	if c.MaxTasksPerDepth < 1 {
 		return fmt.Errorf("max_tasks_per_depth must be at least 1, got %d", c.MaxTasksPerDepth)
 	}

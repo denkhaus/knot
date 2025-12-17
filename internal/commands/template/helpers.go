@@ -4,9 +4,11 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"os"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	
 	"github.com/denkhaus/knot/v2/internal/templates"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -217,8 +219,16 @@ func validateTemplateVariables(template *types.TaskTemplate, variables map[strin
 	return nil
 }
 
-// applyTemplate applies a template to create tasks
-func applyTemplate(appCtx *shared.AppContext, template *types.TaskTemplate, projectID uuid.UUID, parentID *uuid.UUID, variables map[string]string, dryRun bool) (*types.TemplateApplyResult, error) {
+// applyTemplate applies a template to create tasks (legacy for compatibility)
+// NOTE: This function is deprecated and should not be used in new DI-based code
+func applyTemplate(_ interface{}, template *types.TaskTemplate, projectID uuid.UUID, parentID *uuid.UUID, variables map[string]string, dryRun bool) (*types.TemplateApplyResult, error) {
+	// This function is kept for compatibility but shouldn't be used in new code
+	// In the DI world, we should use applyTemplateWithDI directly
+	return nil, fmt.Errorf("legacy applyTemplate function is deprecated, use applyTemplateWithDI instead")
+}
+
+// applyTemplateWithDI applies a template to create tasks using DI ProjectManager
+func applyTemplateWithDI(projectManager manager.ProjectManager, template *types.TaskTemplate, projectID uuid.UUID, parentID *uuid.UUID, variables map[string]string, dryRun bool) (*types.TemplateApplyResult, error) {
 	result := &types.TemplateApplyResult{
 		Success: true,
 	}
@@ -267,8 +277,11 @@ func applyTemplate(appCtx *shared.AppContext, template *types.TaskTemplate, proj
 		taskIDMap[taskSpec.ID] = task.ID
 
 		if !dryRun {
-			actor := appCtx.GetActor()
-			createdTask, err := appCtx.ProjectManager.CreateTask(
+			actor := os.Getenv("USER")
+			if actor == "" {
+				actor = "unknown"
+			}
+			createdTask, err := projectManager.CreateTask(
 				context.Background(),
 				projectID,
 				task.ParentID,
@@ -297,8 +310,11 @@ func applyTemplate(appCtx *shared.AppContext, template *types.TaskTemplate, proj
 			TemplateID:   template.ID,
 			TemplateName: template.Name,
 			Variables:    finalVariables,
-			CreatedAt:    appCtx.ProjectManager.GetCurrentTime(),
-			CreatedBy:    appCtx.GetActor(),
+			CreatedAt:    projectManager.GetCurrentTime(),
+			CreatedBy:    os.Getenv("USER"),
+		}
+		if instance.CreatedBy == "" {
+			instance.CreatedBy = "unknown"
 		}
 		for _, task := range result.CreatedTasks {
 			instance.CreatedTasks = append(instance.CreatedTasks, task.ID)

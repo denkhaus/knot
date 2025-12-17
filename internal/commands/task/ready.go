@@ -4,28 +4,34 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // ReadyAction shows tasks that are ready to work on (no blockers)
-func ReadyAction(appCtx *shared.AppContext) cli.ActionFunc {
+func ReadyAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err
 		}
 
-		appCtx.Logger.Info("Finding ready tasks", zap.String("projectID", projectID.String()))
+		loggerService.Info("Finding ready tasks", zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		allTasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		allTasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get project tasks", zap.Error(err))
+			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
@@ -45,7 +51,7 @@ func ReadyAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 		}
 
-		appCtx.Logger.Info("Ready tasks found", zap.Int("count", len(readyTasks)))
+		loggerService.Info("Ready tasks found", zap.Int("count", len(readyTasks)))
 
 		if len(readyTasks) == 0 {
 			if c.Bool("json") {
@@ -68,7 +74,7 @@ func ReadyAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, appCtx)
+		shared.ShowProjectContextWithSeparator(c, nil)
 
 		if limit > 0 && len(readyTasks) == limit {
 			fmt.Printf("Ready work (showing %d of %d tasks with no blockers):\n\n", limit, len(readyTasks))

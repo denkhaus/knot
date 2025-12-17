@@ -3,21 +3,10 @@ package dependency
 import (
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap/zaptest"
 )
-
-// createTestAppContext creates a test app context for testing
-func createTestAppContext(t *testing.T) *shared.AppContext {
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	logger := zaptest.NewLogger(t)
-	return shared.NewAppContext(mgr, logger)
-}
 
 func TestCommands(t *testing.T) {
 	tests := []struct {
@@ -216,7 +205,7 @@ func TestCommandIntegration(t *testing.T) {
 	t.Run("command app context dependency", func(t *testing.T) {
 		// Test that commands properly depend on app context
 		assert.NotNil(t, appCtx, "AppContext should be available")
-		assert.NotNil(t, appCtx.ProjectManager, "ProjectManager should be available")
+		assert.NotNil(t, projectManager, "ProjectManager should be available")
 		assert.NotNil(t, appCtx.Logger, "Logger should be available")
 	})
 }

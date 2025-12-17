@@ -6,28 +6,34 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/selection"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/utils"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // ActionableAction finds the next actionable task using dependency-aware selection
-func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
+func ActionableAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err
 		}
 
-		appCtx.Logger.Info("Finding next actionable task with enhanced selection",
+		loggerService.Info("Finding next actionable task with enhanced selection",
 			zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		allTasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		allTasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get project tasks", zap.Error(err))
+			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
@@ -44,7 +50,7 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 			// Auto-recommend strategy based on project analysis
 			recommendedStrategy, reason, err := selection.AnalyzeProjectAndRecommendStrategy(allTasks)
 			if err != nil {
-				appCtx.Logger.Warn("Failed to analyze project for strategy recommendation, using dependency-aware", zap.Error(err))
+				loggerService.Warn("Failed to analyze project for strategy recommendation, using dependency-aware", zap.Error(err))
 				strategy = selection.StrategyDependencyAware
 				strategyReason = "Using default dependency-aware strategy (analysis failed)"
 			} else {
@@ -68,7 +74,7 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 		// Create selector
 		selector, err := selection.NewTaskSelector(strategy, config)
 		if err != nil {
-			appCtx.Logger.Error("Failed to create task selector", zap.Error(err))
+			loggerService.Error("Failed to create task selector", zap.Error(err))
 			return fmt.Errorf("failed to create task selector: %w", err)
 		}
 
@@ -125,7 +131,7 @@ func ActionableAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, appCtx)
+		shared.ShowProjectContextWithSeparator(c, injector)
 
 		// Output formatted text
 		fmt.Printf("Next actionable task (strategy: %s):\n\n", strategy.String())

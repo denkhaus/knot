@@ -19,18 +19,19 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
+	"github.com/samber/do/v2"
 )
 
 // Commands returns health check related CLI commands
-func Commands(appCtx *shared.AppContext) []*cli.Command {
+func Commands(injector do.Injector) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "check",
 			Usage:  "Check database connection health",
-			Action: checkAction(appCtx),
+			Action: checkAction(injector),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:  "json",
@@ -47,7 +48,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "ping",
 			Usage:  "Simple database connectivity test",
-			Action: pingAction(appCtx),
+			Action: pingAction(injector),
 			Flags: []cli.Flag{
 				&cli.DurationFlag{
 					Name:  "timeout",
@@ -59,7 +60,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "validate",
 			Usage:  "Comprehensive database connection validation",
-			Action: validateAction(appCtx),
+			Action: validateAction(injector),
 			Flags: []cli.Flag{
 				&cli.DurationFlag{
 					Name:  "timeout",
@@ -71,7 +72,11 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 	}
 }
 
-func checkAction(appCtx *shared.AppContext) cli.ActionFunc {
+func checkAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		timeout := c.Duration("timeout")
 		jsonOutput := c.Bool("json")
@@ -79,13 +84,13 @@ func checkAction(appCtx *shared.AppContext) cli.ActionFunc {
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		logger.Log.Info("Performing database health check", zap.Duration("timeout", timeout))
+		loggerService.Info("Performing database health check", zap.Duration("timeout", timeout))
 
 		// Get health status from repository
 		// Note: This requires extending the manager interface to expose health checks
-		health, err := performHealthCheck(ctx, appCtx)
+		health, err := performHealthCheck(ctx, projectManager)
 		if err != nil {
-			logger.Log.Error("Health check failed", zap.Error(err))
+			loggerService.Error("Health check failed", zap.Error(err))
 			return fmt.Errorf("health check failed: %w", err)
 		}
 
@@ -107,27 +112,31 @@ func checkAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func pingAction(appCtx *shared.AppContext) cli.ActionFunc {
+func pingAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		timeout := c.Duration("timeout")
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		logger.Log.Info("Pinging database", zap.Duration("timeout", timeout))
+		loggerService.Info("Pinging database", zap.Duration("timeout", timeout))
 
 		start := time.Now()
-		err := performPing(ctx, appCtx)
+		err := performPing(ctx, projectManager)
 		latency := time.Since(start)
 
 		if err != nil {
-			logger.Log.Error("Database ping failed", zap.Error(err), zap.Duration("latency", latency))
+			loggerService.Error("Database ping failed", zap.Error(err), zap.Duration("latency", latency))
 			fmt.Printf("Database ping failed: %v\n", err)
 			fmt.Printf("Latency: %v\n", latency)
 			return err
 		}
 
-		logger.Log.Info("Database ping successful", zap.Duration("latency", latency))
+		loggerService.Info("Database ping successful", zap.Duration("latency", latency))
 		fmt.Printf("Database ping successful\n")
 		fmt.Printf("Latency: %v\n", latency)
 
@@ -139,23 +148,27 @@ func pingAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
+func validateAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		timeout := c.Duration("timeout")
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
 		defer cancel()
 
-		logger.Log.Info("Validating database connection", zap.Duration("timeout", timeout))
+		loggerService.Info("Validating database connection", zap.Duration("timeout", timeout))
 
-		err := performValidation(ctx, appCtx)
+		err := performValidation(ctx, projectManager)
 		if err != nil {
-			logger.Log.Error("Database validation failed", zap.Error(err))
+			loggerService.Error("Database validation failed", zap.Error(err))
 			fmt.Printf("Database validation failed: %v\n", err)
 			return err
 		}
 
-		logger.Log.Info("Database validation successful")
+		loggerService.Info("Database validation successful")
 		fmt.Printf("✅ Database connection validation successful\n")
 		fmt.Printf("   All checks passed\n")
 
@@ -179,14 +192,14 @@ type Status struct {
 }
 
 // performHealthCheck performs a health check using the project manager
-func performHealthCheck(ctx context.Context, appCtx *shared.AppContext) (*Status, error) {
+func performHealthCheck(ctx context.Context, projectManager manager.ProjectManager) (*Status, error) {
 	// For now, we'll implement a basic health check
 	// TODO: Extend manager interface to expose repository health checks
 
 	start := time.Now()
 
 	// Test basic functionality by listing projects
-	_, err := appCtx.ProjectManager.ListProjects(ctx)
+	_, err := projectManager.ListProjects(ctx)
 	latency := time.Since(start)
 
 	health := &Status{
@@ -206,25 +219,25 @@ func performHealthCheck(ctx context.Context, appCtx *shared.AppContext) (*Status
 }
 
 // performPing performs a simple connectivity test
-func performPing(ctx context.Context, appCtx *shared.AppContext) error {
+func performPing(ctx context.Context, projectManager manager.ProjectManager) error {
 	// Test basic connectivity by attempting to list projects
-	_, err := appCtx.ProjectManager.ListProjects(ctx)
+	_, err := projectManager.ListProjects(ctx)
 	return err
 }
 
 // performValidation performs comprehensive validation
-func performValidation(ctx context.Context, appCtx *shared.AppContext) error {
+func performValidation(ctx context.Context, projectManager manager.ProjectManager) error {
 	// Test multiple operations to validate connection
 	tests := []struct {
 		name string
 		test func() error
 	}{
 		{"List Projects", func() error {
-			_, err := appCtx.ProjectManager.ListProjects(ctx)
+			_, err := projectManager.ListProjects(ctx)
 			return err
 		}},
 		{"Get Config", func() error {
-			config := appCtx.ProjectManager.GetConfig()
+			config := projectManager.GetConfig()
 			if config == nil {
 				return fmt.Errorf("config is nil")
 			}
@@ -236,7 +249,6 @@ func performValidation(ctx context.Context, appCtx *shared.AppContext) error {
 		if err := test.test(); err != nil {
 			return fmt.Errorf("%s failed: %w", test.name, err)
 		}
-		logger.Log.Debug("Validation test passed", zap.String("test", test.name))
 	}
 
 	return nil

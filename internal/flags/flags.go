@@ -47,3 +47,39 @@ func NewLogLevelFlag() cli.Flag {
 		Value: "off",
 	}
 }
+
+// NewManagerConfigFlags creates flags for manager configuration
+func NewManagerConfigFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.IntFlag{
+			Name:    "max-tasks-per-depth",
+			Usage:   "Maximum tasks allowed per depth level",
+			Value:   100,
+			EnvVars: []string{"KNOT_MAX_TASKS_PER_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "complexity-threshold",
+			Usage:   "Threshold for task breakdown suggestions (1-10)",
+			Value:   8,
+			EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
+		},
+		&cli.IntFlag{
+			Name:    "max-depth",
+			Usage:   "Maximum allowed task depth",
+			Value:   5,
+			EnvVars: []string{"KNOT_MAX_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "max-description-length",
+			Usage:   "Maximum length for task descriptions",
+			Value:   2000,
+			EnvVars: []string{"KNOT_MAX_DESCRIPTION_LENGTH"},
+		},
+		&cli.BoolFlag{
+			Name:    "auto-reduce-complexity",
+			Usage:   "Automatically reduce parent task complexity when subtasks are added",
+			Value:   true,
+			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
+		},
+	}
+}

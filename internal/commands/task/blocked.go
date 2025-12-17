@@ -4,28 +4,34 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // BlockedAction shows tasks that are blocked by dependencies
-func BlockedAction(appCtx *shared.AppContext) cli.ActionFunc {
+func BlockedAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err
 		}
 
-		appCtx.Logger.Info("Finding blocked tasks", zap.String("projectID", projectID.String()))
+		loggerService.Info("Finding blocked tasks", zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		allTasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		allTasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get project tasks", zap.Error(err))
+			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
@@ -45,10 +51,10 @@ func BlockedAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 		}
 
-		appCtx.Logger.Info("Blocked tasks found", zap.Int("count", len(blockedTasks)))
+		loggerService.Info("Blocked tasks found", zap.Int("count", len(blockedTasks)))
 
 		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, appCtx)
+		shared.ShowProjectContextWithSeparator(c, injector)
 
 		if len(blockedTasks) == 0 {
 			fmt.Println("No blocked tasks found. All tasks are either ready, completed, or have no dependencies.")

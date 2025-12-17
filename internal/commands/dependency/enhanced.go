@@ -7,23 +7,24 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/commands/dependency/visualization"
 	"github.com/denkhaus/knot/v2/internal/flags"
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // EnhancedCommands returns enhanced dependency-related CLI commands
-func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
+func EnhancedCommands(injector do.Injector) []*cli.Command {
 	factory := visualization.NewCommandFactory()
 
 	return []*cli.Command{
 		{
 			Name:   "dependents",
 			Usage:  "List tasks that depend on this task",
-			Action: dependentsAction(appCtx),
+			Action: dependentsAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -40,7 +41,7 @@ func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "chain",
 			Usage:  "Show dependency chain for a task",
-			Action: chainAction(appCtx),
+			Action: chainAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -62,7 +63,7 @@ func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "cycles",
 			Usage:  "Detect circular dependencies in project",
-			Action: cyclesAction(appCtx),
+			Action: cyclesAction(injector),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				&cli.BoolFlag{
@@ -75,14 +76,17 @@ func EnhancedCommands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "validate",
 			Usage:  "Validate all dependencies in project",
-			Action: validateAction(appCtx),
+			Action: validateAction(injector),
 		},
 		// New enhanced visualization command
-		factory.CreateCommand(appCtx),
+		factory.CreateCommand(injector),
 	}
 }
 
-func dependentsAction(appCtx *shared.AppContext) cli.ActionFunc {
+func dependentsAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -92,26 +96,26 @@ func dependentsAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		recursive := c.Bool("recursive")
 
-		appCtx.Logger.Info("Getting dependent tasks",
+		loggerService.Info("Getting dependent tasks",
 			zap.String("taskID", taskID.String()),
 			zap.Bool("recursive", recursive))
 
 		var dependents []*types.Task
 		if recursive {
-			dependents, err = getAllTransitiveDependents(appCtx.ProjectManager, taskID)
+			dependents, err = getAllTransitiveDependents(projectManager, taskID)
 		} else {
-			dependents, err = appCtx.ProjectManager.GetDependentTasks(context.Background(), taskID)
+			dependents, err = projectManager.GetDependentTasks(context.Background(), taskID)
 		}
 
 		if err != nil {
-			appCtx.Logger.Error("Failed to get dependents", zap.Error(err))
+			loggerService.Error("Failed to get dependents", zap.Error(err))
 			return fmt.Errorf("failed to get dependents: %w", err)
 		}
 
 		// Get the original task for context
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(context.Background(), taskID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
+			loggerService.Error("Failed to get task", zap.Error(err))
 			return fmt.Errorf("failed to get task: %w", err)
 		}
 

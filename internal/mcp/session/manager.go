@@ -1,6 +1,8 @@
 package session
 
 import (
+	"context"
+	"fmt"
 	"sync"
 	"time"
 
@@ -63,11 +65,20 @@ func (m *Manager) GetSession(sessionID uuid.UUID) (*SessionContext, error) {
 func (m *Manager) SetProject(sessionID, projectID uuid.UUID) error {
 	value, ok := m.sessions.Load(sessionID)
 	if !ok {
-		return nil // TODO: Return proper error
+		return fmt.Errorf("session not found: %s", sessionID)
 	}
 
 	session := value.(*SessionContext)
 	session.ProjectID = &projectID
 	session.LastActivity = time.Now()
+	return nil
+}
+
+// CloseAll closes all sessions
+func (m *Manager) CloseAll(ctx context.Context) error {
+	m.sessions.Range(func(key, value interface{}) bool {
+		m.sessions.Delete(key)
+		return true
+	})
 	return nil
 }

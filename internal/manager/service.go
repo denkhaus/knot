@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	knoterrors "github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -17,17 +18,17 @@ import (
 // service provides business logic for project task management
 type service struct {
 	repo   types.Repository
-	config *Config
+	config *config.ManagerConfig
 }
 
 // newService creates a new task management service
-func newService(repo types.Repository, config *Config) *service {
-	if config == nil {
-		config = DefaultConfig()
+func newService(repo types.Repository, cfg *config.ManagerConfig) *service {
+	if cfg == nil {
+		cfg = config.DefaultConfig()
 	}
 	return &service{
 		repo:   repo,
-		config: config,
+		config: cfg,
 	}
 }
 
@@ -919,13 +920,13 @@ func (s *service) validateTaskInput(title, description string, complexity int) e
 
 // Config management
 
-func (s *service) GetConfig() *Config {
+func (s *service) GetConfig() *config.ManagerConfig {
 	return s.config
 }
 
-func (s *service) UpdateConfig(config *Config) {
-	if config != nil {
-		s.config = config
+func (s *service) UpdateConfig(cfg *config.ManagerConfig) {
+	if cfg != nil {
+		s.config = cfg
 	}
 }
 
@@ -948,17 +949,17 @@ func (s *service) LoadConfigFromFile() error {
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	var config Config
-	if err := json.Unmarshal(data, &config); err != nil {
+	var cfg config.ManagerConfig
+	if err := json.Unmarshal(data, &cfg); err != nil {
 		return fmt.Errorf("failed to parse config file: %w", err)
 	}
 
 	// Validate and update config
-	if err := validateConfig(&config); err != nil {
+	if err := validateConfig(&cfg); err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
 
-	s.config = &config
+	s.config = &cfg
 	return nil
 }
 
@@ -1029,7 +1030,7 @@ func getConfigPath() (string, error) {
 }
 
 // validateConfig checks if the configuration values are valid
-func validateConfig(c *Config) error {
+func validateConfig(c *config.ManagerConfig) error {
 	if c.MaxTasksPerDepth < 1 {
 		return fmt.Errorf("max_tasks_per_depth must be at least 1, got %d", c.MaxTasksPerDepth)
 	}

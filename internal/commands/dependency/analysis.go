@@ -5,16 +5,21 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // chainAction shows the dependency chain for a task
-func chainAction(appCtx *shared.AppContext) cli.ActionFunc {
+func chainAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -30,15 +35,15 @@ func chainAction(appCtx *shared.AppContext) cli.ActionFunc {
 			upstream = true
 		}
 
-		appCtx.Logger.Info("Showing dependency chain",
+		loggerService.Info("Showing dependency chain",
 			zap.String("taskID", taskID.String()),
 			zap.Bool("upstream", upstream),
 			zap.Bool("downstream", downstream))
 
 		// Get the original task
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(context.Background(), taskID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
+			loggerService.Error("Failed to get task", zap.Error(err))
 			return fmt.Errorf("failed to get task: %w", err)
 		}
 
@@ -46,7 +51,7 @@ func chainAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		if upstream {
 			fmt.Println("📈 UPSTREAM DEPENDENCIES (what this task depends on):")
-			if err := showUpstreamChain(appCtx.ProjectManager, taskID, 0); err != nil {
+			if err := showUpstreamChain(projectManager, taskID, 0); err != nil {
 				return fmt.Errorf("failed to show upstream chain: %w", err)
 			}
 			fmt.Println()
@@ -54,7 +59,7 @@ func chainAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		if downstream {
 			fmt.Println("📉 DOWNSTREAM DEPENDENCIES (what depends on this task):")
-			if err := showDownstreamChain(appCtx.ProjectManager, taskID, 0); err != nil {
+			if err := showDownstreamChain(projectManager, taskID, 0); err != nil {
 				return fmt.Errorf("failed to show downstream chain: %w", err)
 			}
 			fmt.Println()
@@ -125,9 +130,12 @@ func showDownstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID
 }
 
 // cyclesAction detects circular dependencies in a project
-func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
+func cyclesAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err
 		}
@@ -135,15 +143,15 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 		jsonOutput := c.Bool("json")
 		autoFix := c.Bool("fix")
 
-		appCtx.Logger.Info("Detecting dependency cycles",
+		loggerService.Info("Detecting dependency cycles",
 			zap.String("projectID", projectID.String()),
 			zap.Bool("json", jsonOutput),
 			zap.Bool("autoFix", autoFix))
 
 		// Get all tasks in the project
-		tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get project tasks", zap.Error(err))
+			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
@@ -199,7 +207,7 @@ func cyclesAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Text output
-		shared.ShowProjectContextWithSeparator(c, appCtx)
+		shared.ShowProjectContextWithSeparator(c, injector)
 		fmt.Printf("Circular dependency analysis for project %s:\n\n", projectID)
 
 		if len(cycles) == 0 {
@@ -315,7 +323,10 @@ func detectCycles(tasks []*types.Task) [][]uuid.UUID {
 }
 
 // validateAction validates all dependencies in a project
-func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
+func validateAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		projectIDStr := c.String("project-id")
 		projectID, err := uuid.Parse(projectIDStr)
@@ -323,12 +334,12 @@ func validateAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return fmt.Errorf("invalid project ID: %w", err)
 		}
 
-		appCtx.Logger.Info("Validating dependencies", zap.String("projectID", projectID.String()))
+		loggerService.Info("Validating dependencies", zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get project tasks", zap.Error(err))
+			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 

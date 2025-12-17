@@ -4,22 +4,28 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // BreakdownAction finds tasks that need breakdown based on complexity threshold
-func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
+func BreakdownAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err
 		}
 
 		// Get complexity threshold from config, with CLI override
-		config := appCtx.ProjectManager.GetConfig()
+		config := projectManager.GetConfig()
 		complexityThreshold := c.Int("threshold")
 		if complexityThreshold == 0 {
 			complexityThreshold = config.ComplexityThreshold
@@ -27,21 +33,21 @@ func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Log info about threshold source
 		if c.Int("threshold") > 0 {
-			appCtx.Logger.Info("Finding tasks needing breakdown",
+			loggerService.Info("Finding tasks needing breakdown",
 				zap.String("projectID", projectID.String()),
 				zap.Int("threshold", complexityThreshold),
 				zap.String("thresholdSource", "cli-override"))
 		} else {
-			appCtx.Logger.Info("Finding tasks needing breakdown",
+			loggerService.Info("Finding tasks needing breakdown",
 				zap.String("projectID", projectID.String()),
 				zap.Int("threshold", complexityThreshold),
 				zap.String("thresholdSource", "config"))
 		}
 
 		// Get all tasks in the project
-		allTasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		allTasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get project tasks", zap.Error(err))
+			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
@@ -63,7 +69,7 @@ func BreakdownAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 		}
 
-		appCtx.Logger.Info("Tasks needing breakdown found", zap.Int("count", len(needsBreakdown)))
+		loggerService.Info("Tasks needing breakdown found", zap.Int("count", len(needsBreakdown)))
 
 		if len(needsBreakdown) == 0 {
 			fmt.Printf("No tasks need breakdown (complexity >= %d with no subtasks)\n", complexityThreshold)

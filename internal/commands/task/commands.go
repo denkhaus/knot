@@ -19,28 +19,69 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/denkhaus/knot/v2/internal/utils"
-
 	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/flags"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
-// validateProjectID validates and returns the project ID from the CLI context
+// resolveProjectIDWithDI resolves the project ID using dependency injection
+func resolveProjectIDWithDI(c *cli.Context, injector do.Injector) (uuid.UUID, error) {
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+	// Get project from database stored context
+	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
+		return *contextProjectID, nil
+	}
+
+	// No project available
+	return uuid.Nil, errors.NoProjectContextError()
+}
+
+// showProjectContextWithDI displays the current project context using dependency injection
+func showProjectContextWithDI(c *cli.Context, injector do.Injector) bool {
+	// Skip context display for JSON output or quiet mode
+	if c.Bool("json") || c.Bool("quiet") {
+		return false
+	}
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+	// Get selected project
+	selectedProjectID, err := projectManager.GetSelectedProject(c.Context)
+	if err != nil || selectedProjectID == nil {
+		return false
+	}
+
+	// Get project details
+	project, err := projectManager.GetProject(context.Background(), *selectedProjectID)
+	if err != nil {
+		return false
+	}
+
+	// Display context indicator
+	fmt.Printf("[Project: %s]\n", project.Title)
+	return true
+}
 
 // Commands returns all task-related CLI commands
-func Commands(appCtx *shared.AppContext) []*cli.Command {
+func Commands(injector do.Injector) []*cli.Command {
 	// Basic task commands
 	basicCommands := []*cli.Command{
 		{
 			Name:   "create",
 			Usage:  "Create a new task",
-			Action: createAction(appCtx),
+			Action: createAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "title",
@@ -75,7 +116,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "get",
 			Usage:  "Get a task by ID",
-			Action: getAction(appCtx),
+			Action: getAction(injector),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				flags.NewQuietFlag(),
@@ -85,7 +126,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "list",
 			Usage:  "List tasks with filtering options",
-			Action: listAction(appCtx),
+			Action: listAction(injector),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				flags.NewQuietFlag(),
@@ -127,7 +168,7 @@ Examples:
   knot task update --id <task-id> --title "New title" --priority high
   knot task update --id <task-id> --description "New description" --complexity 6
   knot task update --id <task-id> --state completed --title "Done" --complexity 3`,
-			Action: updateAction(appCtx),
+			Action: updateAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
@@ -164,13 +205,13 @@ Examples:
 	}
 
 	// Hierarchy navigation commands
-	hierarchyCommands := HierarchyCommands(appCtx)
+	hierarchyCommands := HierarchyCommands(injector)
 
 	// Task deletion commands
-	deletionCommands := DeletionCommands(appCtx)
+	deletionCommands := DeletionCommands(injector)
 
 	// Bulk operation commands
-	bulkCommands := BulkCommands(appCtx)
+	bulkCommands := BulkCommands(injector)
 
 	// Combine all commands
 	allCommands := make([]*cli.Command, 0, len(basicCommands)+len(hierarchyCommands)+len(deletionCommands)+len(bulkCommands))
@@ -182,9 +223,13 @@ Examples:
 	return allCommands
 }
 
-func createAction(appCtx *shared.AppContext) cli.ActionFunc {
+func createAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
 		}
@@ -233,20 +278,20 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 			parentID = &parsed
 		}
 
-		appCtx.Logger.Info("Creating task",
+		loggerService.Info("Creating task",
 			zap.String("title", title),
 			zap.String("projectID", projectID.String()),
 			zap.Int("complexity", complexity),
 			zap.String("priority", priority),
 			zap.String("actor", actor))
 
-		task, err := appCtx.ProjectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, utils.ParsePriority(priority), actor)
+		task, err := projectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, utils.ParsePriority(priority), actor)
 		if err != nil {
-			appCtx.Logger.Error("Failed to create task", zap.Error(err))
+			loggerService.Error("Failed to create task", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "creating task")
 		}
 
-		appCtx.Logger.Info("Task created successfully", zap.String("taskID", task.ID.String()), zap.String("actor", actor))
+		loggerService.Info("Task created successfully", zap.String("taskID", task.ID.String()), zap.String("actor", actor))
 
 		fmt.Printf("Created task: %s (ID: %s)\n", task.Title, task.ID)
 		fmt.Printf("  Created by: %s\n", actor)
@@ -277,18 +322,22 @@ func createAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func listAction(appCtx *shared.AppContext) cli.ActionFunc {
+func listAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
 		}
 
-		appCtx.Logger.Info("Listing tasks", zap.String("projectID", projectID.String()))
+		loggerService.Info("Listing tasks", zap.String("projectID", projectID.String()))
 
-		tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to list tasks", zap.Error(err))
+			loggerService.Error("Failed to list tasks", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "listing tasks")
 		}
 
@@ -301,7 +350,7 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 		// Apply limit
 		finalTasks := applyTaskLimit(sortedTasks, c)
 
-		appCtx.Logger.Info("Tasks filtered and sorted",
+		loggerService.Info("Tasks filtered and sorted",
 			zap.Int("originalCount", len(tasks)),
 			zap.Int("filteredCount", len(finalTasks)))
 
@@ -315,8 +364,8 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return utils.OutputTasksAsJSON(finalTasks)
 		}
 
-		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, appCtx)
+		// Show project context indicator using DI
+		showProjectContextWithDI(c, injector)
 
 		// Show filter summary if filters were applied
 		if hasFiltersApplied(c) {
@@ -354,7 +403,11 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func getAction(appCtx *shared.AppContext) cli.ActionFunc {
+func getAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -362,12 +415,12 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return errors.InvalidUUIDError("task-id", taskIDStr)
 		}
 
-		appCtx.Logger.Info("Getting task", zap.String("taskID", taskID.String()))
+		loggerService.Info("Getting task", zap.String("taskID", taskID.String()))
 
 		// Get the task
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(context.Background(), taskID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get task", zap.Error(err))
+			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
 		}
 
@@ -376,8 +429,8 @@ func getAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return utils.OutputTaskAsJSON(task)
 		}
 
-		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, appCtx)
+		// Show project context indicator using DI
+		showProjectContextWithDI(c, injector)
 
 		// Display task details
 		fmt.Printf("Task Details:\n")

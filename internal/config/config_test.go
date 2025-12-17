@@ -5,7 +5,6 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -60,13 +59,13 @@ func TestGetConfigPathWithWorkingDir(t *testing.T) {
 func TestValidateConfig(t *testing.T) {
 	tests := []struct {
 		name        string
-		config      *manager.Config
+		config      *ManagerConfig
 		expectError bool
 		errorMsg    string
 	}{
 		{
 			name: "valid config",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     5,
 				ComplexityThreshold:  3,
 				MaxDepth:             10,
@@ -76,7 +75,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "valid config with minimum values",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     1,
 				ComplexityThreshold:  1,
 				MaxDepth:             1,
@@ -86,7 +85,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "valid config with maximum complexity threshold",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     10,
 				ComplexityThreshold:  10,
 				MaxDepth:             20,
@@ -96,7 +95,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid MaxTasksPerDepth - zero",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     0,
 				ComplexityThreshold:  3,
 				MaxDepth:             10,
@@ -107,7 +106,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid MaxTasksPerDepth - negative",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     -1,
 				ComplexityThreshold:  3,
 				MaxDepth:             10,
@@ -118,7 +117,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid ComplexityThreshold - zero",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     5,
 				ComplexityThreshold:  0,
 				MaxDepth:             10,
@@ -129,7 +128,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid ComplexityThreshold - too high",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     5,
 				ComplexityThreshold:  11,
 				MaxDepth:             10,
@@ -140,7 +139,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid MaxDepth - zero",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     5,
 				ComplexityThreshold:  3,
 				MaxDepth:             0,
@@ -151,7 +150,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "invalid MaxDescriptionLength - zero",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     5,
 				ComplexityThreshold:  3,
 				MaxDepth:             10,
@@ -162,7 +161,7 @@ func TestValidateConfig(t *testing.T) {
 		},
 		{
 			name: "multiple invalid values",
-			config: &manager.Config{
+			config: &ManagerConfig{
 				MaxTasksPerDepth:     0,
 				ComplexityThreshold:  0,
 				MaxDepth:             0,
@@ -197,7 +196,7 @@ func TestConfigIntegration(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Create a valid config
-		config := &manager.Config{
+		config := &ManagerConfig{
 			MaxTasksPerDepth:     3,
 			ComplexityThreshold:  5,
 			MaxDepth:             8,

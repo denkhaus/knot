@@ -17,21 +17,24 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	internalValidation "github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
 )
 
 // Commands returns validation related CLI commands
-func Commands(appCtx *shared.AppContext) []*cli.Command {
+func Commands(injector do.Injector) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "states",
 			Usage:  "Show valid task states and transitions",
-			Action: statesAction(appCtx),
+			Action: statesAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "from",
@@ -47,7 +50,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "transition",
 			Usage:  "Validate a state transition without applying it",
-			Action: transitionAction(appCtx),
+			Action: transitionAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -69,7 +72,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "project",
 			Usage:  "Validate all task states in a project",
-			Action: projectAction(appCtx),
+			Action: projectAction(injector),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:  "fix",
@@ -81,7 +84,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 	}
 }
 
-func statesAction(_appCtx *shared.AppContext) cli.ActionFunc {
+func statesAction(injector do.Injector) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		fromState := c.String("from")
 		showMatrix := c.Bool("matrix")
@@ -139,7 +142,10 @@ func statesAction(_appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func transitionAction(appCtx *shared.AppContext) cli.ActionFunc {
+func transitionAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -151,7 +157,7 @@ func transitionAction(appCtx *shared.AppContext) cli.ActionFunc {
 		lenient := c.Bool("lenient")
 
 		// Get task
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(context.Background(), taskID)
 		if err != nil {
 			return fmt.Errorf("failed to get task: %w", err)
 		}
@@ -200,19 +206,24 @@ func transitionAction(appCtx *shared.AppContext) cli.ActionFunc {
 	}
 }
 
-func projectAction(appCtx *shared.AppContext) cli.ActionFunc {
+func projectAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		// Get project from database stored context
+		projectID, err := resolveProjectID(c, projectManager)
 		if err != nil {
 			return err
 		}
 
 		fix := c.Bool("fix")
 
-		appCtx.Logger.Info("Validating project task states", zap.String("projectID", projectID.String()))
+		loggerService.Info("Validating project task states", logger.String("projectID", projectID.String()))
 
 		// Get all tasks
-		tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 		if err != nil {
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
@@ -223,6 +234,9 @@ func projectAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		fmt.Printf("Validating %d tasks in project %s:\n\n", len(tasks), projectID)
 
+		// Get actor from CLI context
+		actor := shared.GetActorFromContext(c)
+
 		for _, task := range tasks {
 			// Check if state is valid
 			if !validator.IsValidState(string(task.State)) {
@@ -231,11 +245,11 @@ func projectAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 				if fix {
 					// Attempt to fix by setting to pending
-					appCtx.Logger.Info("Fixing invalid state",
-						zap.String("taskID", task.ID.String()),
-						zap.String("invalidState", string(task.State)))
+					loggerService.Info("Fixing invalid state",
+						logger.String("taskID", task.ID.String()),
+						logger.String("invalidState", string(task.State)))
 
-					_, err := appCtx.ProjectManager.UpdateTaskState(context.Background(), task.ID, types.TaskStatePending, appCtx.Actor)
+					_, err := projectManager.UpdateTaskState(context.Background(), task.ID, types.TaskStatePending, actor)
 					if err != nil {
 						fmt.Printf("Failed to fix task %s: %v\n", task.ID, err)
 					} else {
@@ -272,4 +286,15 @@ func projectAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		return nil
 	}
+}
+
+// resolveProjectID resolves the project ID from stored context using project manager
+func resolveProjectID(c *cli.Context, projectManager manager.ProjectManager) (uuid.UUID, error) {
+	// Get project from database stored context
+	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
+		return *contextProjectID, nil
+	}
+
+	// No project available
+	return uuid.Nil, errors.NoProjectContextError()
 }

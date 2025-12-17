@@ -14,24 +14,25 @@ package config
 import (
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/config"
+	knotconfig "github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // Commands returns the config management commands
-func Commands(appCtx *shared.AppContext) []*cli.Command {
+func Commands(injector do.Injector) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "show",
 			Usage:  "Show current configuration",
-			Action: ShowAction(appCtx),
+			Action: ShowAction(injector),
 		},
 		{
 			Name:   "set",
 			Usage:  "Set configuration value",
-			Action: SetAction(appCtx),
+			Action: SetAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "key",
@@ -50,15 +51,18 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "reset",
 			Usage:  "Reset configuration to defaults",
-			Action: ResetAction(appCtx),
+			Action: ResetAction(injector),
 		},
 	}
 }
 
 // ShowAction displays the current configuration
-func ShowAction(appCtx *shared.AppContext) cli.ActionFunc {
+func ShowAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(_ *cli.Context) error {
-		cfg := appCtx.ProjectManager.GetConfig()
+		cfg := projectManager.GetConfig()
 
 		fmt.Println("Current Knot Configuration:")
 		fmt.Println()
@@ -70,7 +74,7 @@ func ShowAction(appCtx *shared.AppContext) cli.ActionFunc {
 		fmt.Println()
 
 		// Show config file location
-		configPath, err := config.GetConfigPath()
+		configPath, err := knotconfig.GetConfigPath()
 		if err == nil {
 			fmt.Printf("Configuration file:        %s\n", configPath)
 		} else {
@@ -82,13 +86,16 @@ func ShowAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // SetAction sets a configuration value
-func SetAction(appCtx *shared.AppContext) cli.ActionFunc {
+func SetAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		key := c.String("key")
 		value := c.Int("value")
 
 		// Get current config
-		currentConfig := appCtx.ProjectManager.GetConfig()
+		currentConfig := projectManager.GetConfig()
 		newConfig := *currentConfig // Copy current config
 
 		// Update the specified key
@@ -124,8 +131,8 @@ func SetAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		// Update and save config
-		appCtx.ProjectManager.UpdateConfig(&newConfig)
-		if err := appCtx.ProjectManager.SaveConfigToFile(); err != nil {
+		projectManager.UpdateConfig(&newConfig)
+		if err := projectManager.SaveConfigToFile(); err != nil {
 			return fmt.Errorf("failed to save configuration: %w", err)
 		}
 
@@ -135,14 +142,17 @@ func SetAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // ResetAction resets configuration to defaults
-func ResetAction(appCtx *shared.AppContext) cli.ActionFunc {
+func ResetAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(_ *cli.Context) error {
 		// Reset to default config
-		defaultConfig := manager.DefaultConfig()
-		appCtx.ProjectManager.UpdateConfig(defaultConfig)
+		defaultConfig := knotconfig.DefaultConfig()
+		projectManager.UpdateConfig(defaultConfig)
 
 		// Save to file
-		if err := appCtx.ProjectManager.SaveConfigToFile(); err != nil {
+		if err := projectManager.SaveConfigToFile(); err != nil {
 			return fmt.Errorf("failed to save configuration: %w", err)
 		}
 

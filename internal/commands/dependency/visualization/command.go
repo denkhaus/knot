@@ -5,8 +5,11 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/flags"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -20,7 +23,7 @@ func NewCommandFactory() *CommandFactory {
 }
 
 // CreateCommand creates the enhanced dependency visualization command
-func (f *CommandFactory) CreateCommand(appCtx *shared.AppContext) *cli.Command {
+func (f *CommandFactory) CreateCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:  "show",
 		Usage: "Show enhanced dependency visualization with arrows and clear relationships",
@@ -39,7 +42,7 @@ Examples:
   knot dependency show --project             # Show all project dependencies
   knot dependency show --tree                # Show dependency tree
   knot dependency show --graph               # Show dependency graph`,
-		Action: f.createAction(appCtx),
+		Action: f.createAction(injector),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "task-id",
@@ -79,10 +82,13 @@ Examples:
 }
 
 // createAction creates the action function for the command
-func (f *CommandFactory) createAction(appCtx *shared.AppContext) cli.ActionFunc {
+func (f *CommandFactory) createAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+
 	return func(c *cli.Context) error {
 		// Parse configuration
-		config, err := f.parseConfig(c, appCtx)
+
+		config, err := f.parseConfig(c, injector)
 		if err != nil {
 			return fmt.Errorf("invalid configuration: %w", err)
 		}
@@ -92,20 +98,20 @@ func (f *CommandFactory) createAction(appCtx *shared.AppContext) cli.ActionFunc 
 			return err
 		}
 
-		appCtx.Logger.Info("Enhanced dependency visualization",
+		loggerService.Info("Enhanced dependency visualization",
 			zap.String("mode", string(config.Mode)),
 			zap.String("taskID", config.TaskID),
 			zap.Bool("json", config.JSONOutput),
 			zap.Int("depth", config.MaxDepth))
 
 		// Execute visualization
-		return f.executeVisualization(appCtx, config)
+		return f.executeVisualization(injector, config)
 	}
 }
 
 // parseConfig parses configuration from CLI context
-func (f *CommandFactory) parseConfig(c *cli.Context, appCtx *shared.AppContext) (*Config, error) {
-	projectID, err := shared.ResolveProjectID(c, appCtx)
+func (f *CommandFactory) parseConfig(c *cli.Context, injector do.Injector) (*Config, error) {
+	projectID, err := shared.ResolveProjectID(c, injector)
 	if err != nil {
 		return nil, err
 	}
@@ -153,20 +159,22 @@ func (f *CommandFactory) validateConfig(config *Config) error {
 }
 
 // executeVisualization executes the visualization based on configuration
-func (f *CommandFactory) executeVisualization(appCtx *shared.AppContext, config *Config) error {
+func (f *CommandFactory) executeVisualization(injector do.Injector, config *Config) error {
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	// Get project tasks
 	projectID, err := uuid.Parse(config.ProjectID)
 	if err != nil {
 		return fmt.Errorf("invalid project ID: %w", err)
 	}
 
-	tasks, err := appCtx.ProjectManager.ListTasksForProject(context.Background(), projectID)
+	tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
 	if err != nil {
 		return fmt.Errorf("failed to get project tasks: %w", err)
 	}
 
 	// Create components
-	analyzer := NewAnalyzer(appCtx.ProjectManager, tasks)
+	analyzer := NewAnalyzer(projectManager, tasks)
 	renderer := NewRenderer(config)
 
 	// Execute based on mode

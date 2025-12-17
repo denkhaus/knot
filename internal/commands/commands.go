@@ -1,6 +1,8 @@
 package commands
 
 import (
+	"context"
+
 	"github.com/denkhaus/knot/v2/internal/commands/completion"
 	"github.com/denkhaus/knot/v2/internal/commands/config"
 	"github.com/denkhaus/knot/v2/internal/commands/dependency"
@@ -10,48 +12,95 @@ import (
 	"github.com/denkhaus/knot/v2/internal/commands/task"
 	"github.com/denkhaus/knot/v2/internal/commands/template"
 	"github.com/denkhaus/knot/v2/internal/commands/validation"
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/templates"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
+	"go.uber.org/zap"
 )
 
-func NewDependencyCommand(appCtx *shared.AppContext) *cli.Command {
+// NewBeforeCommand creates a Before action function that initializes DI and configures services
+func NewBeforeCommand(container *di.Container) func(c *cli.Context) error {
+	return func(c *cli.Context) error {
+		// Initialize DI container with all services
+		injector := container.RegisterAllServices(context.Background())
+
+		// For now, keep using the global logger approach until full migration
+		logLevel := c.String("log-level")
+		logger.SetLogLevel(logLevel)
+
+		// Use DI template service for seeding instead of static function
+		templateService := do.MustInvoke[templates.Service](injector)
+		loggerService := do.MustInvoke[logger.Logger](injector)
+		if err := templateService.CheckAndSeedIfNeeded(); err != nil {
+			loggerService.Warn("Failed to seed templates during initialization", zap.Error(err))
+		} else {
+			loggerService.Debug("Template seeding check completed successfully")
+		}
+
+		// Store the injector in the container for later use by commands
+		container.SetInjector(injector)
+
+		// Add commands now that DI is initialized
+		c.App.Commands = []*cli.Command{
+			NewProjectCommand(injector),
+			NewTaskCommand(injector),
+			NewTemplateCommand(injector),
+			NewDependencyCommand(injector),
+			NewConfigCommand(injector),
+			NewHealthCommand(injector),
+			NewStatusCommand(injector),
+			NewValidateCommand(injector),
+			NewGetStartedCommand(injector),
+			NewCompletionCommand(injector),
+			NewMCPCommand(injector),
+		}
+
+		loggerService.Info("Knot CLI started with DI", zap.String("version", version))
+
+		return nil
+	}
+}
+
+func NewDependencyCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "dependency",
 		Aliases:     []string{"dep"},
 		Usage:       "Task dependency management",
-		Subcommands: dependency.Commands(appCtx),
+		Subcommands: dependency.Commands(injector),
 	}
 }
 
-func NewTemplateCommand(appCtx *shared.AppContext) *cli.Command {
+func NewTemplateCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "template",
 		Aliases:     []string{"tmpl"},
 		Usage:       "Task template management commands",
-		Subcommands: template.Commands(appCtx),
+		Subcommands: template.Commands(injector),
 	}
 }
 
-func NewHealthCommand(appCtx *shared.AppContext) *cli.Command {
+func NewHealthCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "health",
 		Usage:       "Database health and connectivity checks",
-		Subcommands: health.Commands(appCtx),
+		Subcommands: health.Commands(injector),
 	}
 }
 
-func NewConfigCommand(appCtx *shared.AppContext) *cli.Command {
+func NewConfigCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "config",
 		Aliases:     []string{"cfg"},
 		Usage:       "Configuration management",
-		Subcommands: config.Commands(appCtx),
+		Subcommands: config.Commands(injector),
 	}
 }
 
 // Command creates the shell completion command (renamed from CompletionCommand to avoid stuttering)
-func NewCompletionCommand(appCtx *shared.AppContext) *cli.Command {
+func NewCompletionCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:  "completion",
 		Usage: "Generate shell completion scripts",
@@ -76,41 +125,41 @@ Installation:
   # Zsh (user-specific)
   mkdir -p ~/.zsh/completions
   knot completion zsh > ~/.zsh/completions/_knot`,
-		Action: completion.CompletionAction(appCtx),
+		Action: completion.CompletionAction(injector),
 	}
 }
 
-func NewTaskCommand(appCtx *shared.AppContext) *cli.Command {
+func NewTaskCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "task",
 		Aliases:     []string{"t"},
 		Usage:       "Task management commands",
-		Subcommands: task.Commands(appCtx),
+		Subcommands: task.Commands(injector),
 	}
 }
 
-func NewGetStartedCommand(appCtx *shared.AppContext) *cli.Command {
+func NewGetStartedCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:   "get-started",
 		Usage:  "Get started guide for LLM agents with available commands and usage",
-		Action: task.GetStartedAction(appCtx),
+		Action: task.GetStartedAction(injector),
 	}
 }
 
-func NewValidateCommand(appCtx *shared.AppContext) *cli.Command {
+func NewValidateCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "validate",
 		Usage:       "Task state validation and transition checks",
-		Subcommands: validation.Commands(appCtx),
+		Subcommands: validation.Commands(injector),
 	}
 }
 
-func NewProjectCommand(appCtx *shared.AppContext) *cli.Command {
+func NewProjectCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "project",
 		Aliases:     []string{"p"},
 		Usage:       "Project management commands",
-		Subcommands: project.Commands(appCtx),
+		Subcommands: project.Commands(injector),
 		Flags: []cli.Flag{
 			flags.NewJSONFlag(),
 		},
@@ -118,7 +167,7 @@ func NewProjectCommand(appCtx *shared.AppContext) *cli.Command {
 }
 
 // NewStatusCommand creates a status command with subcommands for different status views
-func NewStatusCommand(appCtx *shared.AppContext) *cli.Command {
+func NewStatusCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:    "status",
 		Usage:   "Show tasks by status (actionable, ready, blocked, breakdown)",
@@ -155,7 +204,7 @@ Examples:
   knot status actionable --strategy=depth-first   # Prioritize completing branches
   knot status actionable --strategy=priority      # Focus on high-priority tasks
   knot status actionable --verbose --json         # Detailed JSON output`,
-				Action: task.ActionableAction(appCtx),
+				Action: task.ActionableAction(injector),
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "strategy",
@@ -185,7 +234,7 @@ Examples:
 				Name:    "ready",
 				Aliases: []string{"rd"},
 				Usage:   "Show tasks with no blockers (ready to work on)",
-				Action:  task.ReadyAction(appCtx),
+				Action:  task.ReadyAction(injector),
 				Flags: []cli.Flag{
 					flags.NewTaskLimitFlag(),
 					flags.NewJSONFlag(),
@@ -195,7 +244,7 @@ Examples:
 				Name:    "blocked",
 				Aliases: []string{"blk"},
 				Usage:   "Show tasks blocked by dependencies",
-				Action:  task.BlockedAction(appCtx),
+				Action:  task.BlockedAction(injector),
 				Flags: []cli.Flag{
 					flags.NewTaskLimitFlag(),
 					flags.NewJSONFlag(),
@@ -205,7 +254,7 @@ Examples:
 				Name:    "breakdown",
 				Aliases: []string{"bd"},
 				Usage:   "Find tasks that need breakdown based on complexity",
-				Action:  task.BreakdownAction(appCtx),
+				Action:  task.BreakdownAction(injector),
 				Flags: []cli.Flag{
 					flags.NewTaskLimitFlag(),
 					flags.NewJSONFlag(),
@@ -224,7 +273,7 @@ Examples:
 }
 
 // NewMCPCommand creates a Model Context Protocol (MCP) server command
-func NewMCPCommand(appCtx *shared.AppContext) *cli.Command {
+func NewMCPCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:  "mcp",
 		Usage: "Model Context Protocol (MCP) server commands",
@@ -241,6 +290,6 @@ Examples:
   knot mcp server                                    # Start MCP server with defaults
   knot mcp server --address 0.0.0.0 --port 9090     # Start on custom address/port
   knot mcp server --log-level debug                 # Enable debug logging`,
-		Subcommands: cmdmcp.Commands(appCtx),
+		Subcommands: cmdmcp.Commands(injector),
 	}
 }

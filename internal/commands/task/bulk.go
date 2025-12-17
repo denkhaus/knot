@@ -7,17 +7,23 @@ import (
 	"os"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/denkhaus/knot/v2/internal/utils"
-
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // DuplicateAction creates a copy of a task
-func DuplicateAction(appCtx *shared.AppContext) cli.ActionFunc {
+func DuplicateAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		if taskIDStr == "" {
@@ -39,13 +45,13 @@ func DuplicateAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return fmt.Errorf("invalid target project ID: %w", err)
 		}
 
-		appCtx.Logger.Info("Duplicating task",
+		loggerService.Info("Duplicating task",
 			zap.String("taskID", taskID.String()),
 			zap.String("targetProjectID", targetProjectID.String()))
 
-		duplicatedTask, err := appCtx.ProjectManager.DuplicateTask(context.Background(), taskID, targetProjectID)
+		duplicatedTask, err := projectManager.DuplicateTask(context.Background(), taskID, targetProjectID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to duplicate task", zap.Error(err))
+			loggerService.Error("Failed to duplicate task", zap.Error(err))
 			return fmt.Errorf("failed to duplicate task: %w", err)
 		}
 
@@ -61,9 +67,13 @@ func DuplicateAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // ListByStateAction lists tasks filtered by state
-func ListByStateAction(appCtx *shared.AppContext) cli.ActionFunc {
+func ListByStateAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
 		}
@@ -75,13 +85,13 @@ func ListByStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		state := types.TaskState(stateStr)
 
-		appCtx.Logger.Info("Listing tasks by state",
+		loggerService.Info("Listing tasks by state",
 			zap.String("projectID", projectID.String()),
 			zap.String("state", stateStr))
 
-		tasks, err := appCtx.ProjectManager.ListTasksByState(context.Background(), projectID, state)
+		tasks, err := projectManager.ListTasksByState(context.Background(), projectID, state)
 		if err != nil {
-			appCtx.Logger.Error("Failed to list tasks by state", zap.Error(err))
+			loggerService.Error("Failed to list tasks by state", zap.Error(err))
 			return fmt.Errorf("failed to list tasks by state: %w", err)
 		}
 
@@ -113,9 +123,13 @@ func ListByStateAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // BulkCreateAction creates multiple tasks from JSON input
-func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
+func BulkCreateAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
 		}
@@ -149,7 +163,7 @@ func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		actor := shared.GetActorFromContext(c)
 
-		appCtx.Logger.Info("Bulk creating tasks",
+		loggerService.Info("Bulk creating tasks",
 			zap.Int("taskCount", len(taskInputs)),
 			zap.String("projectID", projectID.String()),
 			zap.String("actor", actor))
@@ -174,7 +188,7 @@ func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 
 			// Create task
-			task, err := appCtx.ProjectManager.CreateTask(
+			task, err := projectManager.CreateTask(
 				context.Background(),
 				projectID,
 				parentID,
@@ -185,7 +199,7 @@ func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
 				actor,
 			)
 			if err != nil {
-				appCtx.Logger.Error("Failed to create task", zap.Error(err), zap.Int("taskIndex", i))
+				loggerService.Error("Failed to create task", zap.Error(err), zap.Int("taskIndex", i))
 				return fmt.Errorf("failed to create task %d ('%s'): %w", i+1, input.Title, err)
 			}
 
@@ -207,7 +221,11 @@ func BulkCreateAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // BulkDeleteAction deletes multiple tasks with safety checks
-func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
+func BulkDeleteAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDsStr := c.String("task-ids")
 		if taskIDsStr == "" {
@@ -233,15 +251,15 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		dryRun := c.Bool("dry-run")
 		force := c.Bool("force")
 
-		appCtx.Logger.Info("Bulk deleting tasks",
+		loggerService.Info("Bulk deleting tasks",
 			zap.Int("taskCount", len(taskIDs)),
 			zap.Bool("dryRun", dryRun),
 			zap.Bool("force", force))
 
 		// Get task details for confirmation using optimized batch loading
-		tasksToDelete, err := appCtx.ProjectManager.GetTasksWithDependencies(context.Background(), taskIDs)
+		tasksToDelete, err := projectManager.GetTasksWithDependencies(context.Background(), taskIDs)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get tasks", zap.Error(err), zap.Strings("taskIDs", utils.ConvertUUIDsToStrings(taskIDs)))
+			loggerService.Error("Failed to get tasks", zap.Error(err), zap.Strings("taskIDs", utils.ConvertUUIDsToStrings(taskIDs)))
 			return fmt.Errorf("failed to get tasks: %w", err)
 		}
 
@@ -277,9 +295,9 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 		// Delete tasks
 		var deletedCount int
 		for _, taskID := range taskIDs {
-			err := appCtx.ProjectManager.DeleteTask(context.Background(), taskID, actor)
+			err := projectManager.DeleteTask(context.Background(), taskID, actor)
 			if err != nil {
-				appCtx.Logger.Error("Failed to delete task", zap.Error(err), zap.String("taskID", taskID.String()))
+				loggerService.Error("Failed to delete task", zap.Error(err), zap.String("taskID", taskID.String()))
 				fmt.Printf("Failed to delete task %s: %v\n", taskID, err)
 				continue
 			}
@@ -296,12 +314,12 @@ func BulkDeleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 }
 
 // BulkCommands returns bulk operation CLI commands
-func BulkCommands(appCtx *shared.AppContext) []*cli.Command {
+func BulkCommands(injector do.Injector) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "bulk-create",
 			Usage:  "Create multiple tasks from JSON file",
-			Action: BulkCreateAction(appCtx),
+			Action: BulkCreateAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "file",
@@ -314,7 +332,7 @@ func BulkCommands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "bulk-delete",
 			Usage:  "Delete multiple tasks with safety checks",
-			Action: BulkDeleteAction(appCtx),
+			Action: BulkDeleteAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-ids",
@@ -334,7 +352,7 @@ func BulkCommands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "duplicate",
 			Usage:  "Duplicate a task to another project",
-			Action: DuplicateAction(appCtx),
+			Action: DuplicateAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -351,7 +369,7 @@ func BulkCommands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "list-by-state",
 			Usage:  "List tasks filtered by state",
-			Action: ListByStateAction(appCtx),
+			Action: ListByStateAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "state",

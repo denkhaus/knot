@@ -253,7 +253,7 @@ func TestCommandIntegration(t *testing.T) {
 	t.Run("command app context dependency", func(t *testing.T) {
 		// Test that commands properly depend on app context
 		assert.NotNil(t, appCtx, "AppContext should be available")
-		assert.NotNil(t, appCtx.ProjectManager, "ProjectManager should be available")
+		assert.NotNil(t, projectManager, "ProjectManager should be available")
 		assert.NotNil(t, appCtx.Logger, "Logger should be available")
 	})
 }

@@ -314,7 +314,7 @@ func TestUpdateAction(t *testing.T) {
 			appCtx, projectID := createTestAppContextWithProject(t)
 
 			// Create a test task to update
-			task := testutil.CreateTestTask(t, appCtx.ProjectManager, projectID)
+			task := testutil.CreateTestTask(t, projectManager, projectID)
 			// Replace the placeholder UUID with the actual task ID
 			for i, arg := range tt.args {
 				if arg == "--id" && i+1 < len(tt.args) && tt.args[i+1] == "123e4567-e89b-12d3-a456-426614174000" {
@@ -368,7 +368,7 @@ func TestUpdateAction(t *testing.T) {
 			}
 
 			// Set project context
-			err := appCtx.ProjectManager.SetSelectedProject(context.Background(), projectID, "test-user")
+			err := projectManager.SetSelectedProject(context.Background(), projectID, "test-user")
 			require.NoError(t, err)
 
 			// Run the command
@@ -383,7 +383,7 @@ func TestUpdateAction(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify the updates were actually applied
-				updatedTask, err := appCtx.ProjectManager.GetTask(context.Background(), task.ID)
+				updatedTask, err := projectManager.GetTask(context.Background(), task.ID)
 				require.NoError(t, err)
 
 				// Check specific fields based on what was updated

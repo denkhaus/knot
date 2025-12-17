@@ -17,20 +17,22 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // Commands returns all dependency-related CLI commands
-func Commands(appCtx *shared.AppContext) []*cli.Command {
+func Commands(injector do.Injector) []*cli.Command {
 	// Basic commands
 	basicCommands := []*cli.Command{
 		{
 			Name:   "add",
 			Usage:  "Add task dependency",
-			Action: addAction(appCtx),
+			Action: addAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -47,7 +49,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "remove",
 			Usage:  "Remove task dependency",
-			Action: removeAction(appCtx),
+			Action: removeAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -64,7 +66,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 		{
 			Name:   "list",
 			Usage:  "List task dependencies",
-			Action: listAction(appCtx),
+			Action: listAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -76,7 +78,7 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 	}
 
 	// Enhanced commands
-	enhancedCommands := EnhancedCommands(appCtx)
+	enhancedCommands := EnhancedCommands(injector)
 
 	// Combine all commands
 	allCommands := make([]*cli.Command, 0, len(basicCommands)+len(enhancedCommands))
@@ -86,7 +88,10 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 	return allCommands
 }
 
-func addAction(appCtx *shared.AppContext) cli.ActionFunc {
+func addAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -102,25 +107,28 @@ func addAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		actor := c.String("actor")
 
-		appCtx.Logger.Info("Adding task dependency",
+		loggerService.Info("Adding task dependency",
 			zap.String("taskID", taskID.String()),
 			zap.String("dependsOnID", dependsOnID.String()),
 			zap.String("actor", actor))
 
-		_, err = appCtx.ProjectManager.AddTaskDependency(context.Background(), taskID, dependsOnID, actor)
+		_, err = projectManager.AddTaskDependency(context.Background(), taskID, dependsOnID, actor)
 		if err != nil {
-			appCtx.Logger.Error("Failed to add dependency", zap.Error(err))
+			loggerService.Error("Failed to add dependency", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "adding task dependency")
 		}
 
-		appCtx.Logger.Info("Dependency added successfully", zap.String("actor", actor))
+		loggerService.Info("Dependency added successfully", zap.String("actor", actor))
 		fmt.Printf("Added dependency: %s now depends on %s\n", taskID, dependsOnID)
 		fmt.Printf("  Added by: %s\n", actor)
 		return nil
 	}
 }
 
-func removeAction(appCtx *shared.AppContext) cli.ActionFunc {
+func removeAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -136,25 +144,28 @@ func removeAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		actor := c.String("actor")
 
-		appCtx.Logger.Info("Removing task dependency",
+		loggerService.Info("Removing task dependency",
 			zap.String("taskID", taskID.String()),
 			zap.String("dependsOnID", dependsOnID.String()),
 			zap.String("actor", actor))
 
-		_, err = appCtx.ProjectManager.RemoveTaskDependency(context.Background(), taskID, dependsOnID, actor)
+		_, err = projectManager.RemoveTaskDependency(context.Background(), taskID, dependsOnID, actor)
 		if err != nil {
-			appCtx.Logger.Error("Failed to remove dependency", zap.Error(err))
+			loggerService.Error("Failed to remove dependency", zap.Error(err))
 			return fmt.Errorf("failed to remove dependency: %w", err)
 		}
 
-		appCtx.Logger.Info("Dependency removed successfully", zap.String("actor", actor))
+		loggerService.Info("Dependency removed successfully", zap.String("actor", actor))
 		fmt.Printf("Removed dependency: %s no longer depends on %s\n", taskID, dependsOnID)
 		fmt.Printf("  Removed by: %s\n", actor)
 		return nil
 	}
 }
 
-func listAction(appCtx *shared.AppContext) cli.ActionFunc {
+func listAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
@@ -162,21 +173,21 @@ func listAction(appCtx *shared.AppContext) cli.ActionFunc {
 			return fmt.Errorf("invalid task ID: %w", err)
 		}
 
-		appCtx.Logger.Info("Listing task dependencies", zap.String("taskID", taskID.String()))
+		loggerService.Info("Listing task dependencies", zap.String("taskID", taskID.String()))
 
-		dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), taskID)
+		dependencies, err := projectManager.GetTaskDependencies(context.Background(), taskID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get dependencies", zap.Error(err))
+			loggerService.Error("Failed to get dependencies", zap.Error(err))
 			return fmt.Errorf("failed to get dependencies: %w", err)
 		}
 
-		dependents, err := appCtx.ProjectManager.GetDependentTasks(context.Background(), taskID)
+		dependents, err := projectManager.GetDependentTasks(context.Background(), taskID)
 		if err != nil {
-			appCtx.Logger.Error("Failed to get dependents", zap.Error(err))
+			loggerService.Error("Failed to get dependents", zap.Error(err))
 			return fmt.Errorf("failed to get dependents: %w", err)
 		}
 
-		appCtx.Logger.Info("Dependencies retrieved",
+		loggerService.Info("Dependencies retrieved",
 			zap.Int("dependencies", len(dependencies)),
 			zap.Int("dependents", len(dependents)))
 

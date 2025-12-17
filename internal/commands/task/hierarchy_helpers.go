@@ -7,14 +7,15 @@ import (
 	"sort"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/treeformatter"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
+	"go.uber.org/zap"
 
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
 )
 
 // TreeNode represents a task node in JSON tree format
@@ -24,9 +25,13 @@ type TreeNode struct {
 }
 
 // TreeAction shows task hierarchy as a tree
-func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
+func TreeAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, appCtx)
+		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
 		}
@@ -34,7 +39,7 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 		maxDepth := c.Int("max-depth")
 		rootTaskIDStr := c.String("root-task-id")
 
-		appCtx.Logger.Info("Showing task tree",
+		loggerService.Info("Showing task tree",
 			zap.String("projectID", projectID.String()),
 			zap.Int("maxDepth", maxDepth),
 			zap.String("rootTaskID", rootTaskIDStr))
@@ -49,7 +54,7 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 			}
 
 			// Use batch loading for consistency with other optimizations
-			tasks, err := appCtx.ProjectManager.GetTasksWithDependencies(context.Background(), []uuid.UUID{rootTaskID})
+			tasks, err := projectManager.GetTasksWithDependencies(context.Background(), []uuid.UUID{rootTaskID})
 			if err != nil {
 				return fmt.Errorf("failed to get root task: %w", err)
 			}
@@ -60,7 +65,7 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 			fmt.Printf("Task tree starting from '%s':\n\n", tasks[0].Title)
 		} else {
 			// Start from project roots
-			roots, err := appCtx.ProjectManager.GetRootTasks(context.Background(), projectID)
+			roots, err := projectManager.GetRootTasks(context.Background(), projectID)
 			if err != nil {
 				return fmt.Errorf("failed to get root tasks: %w", err)
 			}
@@ -90,7 +95,7 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 		if c.Bool("json") {
 			var treeNodes []*TreeNode
 			for _, task := range startingTasks {
-				treeNode, err := buildTreeJSON(appCtx.ProjectManager, task, 0, maxDepth)
+				treeNode, err := buildTreeJSON(projectManager, task, 0, maxDepth)
 				if err != nil {
 					return fmt.Errorf("failed to build JSON tree: %w", err)
 				}
@@ -106,7 +111,7 @@ func TreeAction(appCtx *shared.AppContext) cli.ActionFunc {
 		}
 
 		for _, task := range startingTasks {
-			if err := printTaskTree(appCtx.ProjectManager, task, 0, maxDepth, ""); err != nil {
+			if err := printTaskTree(projectManager, task, 0, maxDepth, ""); err != nil {
 				return fmt.Errorf("failed to print task tree: %w", err)
 			}
 		}

@@ -6,9 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/treeformatter"
+	"github.com/samber/do/v2"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -191,17 +193,22 @@ func printDeletionNodeChildren(formatter treeformatter.TreeFormatter, node *Node
 }
 
 // DeletionCommands returns task deletion related CLI commands
-func DeletionCommands(appCtx *shared.AppContext) []*cli.Command {
+func DeletionCommands(injector do.Injector) []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "delete",
 			Usage:  "Delete a task with two-step confirmation. Use --all to delete task and all descendants",
-			Action: deleteAction(appCtx),
+			Action: deleteAction(injector),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
 					Usage:    "Task ID to delete",
 					Required: true,
+				},
+				&cli.StringFlag{
+					Name:  "actor",
+					Usage: "User performing the deletion operation",
+					Value: "",
 				},
 				&cli.BoolFlag{
 					Name:  "dry-run",
@@ -219,19 +226,24 @@ func DeletionCommands(appCtx *shared.AppContext) []*cli.Command {
 }
 
 // deleteAction handles task deletion with two-step confirmation
-func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
+func deleteAction(injector do.Injector) cli.ActionFunc {
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
 	return func(c *cli.Context) error {
 		taskID, dryRun, deleteAll, err := parseDeleteFlags(c)
 		if err != nil {
 			return err
 		}
 
-		task, err := appCtx.ProjectManager.GetTask(context.Background(), taskID)
+		actor := shared.ResolveActor(c.String("actor"))
+
+		task, err := projectManager.GetTask(context.Background(), taskID)
 		if err != nil {
 			return errors.TaskNotFoundError(taskID)
 		}
 
-		children, err := appCtx.ProjectManager.GetChildTasks(context.Background(), taskID)
+		children, err := projectManager.GetChildTasks(context.Background(), taskID)
 		if err != nil {
 			return errors.WrapWithSuggestion(err, "checking child tasks")
 		}
@@ -242,7 +254,7 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		var descendants []*types.Task
 		if deleteAll {
-			descendants, err = getTaskDescendants(appCtx.ProjectManager, taskID)
+			descendants, err = getTaskDescendants(projectManager, taskID)
 			if err != nil {
 				return errors.WrapWithSuggestion(err, "getting task descendants")
 			}
@@ -250,10 +262,10 @@ func deleteAction(appCtx *shared.AppContext) cli.ActionFunc {
 
 		// Handle based on task state
 		if task.State == types.TaskStateDeletionPending {
-			return executeDeletion(appCtx, task, descendants, dryRun, deleteAll)
+			return executeDeletion(injector, projectManager, loggerService, actor, task, descendants, dryRun, deleteAll)
 		}
 
-		return markForDeletion(appCtx, task, descendants, dryRun, deleteAll)
+		return markForDeletion(injector, projectManager, loggerService, actor, task, descendants, dryRun, deleteAll)
 	}
 }
 
@@ -286,29 +298,29 @@ func validateDeletionPreconditions(children []*types.Task, deleteAll bool, taskI
 }
 
 // executeDeletion performs the actual deletion of task or subtree
-func executeDeletion(appCtx *shared.AppContext, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
+func executeDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
 	if dryRun {
 		return handleDryRun(deleteAll, len(descendants), true)
 	}
 
 	if deleteAll {
-		return executeSubtreeDeletion(appCtx, task, descendants)
+		return executeSubtreeDeletion(injector, projectManager, loggerService, actor, task, descendants)
 	}
 
-	return executeSingleTaskDeletion(appCtx, task)
+	return executeSingleTaskDeletion(projectManager, actor, task)
 }
 
 // markForDeletion marks a task or subtree for deletion
-func markForDeletion(appCtx *shared.AppContext, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
+func markForDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
 	if dryRun {
 		return handleDryRun(deleteAll, len(descendants), false)
 	}
 
 	if deleteAll {
-		return markSubtreeForDeletion(appCtx, task, descendants)
+		return markSubtreeForDeletion(injector, projectManager, loggerService, actor, task, descendants)
 	}
 
-	return markSingleTaskForDeletion(appCtx, task)
+	return markSingleTaskForDeletion(projectManager, actor, task)
 }
 
 // handleDryRun processes dry run mode for both marking and execution
@@ -330,30 +342,30 @@ func handleDryRun(deleteAll bool, descendantCount int, isExecution bool) error {
 }
 
 // executeSubtreeDeletion performs the actual deletion of a task subtree
-func executeSubtreeDeletion(appCtx *shared.AppContext, task *types.Task, descendants []*types.Task) error {
+func executeSubtreeDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task) error {
 	printDeletionTree("Final deletion of task subtree:", task, descendants)
 
 	totalTasks := 1 + len(descendants)
 	fmt.Printf("Total tasks to delete: %d\n", totalTasks)
 
 	// Perform subtree deletion
-	err := appCtx.ProjectManager.DeleteTaskSubtree(context.Background(), task.ID, appCtx.Actor)
+	err := projectManager.DeleteTaskSubtree(context.Background(), task.ID, actor)
 	if err != nil {
-		appCtx.Logger.Error("Failed to delete task subtree", zap.Error(err))
+		loggerService.Error("Failed to delete task subtree", zap.Error(err))
 		return errors.WrapWithSuggestion(err, "deleting task subtree")
 	}
 
-	appCtx.Logger.Info("Task subtree deleted successfully", zap.Int("totalDeleted", totalTasks))
+	loggerService.Info("Task subtree deleted successfully", zap.Int("totalDeleted", totalTasks))
 	fmt.Printf("Task subtree permanently deleted: %d task(s) removed\n", totalTasks)
 	return nil
 }
 
 // executeSingleTaskDeletion performs the actual deletion of a single task
-func executeSingleTaskDeletion(appCtx *shared.AppContext, task *types.Task) error {
+func executeSingleTaskDeletion(projectManager manager.ProjectManager, actor string, task *types.Task) error {
 	printDeletionTree("Final deletion of task:", task, nil)
 
 	// Perform single task deletion
-	err := appCtx.ProjectManager.DeleteTask(context.Background(), task.ID, appCtx.Actor)
+	err := projectManager.DeleteTask(context.Background(), task.ID, actor)
 	if err != nil {
 		return &errors.EnhancedError{
 			Operation:   "deleting task",
@@ -368,14 +380,14 @@ func executeSingleTaskDeletion(appCtx *shared.AppContext, task *types.Task) erro
 }
 
 // markSubtreeForDeletion marks an entire subtree for deletion
-func markSubtreeForDeletion(appCtx *shared.AppContext, task *types.Task, descendants []*types.Task) error {
+func markSubtreeForDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task) error {
 	printDeletionTree("Task subtree to be marked for deletion:", task, descendants)
 
 	totalTasks := 1 + len(descendants)
 	fmt.Printf("Total tasks to mark for deletion: %d\n", totalTasks)
 
 	// Check for dependencies on any task in the subtree
-	err := checkSubtreeDependencies(appCtx, task, descendants)
+	err := checkSubtreeDependencies(projectManager, task, descendants)
 	if err != nil {
 		return err
 	}
@@ -388,7 +400,7 @@ func markSubtreeForDeletion(appCtx *shared.AppContext, task *types.Task, descend
 	fmt.Printf("\nNote: Only the root task is marked as deletion-pending. All descendants will be deleted when confirmed.\n")
 
 	// Mark root task for deletion
-	_, err = appCtx.ProjectManager.UpdateTask(context.Background(), task.ID, task.Title, task.Description, task.Complexity, types.TaskStateDeletionPending, appCtx.Actor)
+	_, err = projectManager.UpdateTask(context.Background(), task.ID, task.Title, task.Description, task.Complexity, types.TaskStateDeletionPending, actor)
 	if err != nil {
 		return &errors.EnhancedError{
 			Operation:   "marking task for deletion",
@@ -402,11 +414,11 @@ func markSubtreeForDeletion(appCtx *shared.AppContext, task *types.Task, descend
 }
 
 // markSingleTaskForDeletion marks a single task for deletion
-func markSingleTaskForDeletion(appCtx *shared.AppContext, task *types.Task) error {
+func markSingleTaskForDeletion(projectManager manager.ProjectManager, actor string, task *types.Task) error {
 	printDeletionTree("Task to be marked for deletion:", task, nil)
 
 	// Check for dependencies
-	if err := displayTaskDependencies(appCtx, task.ID); err != nil {
+	if err := displayTaskDependencies(projectManager, task.ID); err != nil {
 		return err
 	}
 
@@ -417,7 +429,7 @@ func markSingleTaskForDeletion(appCtx *shared.AppContext, task *types.Task) erro
 	fmt.Printf("    knot task update --id %s --state pending\n", task.ID)
 
 	// Mark task for deletion
-	_, err := appCtx.ProjectManager.UpdateTask(context.Background(), task.ID, task.Title, task.Description, task.Complexity, types.TaskStateDeletionPending, appCtx.Actor)
+	_, err := projectManager.UpdateTask(context.Background(), task.ID, task.Title, task.Description, task.Complexity, types.TaskStateDeletionPending, actor)
 	if err != nil {
 		return &errors.EnhancedError{
 			Operation:   "marking task for deletion",
@@ -431,9 +443,9 @@ func markSingleTaskForDeletion(appCtx *shared.AppContext, task *types.Task) erro
 }
 
 // displayTaskDependencies shows dependencies and dependents for a task
-func displayTaskDependencies(appCtx *shared.AppContext, taskID uuid.UUID) error {
+func displayTaskDependencies(projectManager manager.ProjectManager, taskID uuid.UUID) error {
 	// Show dependencies
-	dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), taskID)
+	dependencies, err := projectManager.GetTaskDependencies(context.Background(), taskID)
 	if err == nil && len(dependencies) > 0 {
 		fmt.Printf("\n  This task depends on %d other task(s):\n", len(dependencies))
 		for _, dep := range dependencies {
@@ -442,7 +454,7 @@ func displayTaskDependencies(appCtx *shared.AppContext, taskID uuid.UUID) error 
 	}
 
 	// Show dependents
-	dependents, err := appCtx.ProjectManager.GetDependentTasks(context.Background(), taskID)
+	dependents, err := projectManager.GetDependentTasks(context.Background(), taskID)
 	if err == nil && len(dependents) > 0 {
 		fmt.Printf("\n  %d task(s) depend on this task:\n", len(dependents))
 		for _, dep := range dependents {
@@ -489,11 +501,11 @@ func getTaskDescendants(projectManager manager.ProjectManager, taskID uuid.UUID)
 }
 
 // checkSubtreeDependencies checks for external dependencies on tasks in the subtree
-func checkSubtreeDependencies(appCtx *shared.AppContext, rootTask *types.Task, descendants []*types.Task) error {
+func checkSubtreeDependencies(projectManager manager.ProjectManager, rootTask *types.Task, descendants []*types.Task) error {
 	allTasks := append([]*types.Task{rootTask}, descendants...)
 
 	// Check dependencies for root task
-	dependencies, err := appCtx.ProjectManager.GetTaskDependencies(context.Background(), rootTask.ID)
+	dependencies, err := projectManager.GetTaskDependencies(context.Background(), rootTask.ID)
 	if err == nil && len(dependencies) > 0 {
 		fmt.Printf("\n  Root task depends on %d other task(s):\n", len(dependencies))
 		for _, dep := range dependencies {
@@ -509,7 +521,7 @@ func checkSubtreeDependencies(appCtx *shared.AppContext, rootTask *types.Task, d
 	}
 
 	for _, task := range allTasks {
-		dependents, err := appCtx.ProjectManager.GetDependentTasks(context.Background(), task.ID)
+		dependents, err := projectManager.GetDependentTasks(context.Background(), task.ID)
 		if err != nil {
 			continue
 		}

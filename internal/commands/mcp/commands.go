@@ -5,13 +5,14 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // Commands returns the MCP CLI commands
 // TODO: No inline Action here. Use the existing pattern like Action: serverAction(appCtx),
-func Commands(appCtx *shared.AppContext) []*cli.Command {
+func Commands(injector do.Injector) []*cli.Command {
 	// Combine all flags
 	allFlags := make([]cli.Flag, 0)
 	allFlags = append(allFlags, flags.PostgresEndpointFlag())
@@ -23,28 +24,30 @@ func Commands(appCtx *shared.AppContext) []*cli.Command {
 			Usage: "Start the MCP server",
 			Flags: allFlags,
 			// TODO: Implement actual server startup logic
-			Action: serverAction(appCtx),
+			Action: serverAction(injector),
 		},
 	}
 }
 
 // serverAction handles the MCP server startup
 // TODO: Implement actual MCP server initialization and startup
-func serverAction(appCtx *shared.AppContext) cli.ActionFunc {
+func serverAction(injector do.Injector) cli.ActionFunc {
+	// Resolve dependencies from DI
+	loggerService := do.MustInvoke[logger.Logger](injector)
+	configSvc := do.MustInvoke[config.Service](injector)
+
 	return func(c *cli.Context) error {
 		// Initialize configuration service (detects MCP mode)
-		config.InitializeFromCLIContext(c)
+		configSvc.InitializeFromCLIContext(c)
 
-		// Get configuration from service using CLI context
-		configSvc := config.GetConfigService()
-		mcpConfig := configSvc.GetMCPConfig(c)
+		mcpConfig := configSvc.GetMCPConfig()
 
-		fmt.Printf("MCP Server Configuration:\n")
-		fmt.Printf("  Address: %s\n", mcpConfig.Address)
-		fmt.Printf("  Port: %d\n", mcpConfig.Port)
-		fmt.Printf("  Log Level: %s\n", mcpConfig.LogLevel)
-		fmt.Printf("  Database Backend: %s\n", mcpConfig.Database.Backend)
-		fmt.Printf("  PostgreSQL Endpoint: %s\n", mcpConfig.Database.Endpoint)
+		loggerService.Info("Starting MCP server",
+			logger.String("address", mcpConfig.Address),
+			logger.Int("port", mcpConfig.Port),
+			logger.String("log_level", mcpConfig.LogLevel),
+			logger.String("database_backend", mcpConfig.Database.Backend),
+			logger.String("postgres_endpoint", mcpConfig.Database.Endpoint))
 
 		// Validate required parameters
 		if mcpConfig.Database.Endpoint == "" {

@@ -3,7 +3,7 @@ package completion
 import (
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,7 +16,7 @@ const (
 )
 
 // CompletionAction implements the shell completion functionality
-func CompletionAction(appCtx *shared.AppContext) cli.ActionFunc {
+func CompletionAction(injector do.Injector) cli.ActionFunc {
 	return func(c *cli.Context) error {
 		args := c.Args()
 		if args.Len() != 1 {
