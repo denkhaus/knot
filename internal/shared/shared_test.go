@@ -5,19 +5,19 @@ import (
 	"testing"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/samber/do/v2"
 	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
 )
 
 func TestResolveProjectID(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
-	logger := zap.NewNop()
-	appCtx := NewAppContext(projectManager, logger)
+	// Setup test environment using DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -64,7 +64,7 @@ func TestResolveProjectID(t *testing.T) {
 			ctx := cli.NewContext(app, nil, nil)
 
 			// Test ResolveProjectID
-			resolvedID, err := ResolveProjectID(ctx, appCtx)
+			resolvedID, err := ResolveProjectID(ctx, testInjector)
 
 			if tt.expectError {
 				if err == nil {

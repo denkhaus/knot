@@ -59,10 +59,10 @@ func Commands(injector do.Injector) []*cli.Command {
 // ShowAction displays the current configuration
 func ShowAction(injector do.Injector) cli.ActionFunc {
 	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	configService := do.MustInvoke[knotconfig.Service](injector)
 
 	return func(_ *cli.Context) error {
-		cfg := projectManager.GetConfig()
+		cfg := configService.GetManagerConfig()
 
 		fmt.Println("Current Knot Configuration:")
 		fmt.Println()
@@ -74,7 +74,7 @@ func ShowAction(injector do.Injector) cli.ActionFunc {
 		fmt.Println()
 
 		// Show config file location
-		configPath, err := knotconfig.GetConfigPath()
+		configPath, err := configService.GetConfigPath()
 		if err == nil {
 			fmt.Printf("Configuration file:        %s\n", configPath)
 		} else {
@@ -88,6 +88,7 @@ func ShowAction(injector do.Injector) cli.ActionFunc {
 // SetAction sets a configuration value
 func SetAction(injector do.Injector) cli.ActionFunc {
 	// Resolve dependencies from DI
+	configService := do.MustInvoke[knotconfig.Service](injector)
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
 	return func(c *cli.Context) error {
@@ -95,7 +96,7 @@ func SetAction(injector do.Injector) cli.ActionFunc {
 		value := c.Int("value")
 
 		// Get current config
-		currentConfig := projectManager.GetConfig()
+		currentConfig := configService.GetManagerConfig()
 		newConfig := *currentConfig // Copy current config
 
 		// Update the specified key
@@ -130,11 +131,10 @@ func SetAction(injector do.Injector) cli.ActionFunc {
 			return fmt.Errorf("unknown configuration key: %s. Valid keys: "+shared.ConfigKeyComplexityThreshold+", "+shared.ConfigKeyMaxDepth+", "+shared.ConfigKeyMaxTasksPerDepth+", "+shared.ConfigKeyMaxDescriptionLength+", "+shared.ConfigKeyAutoReduceComplexity, key)
 		}
 
-		// Update and save config
+		// Update config
+		configService.SetManagerConfig(&newConfig)
+		// Also update project manager to reflect the new config
 		projectManager.UpdateConfig(&newConfig)
-		if err := projectManager.SaveConfigToFile(); err != nil {
-			return fmt.Errorf("failed to save configuration: %w", err)
-		}
 
 		fmt.Printf("Configuration updated: %s = %d\n", key, value)
 		return nil
@@ -144,18 +144,14 @@ func SetAction(injector do.Injector) cli.ActionFunc {
 // ResetAction resets configuration to defaults
 func ResetAction(injector do.Injector) cli.ActionFunc {
 	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	configService := do.MustInvoke[knotconfig.Service](injector)
 
 	return func(_ *cli.Context) error {
 		// Reset to default config
 		defaultConfig := knotconfig.DefaultConfig()
-		projectManager.UpdateConfig(defaultConfig)
+		configService.SetManagerConfig(defaultConfig)
 
-		// Save to file
-		if err := projectManager.SaveConfigToFile(); err != nil {
-			return fmt.Errorf("failed to save configuration: %w", err)
-		}
-
+	
 		fmt.Println("Configuration reset to defaults:")
 		fmt.Printf("  Complexity Threshold:    %d\n", defaultConfig.ComplexityThreshold)
 		fmt.Printf("  Max Depth:               %d\n", defaultConfig.MaxDepth)

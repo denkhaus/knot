@@ -14,7 +14,7 @@ import (
 	reflect "reflect"
 	time "time"
 
-	manager "github.com/denkhaus/knot/v2/internal/manager"
+	config "github.com/denkhaus/knot/v2/internal/config"
 	types "github.com/denkhaus/knot/v2/internal/types"
 	uuid "github.com/google/uuid"
 	gomock "go.uber.org/mock/gomock"
@@ -235,10 +235,10 @@ func (mr *MockProjectManagerMockRecorder) GetChildTasks(ctx, taskID any) *gomock
 }
 
 // GetConfig mocks base method.
-func (m *MockProjectManager) GetConfig() *manager.Config {
+func (m *MockProjectManager) GetConfig() *config.ManagerConfig {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetConfig")
-	ret0, _ := ret[0].(*manager.Config)
+	ret0, _ := ret[0].(*config.ManagerConfig)
 	return ret0
 }
 
@@ -575,15 +575,15 @@ func (mr *MockProjectManagerMockRecorder) UnassignTaskFromAgent(ctx, taskID any)
 }
 
 // UpdateConfig mocks base method.
-func (m *MockProjectManager) UpdateConfig(config *manager.Config) {
+func (m *MockProjectManager) UpdateConfig(arg0 *config.ManagerConfig) {
 	m.ctrl.T.Helper()
-	m.ctrl.Call(m, "UpdateConfig", config)
+	m.ctrl.Call(m, "UpdateConfig", arg0)
 }
 
 // UpdateConfig indicates an expected call of UpdateConfig.
-func (mr *MockProjectManagerMockRecorder) UpdateConfig(config any) *gomock.Call {
+func (mr *MockProjectManagerMockRecorder) UpdateConfig(arg0 any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfig", reflect.TypeOf((*MockProjectManager)(nil).UpdateConfig), config)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateConfig", reflect.TypeOf((*MockProjectManager)(nil).UpdateConfig), arg0)
 }
 
 // UpdateProject mocks base method.

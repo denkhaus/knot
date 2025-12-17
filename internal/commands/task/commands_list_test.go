@@ -5,9 +5,10 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -17,16 +18,14 @@ import (
 // Knot Task 75010287-8330-4001-8f31-a824ce6c5d09: Simplified task list flags
 func TestSimplifiedTaskListFlags(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set selected project context
-	err := mgr.SetSelectedProject(context.Background(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.Background(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	// Create test tasks with different properties
@@ -38,7 +37,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 	// Create the tasks
 	for _, task := range tasks {
-		_, err := mgr.CreateTask(context.Background(), project.ID, nil, task.Title, task.Description, task.Complexity, task.Priority, "test-user")
+		_, err := projectManager.CreateTask(context.Background(), project.ID, nil, task.Title, task.Description, task.Complexity, task.Priority, "test-user")
 		require.NoError(t, err)
 	}
 
@@ -55,7 +54,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -73,7 +72,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -91,7 +90,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -109,7 +108,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -127,7 +126,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -145,7 +144,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})

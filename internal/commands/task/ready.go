@@ -74,7 +74,7 @@ func ReadyAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, nil)
+		shared.ShowProjectContextWithSeparator(c, injector)
 
 		if limit > 0 && len(readyTasks) == limit {
 			fmt.Printf("Ready work (showing %d of %d tasks with no blockers):\n\n", limit, len(readyTasks))

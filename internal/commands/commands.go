@@ -1,8 +1,6 @@
 package commands
 
 import (
-	"context"
-
 	"github.com/denkhaus/knot/v2/internal/commands/completion"
 	"github.com/denkhaus/knot/v2/internal/commands/config"
 	"github.com/denkhaus/knot/v2/internal/commands/dependency"
@@ -22,10 +20,10 @@ import (
 )
 
 // NewBeforeCommand creates a Before action function that initializes DI and configures services
-func NewBeforeCommand(container *di.Container) func(c *cli.Context) error {
+func NewBeforeCommand(container *di.Container, version string) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
 		// Initialize DI container with all services
-		injector := container.RegisterAllServices(context.Background())
+		injector := container.RegisterAllServices(c.Context, c)
 
 		// For now, keep using the global logger approach until full migration
 		logLevel := c.String("log-level")
@@ -34,6 +32,7 @@ func NewBeforeCommand(container *di.Container) func(c *cli.Context) error {
 		// Use DI template service for seeding instead of static function
 		templateService := do.MustInvoke[templates.Service](injector)
 		loggerService := do.MustInvoke[logger.Logger](injector)
+
 		if err := templateService.CheckAndSeedIfNeeded(); err != nil {
 			loggerService.Warn("Failed to seed templates during initialization", zap.Error(err))
 		} else {

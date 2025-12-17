@@ -5,9 +5,10 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -15,13 +16,12 @@ import (
 
 func TestTaskCreateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	tests := []struct {
 		name        string
@@ -93,11 +93,11 @@ func TestTaskCreateAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Set project context for the test
-			err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+			err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 			require.NoError(t, err)
 
 			// Execute action
-			action := createAction(appCtx)
+			action := createAction(testInjector)
 			err = action(ctx)
 
 			if tt.expectError {
@@ -112,13 +112,12 @@ func TestTaskCreateAction(t *testing.T) {
 
 func TestTaskListAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	t.Run("empty task list", func(t *testing.T) {
 		// Create CLI context
@@ -128,11 +127,11 @@ func TestTaskListAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Set project context for the test
-		err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+		err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 		require.NoError(t, err)
 
 		// Execute action
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 
 		// Should succeed but show no tasks
@@ -141,8 +140,8 @@ func TestTaskListAction(t *testing.T) {
 
 	t.Run("list with tasks", func(t *testing.T) {
 		// Create test tasks
-		testutil.CreateTestTask(t, mgr, project.ID)
-		testutil.CreateTestTask(t, mgr, project.ID)
+		testutil.CreateTestTask(t, projectManager, project.ID)
+		testutil.CreateTestTask(t, projectManager, project.ID)
 
 		// Create CLI context
 		app := &cli.App{}
@@ -151,11 +150,11 @@ func TestTaskListAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Set project context for the test
-		err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+		err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 		require.NoError(t, err)
 
 		// Execute action
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err = action(ctx)
 
 		// Should succeed
@@ -165,17 +164,16 @@ func TestTaskListAction(t *testing.T) {
 
 func TestTaskUpdateStateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
-	task := testutil.CreateTestTask(t, mgr, project.ID)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	project := testutil.CreateTestProject(t, projectManager)
+	task := testutil.CreateTestTask(t, projectManager, project.ID)
 
 	// Set selected project context for the CLI
-	err := mgr.SetSelectedProject(context.Background(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.Background(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	tests := []struct {
@@ -235,7 +233,7 @@ func TestTaskUpdateStateAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := updateStateSubAction(appCtx)
+			action := updateStateSubAction(testInjector)
 			err := action(ctx)
 
 			if tt.expectError {
@@ -245,7 +243,7 @@ func TestTaskUpdateStateAction(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify state was actually updated
-				testutil.AssertTaskState(t, mgr, task.ID, types.TaskState(tt.state))
+				testutil.AssertTaskState(t, projectManager, task.ID, types.TaskState(tt.state))
 			}
 		})
 	}
@@ -253,14 +251,13 @@ func TestTaskUpdateStateAction(t *testing.T) {
 
 func TestTaskUpdateTitleAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
-	task := testutil.CreateTestTask(t, mgr, project.ID)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	project := testutil.CreateTestProject(t, projectManager)
+	task := testutil.CreateTestTask(t, projectManager, project.ID)
 
 	tests := []struct {
 		name        string
@@ -311,7 +308,7 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := updateTitleSubAction(appCtx)
+			action := updateTitleSubAction(testInjector)
 			err := action(ctx)
 
 			if tt.expectError {
@@ -327,13 +324,12 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 func TestTaskWorkflow(t *testing.T) {
 	// Integration test for complete task workflow
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	t.Run("complete task workflow", func(t *testing.T) {
 		// 1. Create task
@@ -354,10 +350,10 @@ func TestTaskWorkflow(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Set project context for the test
-		err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+		err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 		require.NoError(t, err)
 
-		createActionFunc := createAction(appCtx)
+		createActionFunc := createAction(testInjector)
 		err = createActionFunc(ctx)
 		require.NoError(t, err)
 
@@ -366,12 +362,12 @@ func TestTaskWorkflow(t *testing.T) {
 
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(appCtx)
+		listActionFunc := listAction(testInjector)
 		err = listActionFunc(listCtx)
 		assert.NoError(t, err)
 
 		// 3. Get tasks and update state
-		tasks, err := mgr.ListTasksForProject(ctx.Context, project.ID)
+		tasks, err := projectManager.ListTasksForProject(ctx.Context, project.ID)
 		require.NoError(t, err)
 		require.NotEmpty(t, tasks)
 
@@ -385,11 +381,11 @@ func TestTaskWorkflow(t *testing.T) {
 
 		updateCtx := cli.NewContext(app, updateFlagSet, nil)
 
-		updateActionFunc := updateStateSubAction(appCtx)
+		updateActionFunc := updateStateSubAction(testInjector)
 		err = updateActionFunc(updateCtx)
 		assert.NoError(t, err)
 
 		// 4. Verify state was updated
-		testutil.AssertTaskState(t, mgr, tasks[0].ID, types.TaskStateInProgress)
+		testutil.AssertTaskState(t, projectManager, tasks[0].ID, types.TaskStateInProgress)
 	})
 }

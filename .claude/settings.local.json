@@ -29,7 +29,15 @@
       "mcp__container-use__environment_file_list",
       "Bash(bd:*)",
       "Bash(go generate)",
-      "mcp__tavily__tavily-search"
+      "mcp__tavily__tavily-search",
+      "mcp__plugin_beads_beads__set_context",
+      "mcp__plugin_beads_beads__list",
+      "mcp__plugin_beads_beads__create",
+      "mcp__plugin_beads_beads__update",
+      "mcp__plugin_beads_beads__close",
+      "mcp__plugin_beads_beads__show",
+      "Bash(find:*)",
+      "mcp__plugin_beads_beads__ready"
     ],
     "deny": [],
     "ask": []

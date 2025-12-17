@@ -3,22 +3,17 @@ package commands
 import (
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
 
 func TestNewDependencyCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewDependencyCommand(appCtx)
+	cmd := NewDependencyCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "dependency", cmd.Name)
@@ -30,14 +25,9 @@ func TestNewDependencyCommand(t *testing.T) {
 
 func TestNewTemplateCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewTemplateCommand(appCtx)
+	cmd := NewTemplateCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "template", cmd.Name)
@@ -49,14 +39,9 @@ func TestNewTemplateCommand(t *testing.T) {
 
 func TestNewHealthCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewHealthCommand(appCtx)
+	cmd := NewHealthCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "health", cmd.Name)
@@ -67,14 +52,9 @@ func TestNewHealthCommand(t *testing.T) {
 
 func TestNewConfigCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewConfigCommand(appCtx)
+	cmd := NewConfigCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "config", cmd.Name)
@@ -86,14 +66,9 @@ func TestNewConfigCommand(t *testing.T) {
 
 func TestNewCompletionCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewCompletionCommand(appCtx)
+	cmd := NewCompletionCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "completion", cmd.Name)
@@ -106,14 +81,9 @@ func TestNewCompletionCommand(t *testing.T) {
 
 func TestNewTaskCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewTaskCommand(appCtx)
+	cmd := NewTaskCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "task", cmd.Name)
@@ -125,14 +95,9 @@ func TestNewTaskCommand(t *testing.T) {
 
 func TestNewGetStartedCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewGetStartedCommand(appCtx)
+	cmd := NewGetStartedCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "get-started", cmd.Name)
@@ -144,14 +109,9 @@ func TestNewGetStartedCommand(t *testing.T) {
 
 func TestNewValidateCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewValidateCommand(appCtx)
+	cmd := NewValidateCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "validate", cmd.Name)
@@ -162,14 +122,9 @@ func TestNewValidateCommand(t *testing.T) {
 
 func TestNewProjectCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewProjectCommand(appCtx)
+	cmd := NewProjectCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "project", cmd.Name)
@@ -188,14 +143,9 @@ func TestNewProjectCommand(t *testing.T) {
 
 func TestNewStatusCommand(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	cmd := NewStatusCommand(appCtx)
+	cmd := NewStatusCommand(testInjector)
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "status", cmd.Name)
@@ -218,41 +168,40 @@ func TestNewStatusCommand(t *testing.T) {
 
 // Integration tests for command behavior and edge cases
 
-func TestCommandsWithNilAppContext(t *testing.T) {
-	// Test that all command constructors handle nil AppContext gracefully
-	assert.NotNil(t, NewDependencyCommand(nil))
-	assert.NotNil(t, NewTemplateCommand(nil))
-	assert.NotNil(t, NewHealthCommand(nil))
-	assert.NotNil(t, NewConfigCommand(nil))
-	assert.NotNil(t, NewCompletionCommand(nil))
-	assert.NotNil(t, NewTaskCommand(nil))
-	assert.NotNil(t, NewStatusCommand(nil))
-	assert.NotNil(t, NewGetStartedCommand(nil))
-	assert.NotNil(t, NewValidateCommand(nil))
-	assert.NotNil(t, NewProjectCommand(nil))
+func TestCommandsWithNilInjector(t *testing.T) {
+	// Test that all command constructors create valid command structures
+	// Using a test injector since some commands need DI for their subcommands
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	assert.NotNil(t, NewDependencyCommand(testInjector))
+	assert.NotNil(t, NewTemplateCommand(testInjector))
+	assert.NotNil(t, NewHealthCommand(testInjector))
+	assert.NotNil(t, NewConfigCommand(testInjector))
+	assert.NotNil(t, NewCompletionCommand(testInjector))
+	assert.NotNil(t, NewTaskCommand(testInjector))
+	assert.NotNil(t, NewStatusCommand(testInjector))
+	assert.NotNil(t, NewGetStartedCommand(testInjector))
+	assert.NotNil(t, NewValidateCommand(testInjector))
+	assert.NotNil(t, NewProjectCommand(testInjector))
 }
 
 func TestCommandNamesUniqueness(t *testing.T) {
 	// Test that all command names are unique within the CLI context
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	testInjector := config.SetupTestInjector(t)
 
 	commands := []*cli.Command{
-		NewDependencyCommand(appCtx),
-		NewTemplateCommand(appCtx),
-		NewHealthCommand(appCtx),
-		NewConfigCommand(appCtx),
-		NewCompletionCommand(appCtx),
-		NewTaskCommand(appCtx),
-		NewStatusCommand(appCtx),
-		NewGetStartedCommand(appCtx),
-		NewValidateCommand(appCtx),
-		NewProjectCommand(appCtx),
+		NewDependencyCommand(testInjector),
+		NewTemplateCommand(testInjector),
+		NewHealthCommand(testInjector),
+		NewConfigCommand(testInjector),
+		NewCompletionCommand(testInjector),
+		NewTaskCommand(testInjector),
+		NewStatusCommand(testInjector),
+		NewGetStartedCommand(testInjector),
+		NewValidateCommand(testInjector),
+		NewProjectCommand(testInjector),
 	}
 
 	// Check for duplicate names
@@ -278,18 +227,12 @@ func TestCommandNamesUniqueness(t *testing.T) {
 }
 
 func TestCommandsWithValidAppContext(t *testing.T) {
-	// Test that all commands work with a valid AppContext
+	// Test that all commands work with a valid test injector
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-		Actor:          "test-user",
-	}
+	testInjector := config.SetupTestInjector(t)
 
 	// All commands should be created successfully
-	cmds := []func(*shared.AppContext) *cli.Command{
+	cmds := []func(do.Injector) *cli.Command{
 		NewDependencyCommand,
 		NewTemplateCommand,
 		NewHealthCommand,
@@ -303,7 +246,7 @@ func TestCommandsWithValidAppContext(t *testing.T) {
 	}
 
 	for i, createCmd := range cmds {
-		cmd := createCmd(appCtx)
+		cmd := createCmd(testInjector)
 		assert.NotNil(t, cmd, "Command %d should not be nil", i)
 		assert.NotEmpty(t, cmd.Name, "Command %d should have a name", i)
 		assert.NotEmpty(t, cmd.Usage, "Command %d should have usage text", i)
@@ -312,21 +255,16 @@ func TestCommandsWithValidAppContext(t *testing.T) {
 
 func TestCommandStructureConsistency(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	testInjector := config.SetupTestInjector(t)
 
 	// Test that subcommands have consistent structure
-	cmd := NewTaskCommand(appCtx)
+	cmd := NewTaskCommand(testInjector)
 	assert.NotNil(t, cmd.Subcommands, "Task command should have subcommands")
 
 	// Test that commands with actions don't have subcommands
 	actionCmds := []*cli.Command{
-		NewGetStartedCommand(appCtx),
-		NewCompletionCommand(appCtx),
+		NewGetStartedCommand(testInjector),
+		NewCompletionCommand(testInjector),
 	}
 
 	for _, cmd := range actionCmds {
@@ -336,14 +274,14 @@ func TestCommandStructureConsistency(t *testing.T) {
 
 	// Test that commands with subcommands don't have actions
 	subcommandCmds := []*cli.Command{
-		NewDependencyCommand(appCtx),
-		NewTemplateCommand(appCtx),
-		NewHealthCommand(appCtx),
-		NewConfigCommand(appCtx),
-		NewTaskCommand(appCtx),
-		NewStatusCommand(appCtx),
-		NewValidateCommand(appCtx),
-		NewProjectCommand(appCtx),
+		NewDependencyCommand(testInjector),
+		NewTemplateCommand(testInjector),
+		NewHealthCommand(testInjector),
+		NewConfigCommand(testInjector),
+		NewTaskCommand(testInjector),
+		NewStatusCommand(testInjector),
+		NewValidateCommand(testInjector),
+		NewProjectCommand(testInjector),
 	}
 
 	for _, cmd := range subcommandCmds {
@@ -354,15 +292,10 @@ func TestCommandStructureConsistency(t *testing.T) {
 
 func TestCommandFlagTypes(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	testInjector := config.SetupTestInjector(t)
 
 	// Test status command subcommands have correct flag types
-	statusCmd := NewStatusCommand(appCtx)
+	statusCmd := NewStatusCommand(testInjector)
 	assert.NotEmpty(t, statusCmd.Subcommands, "Status command should have subcommands")
 
 	// Find actionable subcommand and test its flags

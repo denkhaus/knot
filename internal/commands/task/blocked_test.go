@@ -6,20 +6,23 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
 // TestBlockedCommandWithDependencies tests the blocked command functionality
 func TestBlockedCommandWithDependencies(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
+	// Setup test environment with DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	ctx := context.Background()
 
@@ -145,10 +148,12 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 
 // TestBlockedCommandEdgeCases tests edge cases for the blocked command
 func TestBlockedCommandEdgeCases(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
+	// Setup test environment with DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	ctx := context.Background()
 
@@ -272,10 +277,12 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 
 // TestBlockedCommandDependencyChains tests complex dependency chains
 func TestBlockedCommandDependencyChains(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
+	// Setup test environment with DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	ctx := context.Background()
 

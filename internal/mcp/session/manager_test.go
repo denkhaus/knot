@@ -15,7 +15,8 @@ import (
 func TestNewManager(t *testing.T) {
 	manager := NewManager()
 	require.NotNil(t, manager)
-	assert.NotNil(t, manager.sessions)
+	// Test that we can use the manager interface
+	assert.Equal(t, 0, manager.GetSessionCount())
 }
 
 func TestCreateSession(t *testing.T) {
@@ -288,12 +289,11 @@ func TestConcurrentAccess(t *testing.T) {
 	wg.Wait()
 
 	// Verify no data races occurred by checking some sessions
-	manager.sessions.Range(func(key, value interface{}) bool {
-		session := value.(*SessionContext)
+	sessions := manager.ListSessions()
+	for _, session := range sessions {
 		assert.NotEqual(t, uuid.Nil, session.SessionID)
 		assert.NotEmpty(t, session.UserID)
-		return true
-	})
+	}
 }
 
 // Test that sessions can handle garbage collection scenarios

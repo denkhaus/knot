@@ -5,10 +5,8 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
-	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -40,12 +38,9 @@ func TestUpdateDescriptionAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
-
-		action := updateDescriptionSubAction(appCtx)
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
+		action := updateDescriptionSubAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -68,12 +63,9 @@ func TestUpdateDescriptionAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
-
-		action := updateDescriptionSubAction(appCtx)
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
+		action := updateDescriptionSubAction(testInjector)
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid task-id format")
@@ -106,12 +98,10 @@ func TestUpdatePriorityAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
 
-		action := updatePrioritySubAction(appCtx)
+		action := updatePrioritySubAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -148,12 +138,10 @@ func TestUpdateComplexityAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
 
-		action := updateComplexitySubAction(appCtx)
+		action := updateComplexitySubAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -180,12 +168,10 @@ func TestUpdateComplexityAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
 
-		action := updateComplexitySubAction(appCtx)
+		action := updateComplexitySubAction(testInjector)
 		err = action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "complexity 15 is out of range")
@@ -216,12 +202,10 @@ func TestGetAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
 
-		action := getAction(appCtx)
+		action := getAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -237,12 +221,10 @@ func TestGetAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testutil to create DI injector
+		testInjector := config.SetupTestInjector(t)
 
-		action := getAction(appCtx)
+		action := getAction(testInjector)
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid task-id format")
@@ -311,10 +293,14 @@ func TestUpdateAction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appCtx, projectID := createTestAppContextWithProject(t)
+			config := testutil.NewTestConfig(t)
+			mgr := config.SetupTestManager(t)
+			projectID := testutil.CreateTestProject(t, mgr).ID
 
 			// Create a test task to update
-			task := testutil.CreateTestTask(t, projectManager, projectID)
+			task := testutil.CreateTestTask(t, mgr, projectID)
+			// Create DI injector for this test
+			testInjector := config.SetupTestInjector(t)
 			// Replace the placeholder UUID with the actual task ID
 			for i, arg := range tt.args {
 				if arg == "--id" && i+1 < len(tt.args) && tt.args[i+1] == "123e4567-e89b-12d3-a456-426614174000" {
@@ -330,7 +316,7 @@ func TestUpdateAction(t *testing.T) {
 					{
 						Name:   "update",
 						Usage:  "Update task fields",
-						Action: updateAction(appCtx),
+						Action: updateAction(testInjector),
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:     "id",
@@ -368,7 +354,7 @@ func TestUpdateAction(t *testing.T) {
 			}
 
 			// Set project context
-			err := projectManager.SetSelectedProject(context.Background(), projectID, "test-user")
+			err := mgr.SetSelectedProject(context.Background(), projectID, "test-user")
 			require.NoError(t, err)
 
 			// Run the command
@@ -383,7 +369,7 @@ func TestUpdateAction(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify the updates were actually applied
-				updatedTask, err := projectManager.GetTask(context.Background(), task.ID)
+				updatedTask, err := mgr.GetTask(context.Background(), task.ID)
 				require.NoError(t, err)
 
 				// Check specific fields based on what was updated
@@ -418,20 +404,4 @@ func TestUpdateAction(t *testing.T) {
 			}
 		})
 	}
-}
-
-// createTestAppContextWithProject creates a test app context and returns the project ID
-func createTestAppContextWithProject(t *testing.T) (*shared.AppContext, uuid.UUID) {
-	t.Helper()
-
-	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
-
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	return appCtx, project.ID
 }

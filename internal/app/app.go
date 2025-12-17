@@ -28,9 +28,13 @@ import (
 
 // Version variables that will be set by ldflags during build
 var (
-	version = "dev"
-	commit  = "unknown" // nolint:unused // set by ldflags during build
-	date    = "unknown" // nolint:unused // set by ldflags during build
+	version     = "dev"
+	commit      = "unknown" // nolint:unused // set by ldflags during build
+	date        = "unknown" // nolint:unused // set by ldflags during build
+	usage       = "A CLI tool for hierarchical project and task management with dependencies"
+	description = `A CLI tool for hierarchical project and task management with dependencies.
+Designed to be the best friend of every LLM agent with structured, parsable outputs and comprehensive error handling.
+For new users or LLM agents, run 'knot get-started' for a comprehensive guide to all available commands and usage.`
 )
 
 // SetVersionFromBuild allows setting version information from build time variables
@@ -87,12 +91,10 @@ func New() (*App, error) {
 
 	// Create CLI app
 	cliApp := &cli.App{
-		Name:  "knot",
-		Usage: "A CLI tool for hierarchical project and task management with dependencies",
-		Description: `A CLI tool for hierarchical project and task management with dependencies.
-Designed to be the best friend of every LLM agent with structured, parsable outputs and comprehensive error handling.
-For new users or LLM agents, run 'knot get-started' for a comprehensive guide to all available commands and usage.`,
-		Version: version,
+		Name:        "knot",
+		Usage:       usage,
+		Description: description,
+		Version:     version,
 		Authors: []*cli.Author{
 			{
 				Name:  "denkhaus",
@@ -106,8 +108,8 @@ For new users or LLM agents, run 'knot get-started' for a comprehensive guide to
 				EnvVars: []string{"KNOT_ACTOR", "USER"},
 			},
 			flags.NewLogLevelFlag(),
-		}, flags.NewManagerConfigFlags()...),
-		Before: commands.NewBeforeCommand(diContainer),
+		}, append(flags.NewManagerConfigFlags(), flags.NewMCPConfigFlags()...)...),
+		Before: commands.NewBeforeCommand(diContainer, version),
 	}
 
 	return &App{

@@ -5,8 +5,9 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -15,8 +16,11 @@ import (
 func TestCreateActionValidation(t *testing.T) {
 	// Setup test environment
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	tests := []struct {
 		name        string
@@ -95,16 +99,13 @@ func TestCreateActionValidation(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Create the action and set project context
-			appCtx := &shared.AppContext{
-				ProjectManager: mgr,
-				Logger:         config.Logger,
-			}
+			// Use testInjector instead of AppContext
 
 			// Set project context for the test
-			err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+			err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 			require.NoError(t, err)
 
-			action := createAction(appCtx)
+			action := createAction(testInjector)
 
 			// Execute the action
 			err = action(ctx)
@@ -124,8 +125,11 @@ func TestInputValidationIntegration(t *testing.T) {
 	// into the CLI command handlers
 
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Test that validation errors are properly wrapped as EnhancedErrors
 	app := &cli.App{}
@@ -144,16 +148,11 @@ func TestInputValidationIntegration(t *testing.T) {
 
 	ctx := cli.NewContext(app, flagSet, nil)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
 	// Set project context for the test
-	err := mgr.SetSelectedProject(ctx.Context, project.ID, "test-user")
+	err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 	require.NoError(t, err)
 
-	action := createAction(appCtx)
+	action := createAction(testInjector)
 
 	err = action(ctx)
 	require.Error(t, err)

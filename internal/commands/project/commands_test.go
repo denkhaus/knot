@@ -4,7 +4,6 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -13,7 +12,6 @@ import (
 
 func TestCreateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
 
 	tests := []struct {
 		name        string
@@ -86,14 +84,11 @@ func TestCreateAction(t *testing.T) {
 
 			ctx := cli.NewContext(app, flagSet, nil)
 
-			// Create app context
-			appCtx := &shared.AppContext{
-				ProjectManager: mgr,
-				Logger:         config.Logger,
-			}
+			// Use testutil to create DI injector
+			testInjector := config.SetupTestInjector(t)
 
 			// Execute action
-			action := createAction(appCtx)
+			action := createAction(testInjector)
 			err := action(ctx)
 
 			if tt.expectError {
@@ -110,11 +105,8 @@ func TestListAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
 	mgr := config.SetupTestManager(t)
 
-	// Create app context
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Create app context using testutil for DI
+	testInjector := config.SetupTestInjector(t)
 
 	t.Run("empty project list", func(t *testing.T) {
 		// Create CLI context
@@ -123,7 +115,7 @@ func TestListAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Execute action
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err := action(ctx)
 
 		// Should return EmptyResultError
@@ -142,7 +134,7 @@ func TestListAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Execute action
-		action := listAction(appCtx)
+		action := listAction(testInjector)
 		err := action(ctx)
 
 		// Should succeed
@@ -155,11 +147,8 @@ func TestGetAction(t *testing.T) {
 	mgr := config.SetupTestManager(t)
 	project := testutil.CreateTestProject(t, mgr)
 
-	// Create app context
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Create app context using testutil for DI
+	testInjector := config.SetupTestInjector(t)
 
 	tests := []struct {
 		name        string
@@ -197,7 +186,7 @@ func TestGetAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := getAction(appCtx)
+			action := getAction(testInjector)
 			err := action(ctx)
 
 			if tt.expectError {
@@ -215,10 +204,8 @@ func TestProjectCommandsIntegration(t *testing.T) {
 	config := testutil.NewTestConfig(t)
 	mgr := config.SetupTestManager(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Use testutil for DI injector
+	testInjector := config.SetupTestInjector(t)
 
 	// Test complete workflow: create -> list -> get
 	t.Run("complete project workflow", func(t *testing.T) {
@@ -235,7 +222,7 @@ func TestProjectCommandsIntegration(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		createActionFunc := createAction(appCtx)
+		createActionFunc := createAction(testInjector)
 		err := createActionFunc(ctx)
 		require.NoError(t, err)
 
@@ -243,7 +230,7 @@ func TestProjectCommandsIntegration(t *testing.T) {
 		listFlagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(appCtx)
+		listActionFunc := listAction(testInjector)
 		err = listActionFunc(listCtx)
 		assert.NoError(t, err)
 
@@ -258,7 +245,7 @@ func TestProjectCommandsIntegration(t *testing.T) {
 
 		getCtx := cli.NewContext(app, getFlagSet, nil)
 
-		getActionFunc := getAction(appCtx)
+		getActionFunc := getAction(testInjector)
 		err = getActionFunc(getCtx)
 		assert.NoError(t, err)
 	})
@@ -268,11 +255,8 @@ func TestListActionIntegration(t *testing.T) {
 	config := testutil.NewTestConfig(t)
 	mgr := config.SetupTestManager(t)
 
-	// Create app context
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
+	// Create app context using testutil for DI
+	testInjector := config.SetupTestInjector(t)
 
 	// Create a test app
 	app := cli.NewApp()
@@ -281,7 +265,7 @@ func TestListActionIntegration(t *testing.T) {
 		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(appCtx)
+		listActionFunc := listAction(testInjector)
 		err := listActionFunc(listCtx)
 
 		// Should return an error about no projects found
@@ -297,7 +281,7 @@ func TestListActionIntegration(t *testing.T) {
 		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(appCtx)
+		listActionFunc := listAction(testInjector)
 		err := listActionFunc(listCtx)
 
 		// This should succeed and find our project
@@ -307,12 +291,9 @@ func TestListActionIntegration(t *testing.T) {
 	t.Run("create then list integration test", func(t *testing.T) {
 		// Use a fresh manager to test the create/list inconsistency
 		config2 := testutil.NewTestConfig(t)
-		mgr2 := config2.SetupTestManager(t)
 
-		appCtx2 := &shared.AppContext{
-			ProjectManager: mgr2,
-			Logger:         config2.Logger,
-		}
+		// Use testutil for DI injector
+		testInjector := config2.SetupTestInjector(t)
 
 		// Create a project using createAction
 		createFlagSet := flag.NewFlagSet("create", flag.ContinueOnError)
@@ -321,7 +302,7 @@ func TestListActionIntegration(t *testing.T) {
 		createFlagSet.String("actor", "test-user", "Actor")
 
 		createCtx := cli.NewContext(app, createFlagSet, nil)
-		createActionFunc := createAction(appCtx2)
+		createActionFunc := createAction(testInjector)
 		err := createActionFunc(createCtx)
 		assert.NoError(t, err, "createAction should succeed")
 
@@ -329,7 +310,7 @@ func TestListActionIntegration(t *testing.T) {
 		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(appCtx2)
+		listActionFunc := listAction(testInjector)
 		err = listActionFunc(listCtx)
 
 		// This should succeed and find the project we just created
@@ -346,7 +327,7 @@ func TestListActionIntegration(t *testing.T) {
 		listFlagSet := flag.NewFlagSet("list", flag.ContinueOnError)
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(appCtx)
+		listActionFunc := listAction(testInjector)
 		err := listActionFunc(listCtx)
 
 		// Should succeed

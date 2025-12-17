@@ -154,7 +154,7 @@ func updateStateSubAction(injector do.Injector) cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Resolve project context to ensure task belongs to current project
-		projectID, err := resolveProjectIDWithDI(c, injector)
+		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			loggerService.Error("Failed to resolve project context", zap.Error(err))
 			return err

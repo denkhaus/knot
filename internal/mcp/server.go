@@ -3,9 +3,9 @@ package mcp
 import (
 	"context"
 	"fmt"
-	"log/slog"
 
 	"github.com/denkhaus/knot/v2/internal/config"
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/session"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -49,26 +49,31 @@ type TaskCreateResponse struct {
 	Title     string `json:"title" jsonschema_description:"Task title"`
 }
 
-// MCPServer wraps the mcp-go server with knot-specific logic
-type MCPServer struct {
+// mcpServerImpl is the private implementation of the Server interface
+type mcpServerImpl struct {
 	*server.MCPServer
 	projectManager manager.ProjectManager
-	sessions       *session.Manager
-	logger         *slog.Logger
+	sessions       session.Manager
+	logger         logger.Logger
 	config         *config.MCPConfig
+	running        bool
 }
 
 // ServerConfig holds configuration for creating an MCP server
 type ServerConfig struct {
 	ProjectManager manager.ProjectManager
-	Logger         *slog.Logger
+	SessionManager session.Manager
+	Logger         logger.Logger
 	Config         *config.MCPConfig
 }
 
-// NewServer creates a new MCP server with multi-project support
-func NewServer(cfg ServerConfig) (*MCPServer, error) {
+// NewServer creates a new MCP server with multi-project support using dependency injection
+func NewServer(cfg ServerConfig) (Server, error) {
 	if cfg.ProjectManager == nil {
 		return nil, fmt.Errorf("project manager is required")
+	}
+	if cfg.SessionManager == nil {
+		return nil, fmt.Errorf("session manager is required")
 	}
 	if cfg.Logger == nil {
 		return nil, fmt.Errorf("logger is required")
@@ -77,18 +82,16 @@ func NewServer(cfg ServerConfig) (*MCPServer, error) {
 		return nil, fmt.Errorf("config is required")
 	}
 
-	// Create session manager for multi-project support
-	sessionManager := session.NewManager()
-
 	// Create mcp-go server
 	mcpServer := server.NewMCPServer("knot", "1.0.0")
 
-	s := &MCPServer{
+	s := &mcpServerImpl{
 		MCPServer:     mcpServer,
 		projectManager: cfg.ProjectManager,
-		sessions:       sessionManager,
+		sessions:       cfg.SessionManager,
 		logger:         cfg.Logger,
 		config:         cfg.Config,
+		running:        false,
 	}
 
 	// Register core tools
@@ -100,7 +103,7 @@ func NewServer(cfg ServerConfig) (*MCPServer, error) {
 }
 
 // registerTools registers all MCP tools with the server
-func (s *MCPServer) registerTools() error {
+func (s *mcpServerImpl) registerTools() error {
 	// Project selection tool
 	projectSelectTool := mcp.NewTool("project_select",
 		mcp.WithDescription("Select the active project for this session"),
@@ -129,28 +132,50 @@ func (s *MCPServer) registerTools() error {
 }
 
 // Start starts the MCP server with stdio transport
-func (s *MCPServer) Start() error {
+func (s *mcpServerImpl) Start() error {
 	s.logger.Info("Starting MCP server",
-		"address", s.config.Address,
-		"port", s.config.Port,
-		"database", s.config.Database.Endpoint,
+		logger.String("address", s.config.Address),
+		logger.Int("port", s.config.Port),
+		logger.String("database", s.config.Database.Endpoint),
 	)
 
+	s.running = true
 	s.logger.Info("MCP server started on stdio")
 	return server.ServeStdio(s.MCPServer)
 }
 
 // Stop gracefully stops the MCP server
-func (s *MCPServer) Stop(ctx context.Context) error {
+func (s *mcpServerImpl) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping MCP server")
+	s.running = false
 
 	// Close all sessions
 	if err := s.sessions.CloseAll(ctx); err != nil {
-		s.logger.Error("Error closing sessions", "error", err)
+		s.logger.Error("Error closing sessions", logger.Error(err))
 		return err
 	}
 
 	return nil
+}
+
+// IsRunning returns true if the server is currently running
+func (s *mcpServerImpl) IsRunning() bool {
+	return s.running
+}
+
+// GetSessionCount returns the number of active sessions
+func (s *mcpServerImpl) GetSessionCount() int {
+	return s.sessions.GetSessionCount()
+}
+
+// CleanupExpiredSessions removes expired sessions using the configured timeout
+func (s *mcpServerImpl) CleanupExpiredSessions(ctx context.Context) error {
+	return s.sessions.CleanupExpiredSessions(ctx, s.config.Timeout)
+}
+
+// GetConfig returns the server configuration
+func (s *mcpServerImpl) GetConfig() interface{} {
+	return s.config
 }
 
 // getSessionID extracts session ID from context
@@ -167,11 +192,11 @@ type ExecutionContext struct {
 	Project       *session.SessionContext
 	SessionID     string
 	ProjectManager manager.ProjectManager
-	Logger        *slog.Logger
+	Logger        logger.Logger
 }
 
 // handleProjectSelect handles project selection for a session
-func (s *MCPServer) handleProjectSelect(ctx context.Context, request mcp.CallToolRequest, args ProjectSelectRequest) (ProjectSelectResponse, error) {
+func (s *mcpServerImpl) handleProjectSelect(ctx context.Context, request mcp.CallToolRequest, args ProjectSelectRequest) (ProjectSelectResponse, error) {
 	projectID, err := uuid.Parse(args.ProjectID)
 	if err != nil {
 		return ProjectSelectResponse{}, fmt.Errorf("invalid project_id format: %w", err)
@@ -194,7 +219,7 @@ func (s *MCPServer) handleProjectSelect(ctx context.Context, request mcp.CallToo
 }
 
 // handleProjectCreate handles project creation
-func (s *MCPServer) handleProjectCreate(ctx context.Context, request mcp.CallToolRequest, args ProjectCreateRequest) (ProjectCreateResponse, error) {
+func (s *mcpServerImpl) handleProjectCreate(ctx context.Context, request mcp.CallToolRequest, args ProjectCreateRequest) (ProjectCreateResponse, error) {
 	// Create project using project manager
 	project, err := s.projectManager.CreateProject(ctx, args.Title, args.Description, "")
 	if err != nil {
@@ -209,7 +234,7 @@ func (s *MCPServer) handleProjectCreate(ctx context.Context, request mcp.CallToo
 }
 
 // handleTaskCreate handles task creation
-func (s *MCPServer) handleTaskCreate(ctx context.Context, request mcp.CallToolRequest, args TaskCreateRequest) (TaskCreateResponse, error) {
+func (s *mcpServerImpl) handleTaskCreate(ctx context.Context, request mcp.CallToolRequest, args TaskCreateRequest) (TaskCreateResponse, error) {
 	complexity := args.Complexity
 	if complexity == 0 {
 		complexity = 5 // Default complexity

@@ -5,9 +5,10 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -15,14 +16,9 @@ import (
 
 func TestHierarchyCommands(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	commands := HierarchyCommands(appCtx)
+	commands := HierarchyCommands(testInjector)
 
 	assert.NotEmpty(t, commands)
 
@@ -39,23 +35,26 @@ func TestHierarchyCommands(t *testing.T) {
 
 func TestChildrenAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("task with children", func(t *testing.T) {
 		// Create a parent task
-		parentTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Parent Task", "A parent task", 4, types.TaskPriorityHigh, "test-user")
+		parentTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Parent Task", "A parent task", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		// Create child tasks
-		child1, err := mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child 1", "First child", 2, types.TaskPriorityMedium, "test-user")
+		child1, err := projectManager.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child 1", "First child", 2, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		child2, err := mgr.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child 2", "Second child", 3, types.TaskPriorityLow, "test-user")
+		child2, err := projectManager.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Child 2", "Second child", 3, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -66,42 +65,42 @@ func TestChildrenAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := ChildrenAction(appCtx)
+		action := ChildrenAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
 		// Verify children still exist
-		_, err = mgr.GetTask(context.TODO(), child1.ID)
+		_, err = projectManager.GetTask(context.TODO(), child1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(context.TODO(), child2.ID)
+		_, err = projectManager.GetTask(context.TODO(), child2.ID)
 		assert.NoError(t, err)
 	})
 }
 
 func TestRootsAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("project with root tasks", func(t *testing.T) {
 		// Create root tasks
-		root1, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Root 1", "First root task", 3, types.TaskPriorityMedium, "test-user")
+		root1, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Root 1", "First root task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		root2, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Root 2", "Second root task", 4, types.TaskPriorityHigh, "test-user")
+		root2, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Root 2", "Second root task", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		// Create a child task (should not appear in roots)
-		_, err = mgr.CreateTask(context.TODO(), project.ID, &root1.ID, "Child", "Child task", 2, types.TaskPriorityLow, "test-user")
+		_, err = projectManager.CreateTask(context.TODO(), project.ID, &root1.ID, "Child", "Child task", 2, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -110,19 +109,16 @@ func TestRootsAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := RootsAction(appCtx)
+		action := RootsAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
 		// Verify root tasks still exist
-		_, err = mgr.GetTask(context.TODO(), root1.ID)
+		_, err = projectManager.GetTask(context.TODO(), root1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(context.TODO(), root2.ID)
+		_, err = projectManager.GetTask(context.TODO(), root2.ID)
 		assert.NoError(t, err)
 	})
 }

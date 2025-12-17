@@ -13,6 +13,7 @@ import (
 	knoterrors "github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 )
 
 // service provides business logic for project task management
@@ -21,19 +22,21 @@ type service struct {
 	config *config.ManagerConfig
 }
 
-// newService creates a new task management service
-func newService(repo types.Repository, cfg *config.ManagerConfig) *service {
-	if cfg == nil {
-		cfg = config.DefaultConfig()
-	}
-	return &service{
-		repo:   repo,
-		config: cfg,
-	}
-}
-
 // Ensure service implements ProjectManager
 var _ ProjectManager = (*service)(nil)
+
+// NewService creates a new manager service instance following the DI pattern.
+// This replaces the direct instantiation in favor of dependency injection.
+func NewService(injector do.Injector) (ProjectManager, error) {
+	// Resolve dependencies from DI container
+	repo := do.MustInvoke[types.Repository](injector)
+	configService := do.MustInvoke[config.Service](injector)
+
+	return &service{
+		repo:   repo,
+		config: configService.GetManagerConfig(),
+	}, nil
+}
 
 // Project operations
 

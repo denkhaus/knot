@@ -5,9 +5,10 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -15,14 +16,9 @@ import (
 
 func TestBulkCommands(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
+	testInjector := config.SetupTestInjector(t)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: mgr,
-		Logger:         config.Logger,
-	}
-
-	commands := BulkCommands(appCtx)
+	commands := BulkCommands(testInjector)
 
 	assert.NotEmpty(t, commands)
 
@@ -43,21 +39,24 @@ func TestBulkCommands(t *testing.T) {
 
 func TestListByStateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("list pending tasks", func(t *testing.T) {
 		// Create tasks with different states
-		pendingTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Pending Task", "A pending task", 3, types.TaskPriorityMedium, "test-user")
+		pendingTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Pending Task", "A pending task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		inProgressTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "An in-progress task", 3, types.TaskPriorityMedium, "test-user")
+		inProgressTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "An in-progress task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
-		_, err = mgr.UpdateTaskState(context.TODO(), inProgressTask.ID, types.TaskStateInProgress, "test-user")
+		_, err = projectManager.UpdateTaskState(context.TODO(), inProgressTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -68,19 +67,16 @@ func TestListByStateAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := ListByStateAction(appCtx)
+		action := ListByStateAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(context.TODO(), pendingTask.ID)
+		_, err = projectManager.GetTask(context.TODO(), pendingTask.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(context.TODO(), inProgressTask.ID)
+		_, err = projectManager.GetTask(context.TODO(), inProgressTask.ID)
 		assert.NoError(t, err)
 	})
 
@@ -93,12 +89,9 @@ func TestListByStateAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := ListByStateAction(appCtx)
+		action := ListByStateAction(testInjector)
 		err := action(ctx)
 		// Note: Action may not error for invalid state, just return empty results
 		assert.NoError(t, err)
@@ -113,12 +106,9 @@ func TestListByStateAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := ListByStateAction(appCtx)
+		action := ListByStateAction(testInjector)
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "state is required")
@@ -127,16 +117,19 @@ func TestListByStateAction(t *testing.T) {
 
 func TestDuplicateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("duplicate existing task", func(t *testing.T) {
 		// Create a task to duplicate
-		originalTask, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Original Task", "Original description", 4, types.TaskPriorityHigh, "test-user")
+		originalTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Original Task", "Original description", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -150,17 +143,14 @@ func TestDuplicateAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := DuplicateAction(appCtx)
+		action := DuplicateAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
 		// Verify original task still exists
-		_, err = mgr.GetTask(context.TODO(), originalTask.ID)
+		_, err = projectManager.GetTask(context.TODO(), originalTask.ID)
 		assert.NoError(t, err)
 	})
 
@@ -174,12 +164,9 @@ func TestDuplicateAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Use testInjector instead of AppContext
 
-		action := DuplicateAction(appCtx)
+		action := DuplicateAction(testInjector)
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task-id is required")

@@ -5,19 +5,18 @@ import (
 	"testing"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
-	"go.uber.org/zap"
 )
 
 func TestProjectSelectCommand(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
-	logger := zap.NewNop()
-	appCtx := shared.NewAppContext(projectManager, logger)
+	// Setup test environment with DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -31,7 +30,7 @@ func TestProjectSelectCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
-					Action: selectAction(appCtx),
+					Action: selectAction(testInjector),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "id",
@@ -65,7 +64,7 @@ func TestProjectSelectCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
-					Action: selectAction(appCtx),
+					Action: selectAction(testInjector),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "id",
@@ -90,7 +89,7 @@ func TestProjectSelectCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
-					Action: selectAction(appCtx),
+					Action: selectAction(testInjector),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "id",
@@ -111,12 +110,12 @@ func TestProjectSelectCommand(t *testing.T) {
 }
 
 func TestProjectGetSelectedCommand(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
-	logger := zap.NewNop()
-	appCtx := shared.NewAppContext(projectManager, logger)
+	// Setup test environment with DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -133,7 +132,7 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "get-selected",
-					Action: getSelectedAction(appCtx),
+					Action: getSelectedAction(testInjector),
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Name: "json",
@@ -163,7 +162,7 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "get-selected",
-					Action: getSelectedAction(appCtx),
+					Action: getSelectedAction(testInjector),
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Name: "json",
@@ -183,12 +182,12 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 }
 
 func TestProjectClearSelectionCommand(t *testing.T) {
-	// Setup test environment
-	repo := inmemory.NewMemoryRepository()
-	config := manager.DefaultConfig()
-	projectManager := manager.NewManagerWithRepository(repo, config)
-	logger := zap.NewNop()
-	appCtx := shared.NewAppContext(projectManager, logger)
+	// Setup test environment with DI
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -208,7 +207,7 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "clear-selection",
-					Action: clearSelectionAction(appCtx),
+					Action: clearSelectionAction(testInjector),
 				},
 			},
 		}
@@ -239,7 +238,7 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "clear-selection",
-					Action: clearSelectionAction(appCtx),
+					Action: clearSelectionAction(testInjector),
 				},
 			},
 		}

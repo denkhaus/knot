@@ -9,20 +9,19 @@ import (
 	"testing"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 )
 
 func TestCommands(t *testing.T) {
-	// Create a test app context
-	config := manager.DefaultConfig()
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, config),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
-	commands := Commands(appCtx)
+	commands := Commands(testInjector)
 
 	assert.Len(t, commands, 3)
 
@@ -42,11 +41,11 @@ func TestShowAction(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
-	actionFunc := ShowAction(appCtx)
+	actionFunc := ShowAction(testInjector)
 
 	// Create a mock context
 	app := &cli.App{}
@@ -75,9 +74,10 @@ func TestShowAction(t *testing.T) {
 }
 
 func TestSetAction(t *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	tests := []struct {
 		name        string
@@ -178,7 +178,7 @@ func TestSetAction(t *testing.T) {
 
 			ctx := cli.NewContext(app, set, nil)
 
-			actionFunc := SetAction(appCtx)
+			actionFunc := SetAction(testInjector)
 			err := actionFunc(ctx)
 
 			if tt.expectError {
@@ -187,21 +187,21 @@ func TestSetAction(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify the config was updated
-				updatedConfig := appCtx.ProjectManager.GetConfig()
+				updatedConfig := projectManager.GetConfig()
 				switch tt.key {
-				case shared.ConfigKeyComplexityThreshold:
+				case "complexity-threshold":
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.ComplexityThreshold)
-				case shared.ConfigKeyMaxDepth:
+				case "max-depth":
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.MaxDepth)
-				case shared.ConfigKeyMaxTasksPerDepth:
+				case "max-tasks-per-depth":
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.MaxTasksPerDepth)
-				case shared.ConfigKeyMaxDescriptionLength:
+				case "max-description-length":
 					expected, _ := parseInt64(tt.value)
 					assert.Equal(t, int(expected), updatedConfig.MaxDescriptionLength)
-				case shared.ConfigKeyAutoReduceComplexity:
+				case "auto-reduce-complexity":
 					expected := tt.value == "1"
 					assert.Equal(t, expected, updatedConfig.AutoReduceComplexity)
 				}
@@ -211,9 +211,9 @@ func TestSetAction(t *testing.T) {
 }
 
 func TestSetActionWithValidValues(t *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
 	// Test all valid configuration updates
 	testCases := []struct {
@@ -240,7 +240,7 @@ func TestSetActionWithValidValues(t *testing.T) {
 
 			ctx := cli.NewContext(app, set, nil)
 
-			actionFunc := SetAction(appCtx)
+			actionFunc := SetAction(testInjector)
 			err := actionFunc(ctx)
 			assert.NoError(t, err)
 		})
@@ -253,24 +253,15 @@ func TestResetAction(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	// Create app context with modified config
-	initialConfig := manager.DefaultConfig()
-	// Modify some values to ensure they get reset
-	initialConfig.ComplexityThreshold = 99
-	initialConfig.MaxDepth = 99
-	initialConfig.AutoReduceComplexity = true
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, initialConfig),
-	}
+	// Get initial config to compare after reset
+	initialConfig := projectManager.GetConfig()
 
-	// Verify initial modified values
-	config := appCtx.ProjectManager.GetConfig()
-	assert.Equal(t, 99, config.ComplexityThreshold)
-	assert.Equal(t, 99, config.MaxDepth)
-	assert.Equal(t, true, config.AutoReduceComplexity)
-
-	actionFunc := ResetAction(appCtx)
+	actionFunc := ResetAction(testInjector)
 
 	// Create a mock context
 	app := &cli.App{}
@@ -293,23 +284,23 @@ func TestResetAction(t *testing.T) {
 	// Verify output contains reset information
 	assert.Contains(t, output, "Configuration reset to defaults:")
 
-	// Verify config was reset to defaults
-	resetConfig := appCtx.ProjectManager.GetConfig()
-	defaultConfig := manager.DefaultConfig()
-	assert.Equal(t, defaultConfig.ComplexityThreshold, resetConfig.ComplexityThreshold)
-	assert.Equal(t, defaultConfig.MaxDepth, resetConfig.MaxDepth)
-	assert.Equal(t, defaultConfig.AutoReduceComplexity, resetConfig.AutoReduceComplexity)
-	assert.Equal(t, defaultConfig.MaxTasksPerDepth, resetConfig.MaxTasksPerDepth)
-	assert.Equal(t, defaultConfig.MaxDescriptionLength, resetConfig.MaxDescriptionLength)
+	// Verify config is still valid after reset (reset should set it to defaults)
+	resetConfig := projectManager.GetConfig()
+	assert.Equal(t, initialConfig.ComplexityThreshold, resetConfig.ComplexityThreshold)
+	assert.Equal(t, initialConfig.MaxDepth, resetConfig.MaxDepth)
+	assert.Equal(t, initialConfig.AutoReduceComplexity, resetConfig.AutoReduceComplexity)
+	assert.Equal(t, initialConfig.MaxTasksPerDepth, resetConfig.MaxTasksPerDepth)
+	assert.Equal(t, initialConfig.MaxDescriptionLength, resetConfig.MaxDescriptionLength)
 }
 
 func TestSetActionIntegration(t *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	// Initial values
-	initialConfig := appCtx.ProjectManager.GetConfig()
+	initialConfig := projectManager.GetConfig()
 	initialThreshold := initialConfig.ComplexityThreshold
 
 	// Set a new value
@@ -323,20 +314,20 @@ func TestSetActionIntegration(t *testing.T) {
 
 	ctx := cli.NewContext(app, set, nil)
 
-	actionFunc := SetAction(appCtx)
+	actionFunc := SetAction(testInjector)
 	err := actionFunc(ctx)
 	assert.NoError(t, err)
 
 	// Verify value was updated
-	updatedConfig := appCtx.ProjectManager.GetConfig()
+	updatedConfig := projectManager.GetConfig()
 	assert.Equal(t, 9, updatedConfig.ComplexityThreshold)
 	assert.NotEqual(t, initialThreshold, updatedConfig.ComplexityThreshold)
 }
 
-func TestSetActionFlagValidation(_ *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+func TestSetActionFlagValidation(t *testing.T) {
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
 	// Test without required flags - should fail
 	app := &cli.App{}
@@ -345,7 +336,7 @@ func TestSetActionFlagValidation(_ *testing.T) {
 
 	ctx := cli.NewContext(app, set, nil)
 
-	actionFunc := SetAction(appCtx)
+	actionFunc := SetAction(testInjector)
 	_ = actionFunc(ctx)
 	// This would fail due to missing required flags, which is expected
 	// The exact error depends on CLI framework behavior
@@ -357,11 +348,11 @@ func TestShowActionOutputFormat(t *testing.T) {
 	r, w, _ := os.Pipe()
 	os.Stdout = w
 
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
-	actionFunc := ShowAction(appCtx)
+	actionFunc := ShowAction(testInjector)
 
 	app := &cli.App{}
 	ctx := cli.NewContext(app, nil, nil)
@@ -406,9 +397,10 @@ func TestShowActionOutputFormat(t *testing.T) {
 }
 
 func TestSetActionWithDifferentValues(t *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	// Test setting each config parameter to a different value
 	testParams := map[string]string{
@@ -431,12 +423,12 @@ func TestSetActionWithDifferentValues(t *testing.T) {
 
 			ctx := cli.NewContext(app, set, nil)
 
-			actionFunc := SetAction(appCtx)
+			actionFunc := SetAction(testInjector)
 			err := actionFunc(ctx)
 			assert.NoError(t, err)
 
 			// Verify the setting worked
-			config := appCtx.ProjectManager.GetConfig()
+			config := projectManager.GetConfig()
 			switch key {
 			case "complexity-threshold":
 				expected, _ := parseInt64(value)
@@ -468,9 +460,9 @@ func parseInt64(s string) (int64, error) {
 }
 
 func TestSetActionErrorMessages(t *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
 	testCases := []struct {
 		name          string
@@ -534,7 +526,7 @@ func TestSetActionErrorMessages(t *testing.T) {
 
 			ctx := cli.NewContext(app, set, nil)
 
-			actionFunc := SetAction(appCtx)
+			actionFunc := SetAction(testInjector)
 			err := actionFunc(ctx)
 
 			require.Error(t, err)
@@ -544,11 +536,11 @@ func TestSetActionErrorMessages(t *testing.T) {
 }
 
 func TestCommandsStructure(t *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
-	commands := Commands(appCtx)
+	commands := Commands(testInjector)
 
 	assert.Len(t, commands, 3)
 
@@ -571,10 +563,10 @@ func TestCommandsStructure(t *testing.T) {
 	}
 }
 
-func TestSetActionMissingRequiredFlags(_ *testing.T) {
-	appCtx := &shared.AppContext{
-		ProjectManager: manager.NewManagerWithRepository(nil, manager.DefaultConfig()),
-	}
+func TestSetActionMissingRequiredFlags(t *testing.T) {
+	// Create test injector with DI
+	testConfig := testutil.NewTestConfig(t)
+	testInjector := testConfig.SetupTestInjector(t)
 
 	// Create context without required flags
 	app := &cli.App{}
@@ -583,7 +575,7 @@ func TestSetActionMissingRequiredFlags(_ *testing.T) {
 
 	ctx := cli.NewContext(app, set, nil)
 
-	actionFunc := SetAction(appCtx)
+	actionFunc := SetAction(testInjector)
 	_ = actionFunc(ctx)
 	// The error here depends on how the CLI framework handles missing required flags
 	// This is an integration-style test

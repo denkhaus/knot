@@ -5,9 +5,10 @@ import (
 	"flag"
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -15,11 +16,15 @@ import (
 
 func TestActionableAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("no actionable tasks in empty project", func(t *testing.T) {
@@ -33,19 +38,16 @@ func TestActionableAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Using testInjector from outer scope
 
-		action := ActionableAction(appCtx)
+		action := ActionableAction(testInjector)
 		err := action(ctx)
 		assert.NoError(t, err)
 	})
 
 	t.Run("single actionable task", func(t *testing.T) {
 		// Create a pending task
-		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Actionable Task", "A task to work on", 3, types.TaskPriorityMedium, "test-user")
+		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Actionable Task", "A task to work on", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -58,27 +60,24 @@ func TestActionableAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Using testInjector from outer scope
 
-		action := ActionableAction(appCtx)
+		action := ActionableAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
 		// Verify task is still there
-		retrievedTask, err := mgr.GetTask(context.TODO(), task.ID)
+		retrievedTask, err := projectManager.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, task.Title, retrievedTask.Title)
 	})
 
 	t.Run("actionable with specific strategy", func(t *testing.T) {
 		// Create multiple tasks
-		task1, err := mgr.CreateTask(context.TODO(), project.ID, nil, "High Priority Task", "Important task", 2, types.TaskPriorityHigh, "test-user")
+		task1, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "High Priority Task", "Important task", 2, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		task2, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Low Priority Task", "Less important task", 1, types.TaskPriorityLow, "test-user")
+		task2, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Low Priority Task", "Less important task", 1, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
 
 		app := &cli.App{}
@@ -92,19 +91,16 @@ func TestActionableAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Using testInjector from outer scope
 
-		action := ActionableAction(appCtx)
+		action := ActionableAction(testInjector)
 		err = action(ctx)
 		assert.NoError(t, err)
 
 		// Verify tasks still exist
-		_, err = mgr.GetTask(context.TODO(), task1.ID)
+		_, err = projectManager.GetTask(context.TODO(), task1.ID)
 		assert.NoError(t, err)
-		_, err = mgr.GetTask(context.TODO(), task2.ID)
+		_, err = projectManager.GetTask(context.TODO(), task2.ID)
 		assert.NoError(t, err)
 	})
 
@@ -120,12 +116,9 @@ func TestActionableAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Using testInjector from outer scope
 
-		action := ActionableAction(appCtx)
+		action := ActionableAction(testInjector)
 		err := action(ctx)
 		assert.NoError(t, err)
 	})
@@ -142,12 +135,9 @@ func TestActionableAction(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		appCtx := &shared.AppContext{
-			ProjectManager: mgr,
-			Logger:         config.Logger,
-		}
+		// Using testInjector from outer scope
 
-		action := ActionableAction(appCtx)
+		action := ActionableAction(testInjector)
 		err := action(ctx)
 		assert.NoError(t, err)
 	})

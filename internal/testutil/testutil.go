@@ -5,8 +5,9 @@
 // It provides consistent testing infrastructure and reduces code duplication.
 //
 // Key Components:
-//   - Mock AppContext: Mocked application context for testing
-//   - Test Helpers: Common testing utilities and fixtures
+//   - Test Configuration: Test setup and configuration management
+//   - DI Container Setup: Dependency injection setup for tests
+//   - Test Repositories: In-memory and SQLite test repositories
 //   - Mock Managers: Mocked implementations of core interfaces
 //
 // Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
@@ -14,16 +15,20 @@ package testutil
 
 import (
 	"context"
+	"flag"
 	"os"
 	"testing"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/require"
+	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zaptest"
 )
@@ -101,8 +106,68 @@ func (tc *TestConfig) SetupTestRepository(t *testing.T) types.Repository {
 // SetupTestManager creates a test project manager
 func (tc *TestConfig) SetupTestManager(t *testing.T) manager.ProjectManager {
 	repo := tc.SetupTestRepository(t)
-	config := manager.DefaultConfig()
-	return manager.NewManagerWithRepository(repo, config)
+
+	// Initialize DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services
+	injector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+
+	// Override repository with test repository
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
+	// Get manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	return projectManager
+}
+
+// SetupTestInjector creates a test DI injector with test repository
+// This is useful for testing commands that expect an injector parameter
+func (tc *TestConfig) SetupTestInjector(t *testing.T) do.Injector {
+	// Use in-memory repository by default to avoid interfering with production data
+	testConfig := &TestConfig{
+		UseInMemoryDB: true, // Force in-memory for all tests
+		Logger:        tc.Logger,
+		TempDir:       tc.TempDir,
+	}
+	repo := testConfig.SetupTestRepository(t)
+
+	// Initialize DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services
+	injector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+
+	// Override repository with test repository (in-memory)
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
+	return injector
 }
 
 // CreateTestProject creates a test project for testing
@@ -210,19 +275,3 @@ func TempDir(t *testing.T) string {
 	return dir
 }
 
-// MockAppContext provides a mock implementation for testing
-type MockAppContext struct {
-	Manager manager.ProjectManager
-	Logger  *zap.Logger
-	Actor   string
-}
-
-// SetActor sets the current actor for the mock context
-func (m *MockAppContext) SetActor(actor string) {
-	m.Actor = actor
-}
-
-// ProjectManager returns the mock project manager
-func (m *MockAppContext) ProjectManager() manager.ProjectManager {
-	return m.Manager
-}
