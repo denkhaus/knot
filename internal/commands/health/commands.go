@@ -20,9 +20,9 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
-	"github.com/samber/do/v2"
 )
 
 // Commands returns health check related CLI commands
@@ -194,7 +194,7 @@ type Status struct {
 // performHealthCheck performs a health check using the project manager
 func performHealthCheck(ctx context.Context, projectManager manager.ProjectManager) (*Status, error) {
 	// For now, we'll implement a basic health check
-	// TODO: Extend manager interface to expose repository health checks
+	// TODO(knot-f7r): Extend manager interface to expose repository health checks
 
 	start := time.Now()
 

@@ -3,6 +3,9 @@ package dependency
 import (
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -34,8 +37,9 @@ func TestCommands(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			appCtx := createTestAppContext(t)
-			commands := Commands(appCtx)
+			config := testutil.NewTestConfig(t)
+			testInjector := config.SetupTestInjector(t)
+			commands := Commands(testInjector)
 
 			// Verify we get some commands
 			assert.NotEmpty(t, commands)
@@ -55,8 +59,9 @@ func TestCommands(t *testing.T) {
 }
 
 func TestCommandStructure(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Test that all commands have required structure
 	for _, cmd := range commands {
@@ -79,8 +84,9 @@ func TestCommandStructure(t *testing.T) {
 }
 
 func TestAddCommandFlags(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Find the add command
 	var addCommand *cli.Command
@@ -107,8 +113,9 @@ func TestAddCommandFlags(t *testing.T) {
 }
 
 func TestRemoveCommandFlags(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Find the remove command
 	var removeCommand *cli.Command
@@ -135,8 +142,9 @@ func TestRemoveCommandFlags(t *testing.T) {
 }
 
 func TestListCommandFlags(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Find the list command
 	var listCommand *cli.Command
@@ -163,8 +171,9 @@ func TestListCommandFlags(t *testing.T) {
 }
 
 func TestCommandUsageText(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Test that commands have meaningful usage text
 	expectedUsages := map[string]string{
@@ -182,9 +191,10 @@ func TestCommandUsageText(t *testing.T) {
 }
 
 func TestCommandsReturnNewSlice(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands1 := Commands(appCtx)
-	commands2 := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands1 := Commands(testInjector)
+	commands2 := Commands(testInjector)
 
 	// Commands should return new slices to avoid modification issues
 	assert.NotSame(t, &commands1[0], &commands2[0],
@@ -193,8 +203,9 @@ func TestCommandsReturnNewSlice(t *testing.T) {
 
 // Integration test with mock context
 func TestCommandIntegration(t *testing.T) {
-	appCtx := createTestAppContext(t)
-	commands := Commands(appCtx)
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	t.Run("command creation with app context", func(t *testing.T) {
 		// Verify commands can be created with a valid app context
@@ -202,11 +213,13 @@ func TestCommandIntegration(t *testing.T) {
 		assert.Greater(t, len(commands), 0)
 	})
 
-	t.Run("command app context dependency", func(t *testing.T) {
-		// Test that commands properly depend on app context
-		assert.NotNil(t, appCtx, "AppContext should be available")
-		assert.NotNil(t, projectManager, "ProjectManager should be available")
-		assert.NotNil(t, appCtx.Logger, "Logger should be available")
+	t.Run("command DI dependency", func(t *testing.T) {
+		// Test that commands properly work with DI
+		assert.NotNil(t, testInjector, "DI injector should be available")
+
+		// Verify we can get services from DI
+		loggerService := do.MustInvoke[logger.Logger](testInjector)
+		assert.NotNil(t, loggerService, "Logger should be available from DI")
 	})
 }
 
@@ -215,9 +228,10 @@ func TestCommandEdgeCases(t *testing.T) {
 	t.Run("empty app context", func(t *testing.T) {
 		// This test would verify behavior with nil/empty app context
 		// But since we don't want to cause panics, we'll use a valid context
-		appCtx := createTestAppContext(t)
+		config := testutil.NewTestConfig(t)
+		testInjector := config.SetupTestInjector(t)
 
-		commands := Commands(appCtx)
+		commands := Commands(testInjector)
 		assert.NotEmpty(t, commands, "Commands should be created even with minimal app context")
 	})
 }

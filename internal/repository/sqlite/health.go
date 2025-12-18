@@ -115,7 +115,7 @@ func (r *sqliteRepository) getUnderlyingDB() (*sql.DB, error) {
 	}
 
 	// For now, we'll use a simpler approach - test through ent client
-	// TODO: Find a way to access underlying sql.DB if needed for advanced health checks
+	// TODO(knot-h2i): Find a way to access underlying sql.DB if needed for advanced health checks
 	return nil, fmt.Errorf("direct database access not available through ent client")
 }
 

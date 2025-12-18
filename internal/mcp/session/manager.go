@@ -11,11 +11,11 @@ import (
 
 // managerImpl is the private implementation of the Manager interface
 type managerImpl struct {
-	sessions sync.Map // map[sessionID]*SessionContext
+	sessions sync.Map
 }
 
-// NewManager creates a new session manager with proper configuration
-func NewManager() Manager {
+// newManager creates a new session manager with proper configuration
+func newManager() Manager {
 	return &managerImpl{
 		sessions: sync.Map{},
 	}

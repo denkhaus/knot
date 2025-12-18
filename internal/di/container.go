@@ -23,6 +23,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/mcp/session"
 	"github.com/denkhaus/knot/v2/internal/repository"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
+	"github.com/denkhaus/knot/v2/internal/repository/postgres"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
 	"github.com/denkhaus/knot/v2/internal/templates"
 	"github.com/samber/do/v2"
@@ -61,12 +62,20 @@ func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context
 	do.Provide(c.injector, configsvc.NewService(cliCtx))
 	do.Provide(c.injector, logger.NewService)
 
-	// Register repository providers
-	do.Provide(c.injector, sqlite.NewProvider)
-	do.Provide(c.injector, inmemory.NewProvider)
+	// Register repository providers with named providers using well-defined types
+	do.ProvideNamedValue(c.injector, repository.SQLiteProvider.String(), sqlite.NewProvider)
+	do.ProvideNamedValue(c.injector, repository.PostgreSQLProvider.String(), postgres.NewProvider)
+	do.ProvideNamedValue(c.injector, repository.InMemoryProvider.String(), inmemory.NewProvider)
 
-	// Register the main sqlite repository
-	do.Provide(c.injector, repository.NewSQLiteRepository)
+	// Register repository factory for mode-based repository creation
+	do.Provide(c.injector, repository.NewRepositoryFactory)
+
+	// Register repositories with named providers using well-defined types
+	do.ProvideNamedValue(c.injector, repository.LocalRepository.String(), repository.NewSQLiteRepository)
+	do.ProvideNamedValue(c.injector, repository.MCPRepository.String(), repository.NewPostgreSQLRepository)
+
+	// Register the default repository based on detected mode
+	do.Provide(c.injector, repository.NewModeBasedRepository)
 
 	// Register template service (depends on repository and logger)
 	do.Provide(c.injector, templates.NewService)
@@ -75,10 +84,10 @@ func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context
 	do.Provide(c.injector, manager.NewService)
 
 	// Register session manager for MCP services
-	do.Provide(c.injector, session.NewSessionManagerProvider)
+	do.Provide(c.injector, session.NewSessionManager)
 
 	// Register MCP server
-	do.Provide(c.injector, mcp.NewServerProvider)
+	do.Provide(c.injector, mcp.NewServer)
 
 	return c.injector
 }

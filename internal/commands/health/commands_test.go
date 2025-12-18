@@ -10,9 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/di"
-	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/mocks"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/samber/do/v2"
@@ -21,7 +23,6 @@ import (
 	"github.com/urfave/cli/v2"
 	"go.uber.org/mock/gomock"
 )
-
 
 func TestCommands(t *testing.T) {
 	tests := []struct {
@@ -41,8 +42,8 @@ func TestCommands(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-			commands := Commands(appCtx)
+			testInjector := config.SetupTestInjector(t)
+			commands := Commands(testInjector)
 
 			// Verify we get the expected number of commands
 			assert.Len(t, commands, len(tt.expectedCommands))
@@ -63,8 +64,8 @@ func TestCommands(t *testing.T) {
 
 func TestCommandStructure(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Test that all commands have required structure
 	for _, cmd := range commands {
@@ -88,8 +89,8 @@ func TestCommandStructure(t *testing.T) {
 
 func TestCheckCommandFlags(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Find the check command
 	var checkCommand *cli.Command
@@ -131,8 +132,8 @@ func TestCheckCommandFlags(t *testing.T) {
 
 func TestPingCommandFlags(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Find the ping command
 	var pingCommand *cli.Command
@@ -169,8 +170,8 @@ func TestPingCommandFlags(t *testing.T) {
 
 func TestValidateCommandFlags(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Find the validate command
 	var validateCommand *cli.Command
@@ -206,8 +207,8 @@ func TestValidateCommandFlags(t *testing.T) {
 
 func TestCommandUsageText(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	// Test that commands have meaningful usage text
 	expectedUsages := map[string]string{
@@ -226,9 +227,9 @@ func TestCommandUsageText(t *testing.T) {
 
 func TestCommandsReturnNewSlice(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands1 := Commands(appCtx)
-	commands2 := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands1 := Commands(testInjector)
+	commands2 := Commands(testInjector)
 
 	// Commands should return new slices to avoid modification issues
 	assert.NotSame(t, &commands1[0], &commands2[0],
@@ -237,8 +238,8 @@ func TestCommandsReturnNewSlice(t *testing.T) {
 
 func TestCommandIntegration(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	t.Run("command creation with app context", func(t *testing.T) {
 		// Verify commands can be created with a valid app context
@@ -249,10 +250,9 @@ func TestCommandIntegration(t *testing.T) {
 	t.Run("command DI dependency", func(t *testing.T) {
 		// Test that commands properly work with DI
 		assert.NotNil(t, testInjector, "DI injector should be available")
-		assert.NotNil(t, projectManager, "ProjectManager should be available")
 
 		// Verify we can get services from DI
-		logger := do.MustInvoke[types.LoggerService](testInjector)
+		logger := do.MustInvoke[logger.Logger](testInjector)
 		assert.NotNil(t, logger, "Logger should be available from DI")
 	})
 }
@@ -264,15 +264,15 @@ func TestCommandEdgeCases(t *testing.T) {
 		config := testutil.NewTestConfig(t)
 		testInjector := config.SetupTestInjector(t)
 
-		commands := Commands(appCtx)
+		commands := Commands(testInjector)
 		assert.NotEmpty(t, commands, "Commands should be created even with minimal app context")
 	})
 }
 
 func TestHealthCheckTimeouts(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
-	commands := Commands(appCtx)
+	testInjector := config.SetupTestInjector(t)
+	commands := Commands(testInjector)
 
 	t.Run("check command timeout configuration", func(t *testing.T) {
 		var checkCommand *cli.Command
@@ -349,23 +349,21 @@ func Test_performHealthCheck(t *testing.T) {
 			mockMgr.EXPECT().
 				ListProjects(gomock.Any()).
 				Return([]*types.Project{}, tt.listProjectsErr)
-			// Use DI injector with mock manager
-		diContainer := di.NewContainer()
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.String("log-level", "info", "")
-		flagSet.Int("complexity-threshold", 5, "")
-		flagSet.Int("max-depth", 10, "")
-		flagSet.Int("max-tasks-per-depth", 50, "")
-		flagSet.Int("max-description-length", 500, "")
-		flagSet.Bool("auto-reduce-complexity", true, "")
-		cliCtx := cli.NewContext(app, flagSet, nil)
-		testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
-		do.Override(testInjector, func(do.Injector) manager.ProjectManager {
-			return mockMgr
-		})
+				// Use DI injector with mock manager
+			diContainer := di.NewContainer()
+			app := &cli.App{}
+			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+			flagSet.String("log-level", "info", "")
+			flagSet.Int("complexity-threshold", 5, "")
+			flagSet.Int("max-depth", 10, "")
+			flagSet.Int("max-tasks-per-depth", 50, "")
+			flagSet.Int("max-description-length", 500, "")
+			flagSet.Bool("auto-reduce-complexity", true, "")
+			cliCtx := cli.NewContext(app, flagSet, nil)
+			testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+			do.OverrideValue(testInjector, mockMgr)
 
-			healthStatus, err := performHealthCheck(context.Background(), appCtx)
+			healthStatus, err := performHealthCheck(context.Background(), mockMgr)
 
 			if tt.expectedHealthy {
 				require.NoError(t, err)
@@ -409,23 +407,21 @@ func Test_performPing(t *testing.T) {
 			mockMgr.EXPECT().
 				ListProjects(gomock.Any()).
 				Return([]*types.Project{}, tt.listProjectsErr)
-			// Use DI injector with mock manager
-		diContainer := di.NewContainer()
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.String("log-level", "info", "")
-		flagSet.Int("complexity-threshold", 5, "")
-		flagSet.Int("max-depth", 10, "")
-		flagSet.Int("max-tasks-per-depth", 50, "")
-		flagSet.Int("max-description-length", 500, "")
-		flagSet.Bool("auto-reduce-complexity", true, "")
-		cliCtx := cli.NewContext(app, flagSet, nil)
-		testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
-		do.Override(testInjector, func(do.Injector) manager.ProjectManager {
-			return mockMgr
-		})
+				// Use DI injector with mock manager
+			diContainer := di.NewContainer()
+			app := &cli.App{}
+			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+			flagSet.String("log-level", "info", "")
+			flagSet.Int("complexity-threshold", 5, "")
+			flagSet.Int("max-depth", 10, "")
+			flagSet.Int("max-tasks-per-depth", 50, "")
+			flagSet.Int("max-description-length", 500, "")
+			flagSet.Bool("auto-reduce-complexity", true, "")
+			cliCtx := cli.NewContext(app, flagSet, nil)
+			testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+			do.OverrideValue(testInjector, mockMgr)
 
-			err := performPing(context.Background(), appCtx)
+			err := performPing(context.Background(), mockMgr)
 
 			if tt.expectedErr {
 				require.Error(t, err)
@@ -444,20 +440,20 @@ func Test_performValidation(t *testing.T) {
 	tests := []struct {
 		name                 string
 		listProjectsErr      error
-		getConfigReturn      *manager.Config
+		getConfigReturn      *config.ManagerConfig
 		expectedErr          bool
 		expectedErrorMessage string
 	}{
 		{
 			name:            "successful validation",
 			listProjectsErr: nil,
-			getConfigReturn: manager.DefaultConfig(),
+			getConfigReturn: &config.ManagerConfig{},
 			expectedErr:     false,
 		},
 		{
 			name:                 "list projects fails",
 			listProjectsErr:      errors.New("list projects error"),
-			getConfigReturn:      manager.DefaultConfig(),
+			getConfigReturn:      &config.ManagerConfig{},
 			expectedErr:          true,
 			expectedErrorMessage: "List Projects failed: list projects error",
 		},
@@ -487,22 +483,20 @@ func Test_performValidation(t *testing.T) {
 			}
 
 			// Use DI injector with mock manager
-		diContainer := di.NewContainer()
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.String("log-level", "info", "")
-		flagSet.Int("complexity-threshold", 5, "")
-		flagSet.Int("max-depth", 10, "")
-		flagSet.Int("max-tasks-per-depth", 50, "")
-		flagSet.Int("max-description-length", 500, "")
-		flagSet.Bool("auto-reduce-complexity", true, "")
-		cliCtx := cli.NewContext(app, flagSet, nil)
-		testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
-		do.Override(testInjector, func(do.Injector) manager.ProjectManager {
-			return mockMgr
-		})
+			diContainer := di.NewContainer()
+			app := &cli.App{}
+			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+			flagSet.String("log-level", "info", "")
+			flagSet.Int("complexity-threshold", 5, "")
+			flagSet.Int("max-depth", 10, "")
+			flagSet.Int("max-tasks-per-depth", 50, "")
+			flagSet.Int("max-description-length", 500, "")
+			flagSet.Bool("auto-reduce-complexity", true, "")
+			cliCtx := cli.NewContext(app, flagSet, nil)
+			testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+			do.OverrideValue(testInjector, mockMgr)
 
-			err := performValidation(context.Background(), appCtx)
+			err := performValidation(context.Background(), mockMgr)
 
 			if tt.expectedErr {
 				require.Error(t, err)

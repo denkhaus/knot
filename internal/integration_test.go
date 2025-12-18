@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -31,8 +32,8 @@ func setupIntegrationTest(t *testing.T) (manager.ProjectManager, func()) {
 	)
 	require.NoError(t, err)
 
-	// Create manager with repository
-	mgr := manager.NewManagerWithRepository(repo, manager.DefaultConfig())
+	// Create manager with repository using the test helper
+	mgr := manager.NewManagerWithRepository(repo, config.DefaultConfig())
 
 	// Return cleanup function
 	cleanup := func() {

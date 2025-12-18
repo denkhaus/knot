@@ -89,6 +89,15 @@ func New() (*App, error) {
 	// Initialize DI container
 	diContainer := di.NewContainer()
 
+	flags := append([]cli.Flag{
+		&cli.StringFlag{
+			Name:    "actor",
+			Usage:   "Actor name for audit trail (default: $USER)",
+			EnvVars: []string{"KNOT_ACTOR", "USER"},
+		},
+		flags.NewLogLevelFlag(),
+	}, append(flags.NewManagerConfigFlags(), flags.NewMCPConfigFlags()...)...)
+
 	// Create CLI app
 	cliApp := &cli.App{
 		Name:        "knot",
@@ -101,14 +110,7 @@ func New() (*App, error) {
 				Email: "denkhaus@github.com",
 			},
 		},
-		Flags: append([]cli.Flag{
-			&cli.StringFlag{
-				Name:    "actor",
-				Usage:   "Actor name for audit trail (default: $USER)",
-				EnvVars: []string{"KNOT_ACTOR", "USER"},
-			},
-			flags.NewLogLevelFlag(),
-		}, append(flags.NewManagerConfigFlags(), flags.NewMCPConfigFlags()...)...),
+		Flags:  flags,
 		Before: commands.NewBeforeCommand(diContainer, version),
 	}
 

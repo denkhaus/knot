@@ -25,13 +25,20 @@ func (ProjectContext) Fields() []ent.Field {
 		field.UUID("selected_project_id", uuid.UUID{}).
 			Optional().
 			Comment("Currently selected project ID"),
+		field.UUID("session_id", uuid.UUID{}).
+			Optional().
+			Comment("Session ID for MCP mode multi-session support (null for local mode)"),
+		field.Enum("context_type").
+			Values("local", "mcp").
+			Default("local").
+			Comment("Type of context: local (CLI) or mcp (server)"),
 		field.Time("updated_at").
 			Default(time.Now).
 			UpdateDefault(time.Now).
 			Comment("When the selection was last updated"),
 		field.String("updated_by").
 			NotEmpty().
-			Comment("Who updated the selection"),
+			Comment("Who updated the selection (actor/user)"),
 	}
 }
 

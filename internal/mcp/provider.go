@@ -8,9 +8,9 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// NewServerProvider creates a provider function for the MCP Server
+// NewServer creates a provider function for the MCP Server
 // This follows the dependency injection pattern used throughout the application
-func NewServerProvider(injector do.Injector) (Server, error) {
+func NewServer(injector do.Injector) (Server, error) {
 	// Resolve dependencies from DI
 	configService := do.MustInvoke[configsvc.Service](injector)
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
@@ -29,5 +29,5 @@ func NewServerProvider(injector do.Injector) (Server, error) {
 	}
 
 	// Create and return the server
-	return NewServer(serverConfig)
+	return newServer(serverConfig)
 }

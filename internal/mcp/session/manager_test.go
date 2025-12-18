@@ -13,14 +13,14 @@ import (
 )
 
 func TestNewManager(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 	require.NotNil(t, manager)
 	// Test that we can use the manager interface
 	assert.Equal(t, 0, manager.GetSessionCount())
 }
 
 func TestCreateSession(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 
 	t.Run("Create session successfully", func(t *testing.T) {
 		userID := "test-user"
@@ -62,7 +62,7 @@ func TestCreateSession(t *testing.T) {
 }
 
 func TestGetSession(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 
 	t.Run("Get existing session", func(t *testing.T) {
 		userID := "test-user"
@@ -106,7 +106,7 @@ func TestGetSession(t *testing.T) {
 }
 
 func TestSetProject(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 
 	t.Run("Set project for existing session", func(t *testing.T) {
 		userID := "test-user"
@@ -161,7 +161,7 @@ func TestSetProject(t *testing.T) {
 }
 
 func TestCloseAll(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 
 	t.Run("Close sessions", func(t *testing.T) {
 		// Create multiple sessions
@@ -202,7 +202,7 @@ func TestCloseAll(t *testing.T) {
 	})
 
 	t.Run("Close empty manager", func(t *testing.T) {
-		emptyManager := NewManager()
+		emptyManager := newManager()
 		ctx := context.Background()
 		err := emptyManager.CloseAll(ctx)
 		require.NoError(t, err)
@@ -254,7 +254,7 @@ func TestSessionContext(t *testing.T) {
 }
 
 func TestConcurrentAccess(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 	numGoroutines := 100
 	numOperations := 10
 
@@ -298,7 +298,7 @@ func TestConcurrentAccess(t *testing.T) {
 
 // Test that sessions can handle garbage collection scenarios
 func TestMemoryManagement(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 
 	t.Run("Large number of sessions", func(t *testing.T) {
 		numSessions := 1000
@@ -337,7 +337,7 @@ func TestMemoryManagement(t *testing.T) {
 }
 
 func TestEdgeCases(t *testing.T) {
-	manager := NewManager()
+	manager := newManager()
 
 	t.Run("Empty user ID", func(t *testing.T) {
 		session, err := manager.CreateSession("")

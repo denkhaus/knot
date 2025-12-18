@@ -302,7 +302,7 @@ func applyTemplateWithDI(projectManager manager.ProjectManager, template *types.
 		}
 	}
 
-	// TODO: Second pass for dependencies (requires dependency management implementation)
+	// TODO(knot-quu): Second pass for dependencies (requires dependency management implementation)
 
 	if !dryRun && result.Success {
 		// Create template instance record

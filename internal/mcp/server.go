@@ -8,46 +8,10 @@ import (
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/session"
-	"github.com/denkhaus/knot/v2/internal/types"
-	"github.com/google/uuid"
-	"github.com/mark3labs/mcp-go/mcp"
+	"github.com/denkhaus/knot/v2/internal/mcp/tools"
 	"github.com/mark3labs/mcp-go/server"
 )
 
-// Structured request/response types for MCP tools
-
-type ProjectSelectRequest struct {
-	ProjectID string `json:"project_id" jsonschema_description:"The ID of the project to select" jsonschema:"required"`
-}
-
-type ProjectSelectResponse struct {
-	Message   string `json:"message" jsonschema_description:"Confirmation message"`
-	ProjectID string `json:"project_id" jsonschema_description:"Selected project ID"`
-}
-
-type ProjectCreateRequest struct {
-	Title       string `json:"title" jsonschema_description:"Project title" jsonschema:"required"`
-	Description string `json:"description,omitempty" jsonschema_description:"Project description"`
-}
-
-type ProjectCreateResponse struct {
-	Message   string `json:"message" jsonschema_description:"Confirmation message"`
-	ProjectID string `json:"project_id" jsonschema_description:"Created project ID"`
-	Title     string `json:"title" jsonschema_description:"Project title"`
-}
-
-type TaskCreateRequest struct {
-	Title       string  `json:"title" jsonschema_description:"Task title" jsonschema:"required"`
-	Description string  `json:"description,omitempty" jsonschema_description:"Task description"`
-	Complexity  int     `json:"complexity,omitempty" jsonschema_description:"Task complexity (1-10)" jsonschema:"minimum=1,maximum=10,default=5"`
-}
-
-type TaskCreateResponse struct {
-	Message   string `json:"message" jsonschema_description:"Confirmation message"`
-	TaskID    string `json:"task_id" jsonschema_description:"Created task ID"`
-	ProjectID string `json:"project_id" jsonschema_description:"Project ID"`
-	Title     string `json:"title" jsonschema_description:"Task title"`
-}
 
 // mcpServerImpl is the private implementation of the Server interface
 type mcpServerImpl struct {
@@ -68,7 +32,7 @@ type ServerConfig struct {
 }
 
 // NewServer creates a new MCP server with multi-project support using dependency injection
-func NewServer(cfg ServerConfig) (Server, error) {
+func newServer(cfg ServerConfig) (Server, error) {
 	if cfg.ProjectManager == nil {
 		return nil, fmt.Errorf("project manager is required")
 	}
@@ -86,7 +50,7 @@ func NewServer(cfg ServerConfig) (Server, error) {
 	mcpServer := server.NewMCPServer("knot", "1.0.0")
 
 	s := &mcpServerImpl{
-		MCPServer:     mcpServer,
+		MCPServer:      mcpServer,
 		projectManager: cfg.ProjectManager,
 		sessions:       cfg.SessionManager,
 		logger:         cfg.Logger,
@@ -104,29 +68,14 @@ func NewServer(cfg ServerConfig) (Server, error) {
 
 // registerTools registers all MCP tools with the server
 func (s *mcpServerImpl) registerTools() error {
-	// Project selection tool
-	projectSelectTool := mcp.NewTool("project_select",
-		mcp.WithDescription("Select the active project for this session"),
-		mcp.WithInputSchema[ProjectSelectRequest](),
-		mcp.WithOutputSchema[ProjectSelectResponse](),
-	)
-	s.AddTool(projectSelectTool, mcp.NewStructuredToolHandler(s.handleProjectSelect))
+	// Register navigation tools (project_select, project_list, project_get)
+	tools.RegisterNavigationTools(s.MCPServer, s.projectManager, s.sessions)
 
-	// Project creation tool
-	projectCreateTool := mcp.NewTool("project_create",
-		mcp.WithDescription("Create a new project"),
-		mcp.WithInputSchema[ProjectCreateRequest](),
-		mcp.WithOutputSchema[ProjectCreateResponse](),
-	)
-	s.AddTool(projectCreateTool, mcp.NewStructuredToolHandler(s.handleProjectCreate))
+	// Register project management tools (project_create, project_update, project_delete)
+	tools.RegisterProjectManagementTools(s.MCPServer, s.projectManager)
 
-	// Task creation tool
-	taskCreateTool := mcp.NewTool("task_create",
-		mcp.WithDescription("Create a new task in the selected project"),
-		mcp.WithInputSchema[TaskCreateRequest](),
-		mcp.WithOutputSchema[TaskCreateResponse](),
-	)
-	s.AddTool(taskCreateTool, mcp.NewStructuredToolHandler(s.handleTaskCreate))
+	// Register task management tools (task_create, task_get, task_update, task_update_state, task_delete)
+	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessions)
 
 	return nil
 }
@@ -184,88 +133,4 @@ func getSessionID(ctx context.Context) string {
 		return session.SessionID()
 	}
 	return ""
-}
-
-// ExecutionContext provides context for tool execution
-type ExecutionContext struct {
-	Context       context.Context
-	Project       *session.SessionContext
-	SessionID     string
-	ProjectManager manager.ProjectManager
-	Logger        logger.Logger
-}
-
-// handleProjectSelect handles project selection for a session
-func (s *mcpServerImpl) handleProjectSelect(ctx context.Context, request mcp.CallToolRequest, args ProjectSelectRequest) (ProjectSelectResponse, error) {
-	projectID, err := uuid.Parse(args.ProjectID)
-	if err != nil {
-		return ProjectSelectResponse{}, fmt.Errorf("invalid project_id format: %w", err)
-	}
-
-	sessionID := getSessionID(ctx)
-	sessionIDUUID, err := uuid.Parse(sessionID)
-	if err != nil {
-		return ProjectSelectResponse{}, fmt.Errorf("invalid session_id format: %w", err)
-	}
-
-	if err := s.sessions.SetProject(sessionIDUUID, projectID); err != nil {
-		return ProjectSelectResponse{}, fmt.Errorf("failed to set project: %w", err)
-	}
-
-	return ProjectSelectResponse{
-		Message:   fmt.Sprintf("Selected project %s for session", projectID),
-		ProjectID: projectID.String(),
-	}, nil
-}
-
-// handleProjectCreate handles project creation
-func (s *mcpServerImpl) handleProjectCreate(ctx context.Context, request mcp.CallToolRequest, args ProjectCreateRequest) (ProjectCreateResponse, error) {
-	// Create project using project manager
-	project, err := s.projectManager.CreateProject(ctx, args.Title, args.Description, "")
-	if err != nil {
-		return ProjectCreateResponse{}, fmt.Errorf("failed to create project: %w", err)
-	}
-
-	return ProjectCreateResponse{
-		Message:   fmt.Sprintf("Created project %s (ID: %s)", project.Title, project.ID),
-		ProjectID: project.ID.String(),
-		Title:     project.Title,
-	}, nil
-}
-
-// handleTaskCreate handles task creation
-func (s *mcpServerImpl) handleTaskCreate(ctx context.Context, request mcp.CallToolRequest, args TaskCreateRequest) (TaskCreateResponse, error) {
-	complexity := args.Complexity
-	if complexity == 0 {
-		complexity = 5 // Default complexity
-	}
-
-	// Get session context
-	sessionID := getSessionID(ctx)
-	sessionIDUUID, err := uuid.Parse(sessionID)
-	if err != nil {
-		return TaskCreateResponse{}, fmt.Errorf("invalid session_id format: %w", err)
-	}
-
-	session, err := s.sessions.GetSession(sessionIDUUID)
-	if err != nil {
-		return TaskCreateResponse{}, fmt.Errorf("failed to get session: %w", err)
-	}
-
-	if session.ProjectID == nil {
-		return TaskCreateResponse{}, fmt.Errorf("no project selected for this session")
-	}
-
-	// Create task using project manager
-	task, err := s.projectManager.CreateTask(ctx, *session.ProjectID, nil, args.Title, args.Description, complexity, types.TaskPriorityMedium, "")
-	if err != nil {
-		return TaskCreateResponse{}, fmt.Errorf("failed to create task: %w", err)
-	}
-
-	return TaskCreateResponse{
-		Message:   fmt.Sprintf("Created task %s (ID: %s) in project %s", task.Title, task.ID, session.ProjectID),
-		TaskID:    task.ID.String(),
-		ProjectID: session.ProjectID.String(),
-		Title:     task.Title,
-	}, nil
 }
