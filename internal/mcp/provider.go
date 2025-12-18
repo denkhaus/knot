@@ -4,6 +4,7 @@ import (
 	configsvc "github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/samber/do/v2"
 )
@@ -16,16 +17,18 @@ func NewServer(injector do.Injector) (Server, error) {
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 	sessionManager := do.MustInvoke[session.Manager](injector)
 	loggerService := do.MustInvoke[logger.Logger](injector)
+	hintIntegration := do.MustInvoke[hints.Integration](injector)
 
 	// Get MCP configuration
 	mcpConfig := configService.GetMCPConfig()
 
 	// Create server configuration
 	serverConfig := ServerConfig{
-		ProjectManager: projectManager,
-		SessionManager: sessionManager,
-		Logger:         loggerService,
-		Config:         mcpConfig,
+		ProjectManager:  projectManager,
+		SessionManager:  sessionManager,
+		Logger:          loggerService,
+		Config:          mcpConfig,
+		HintIntegration: hintIntegration,
 	}
 
 	// Create and return the server

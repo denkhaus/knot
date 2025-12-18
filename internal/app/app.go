@@ -87,7 +87,9 @@ func isUserInputError(err error) bool {
 // New creates a new CLI application with all dependencies initialized
 func New() (*App, error) {
 	// Initialize DI container
-	diContainer := di.NewContainer()
+	container := di.NewContainer()
+	// Initialize DI container with all services
+	injector := container.RegisterAllServices(c.Context, c)
 
 	flags := append([]cli.Flag{
 		&cli.StringFlag{
@@ -112,6 +114,19 @@ func New() (*App, error) {
 		},
 		Flags:  flags,
 		Before: commands.NewBeforeCommand(diContainer, version),
+		Commands: []*cli.Command{
+			commands.NewProjectCommand(injector),
+			commands.NewTaskCommand(injector),
+			commands.NewTemplateCommand(injector),
+			commands.NewDependencyCommand(injector),
+			commands.NewConfigCommand(injector),
+			commands.NewHealthCommand(injector),
+			commands.NewStatusCommand(injector),
+			commands.NewValidateCommand(injector),
+			commands.NewGetStartedCommand(injector),
+			commands.NewCompletionCommand(injector),
+			commands.NewMCPCommand(injector),
+		},
 	}
 
 	return &App{

@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/repository/ent/project"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/projectcontext"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/schema"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/session"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/task"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/taskdependency"
 	"github.com/google/uuid"
@@ -95,6 +96,44 @@ func init() {
 	projectcontextDescUpdatedBy := projectcontextFields[5].Descriptor()
 	// projectcontext.UpdatedByValidator is a validator for the "updated_by" field. It is called by the builders before save.
 	projectcontext.UpdatedByValidator = projectcontextDescUpdatedBy.Validators[0].(func(string) error)
+	sessionFields := schema.Session{}.Fields()
+	_ = sessionFields
+	// sessionDescClientID is the schema descriptor for client_id field.
+	sessionDescClientID := sessionFields[1].Descriptor()
+	// session.ClientIDValidator is a validator for the "client_id" field. It is called by the builders before save.
+	session.ClientIDValidator = func() func(string) error {
+		validators := sessionDescClientID.Validators
+		fns := [...]func(string) error{
+			validators[0].(func(string) error),
+			validators[1].(func(string) error),
+		}
+		return func(client_id string) error {
+			for _, fn := range fns {
+				if err := fn(client_id); err != nil {
+					return err
+				}
+			}
+			return nil
+		}
+	}()
+	// sessionDescCreatedAt is the schema descriptor for created_at field.
+	sessionDescCreatedAt := sessionFields[2].Descriptor()
+	// session.DefaultCreatedAt holds the default value on creation for the created_at field.
+	session.DefaultCreatedAt = sessionDescCreatedAt.Default.(func() time.Time)
+	// sessionDescLastActivity is the schema descriptor for last_activity field.
+	sessionDescLastActivity := sessionFields[3].Descriptor()
+	// session.DefaultLastActivity holds the default value on creation for the last_activity field.
+	session.DefaultLastActivity = sessionDescLastActivity.Default.(func() time.Time)
+	// session.UpdateDefaultLastActivity holds the default value on update for the last_activity field.
+	session.UpdateDefaultLastActivity = sessionDescLastActivity.UpdateDefault.(func() time.Time)
+	// sessionDescActor is the schema descriptor for actor field.
+	sessionDescActor := sessionFields[6].Descriptor()
+	// session.ActorValidator is a validator for the "actor" field. It is called by the builders before save.
+	session.ActorValidator = sessionDescActor.Validators[0].(func(string) error)
+	// sessionDescID is the schema descriptor for id field.
+	sessionDescID := sessionFields[0].Descriptor()
+	// session.DefaultID holds the default value on creation for the id field.
+	session.DefaultID = sessionDescID.Default.(func() uuid.UUID)
 	taskFields := schema.Task{}.Fields()
 	_ = taskFields
 	// taskDescTitle is the schema descriptor for title field.

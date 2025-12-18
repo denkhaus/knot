@@ -1,10 +1,12 @@
 package repository
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
+
 	// TODO: PostgreSQL provider will be added in knot-ec0
 	// "github.com/denkhaus/knot/v2/internal/repository/postgres"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
@@ -21,7 +23,7 @@ func NewSQLiteRepository(injector do.Injector) (types.Repository, error) {
 	dbPath := configService.GetDatabasePath()
 
 	// Create SQLite repository for Local mode
-	sqliteProvider := &sqlite.Provider{}
+	sqliteProvider, _ := sqlite.NewProvider(nil)
 	repo, err := sqliteProvider.NewRepository(dbPath,
 		sqlite.WithLogger(loggerService.ToZap()),
 		sqlite.WithAutoMigrate(true),
@@ -45,7 +47,7 @@ func NewPostgreSQLRepository(injector do.Injector) (types.Repository, error) {
 func NewModeBasedRepositoryProvider(injector do.Injector) (types.Repository, error) {
 	configService := do.MustInvoke[config.Service](injector)
 	loggerService := do.MustInvoke[logger.Logger](injector)
-	factory := do.MustInvoke[*RepositoryFactory](injector)
+	factory := do.MustInvoke[Factory](injector)
 
 	// Determine mode from config
 	var mode RepositoryMode
@@ -60,5 +62,5 @@ func NewModeBasedRepositoryProvider(injector do.Injector) (types.Repository, err
 
 	// Use the factory to create repository based on detected mode
 	// The factory will internally use DI to get the appropriate provider
-	return factory.CreateRepositoryWithDI(injector, mode)
+	return factory.CreateRepository(context.Background(), mode)
 }

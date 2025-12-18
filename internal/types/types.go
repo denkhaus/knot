@@ -266,3 +266,8 @@ type Repository interface {
 	ClearSelectedProject(ctx context.Context) error
 	HasSelectedProject(ctx context.Context) (bool, error)
 }
+
+// RepositoryProvider defines the interface for creating in-memory repository instances
+type RepositoryProvider interface {
+	NewRepository(dsn string, opts ...interface{}) (Repository, error)
+}

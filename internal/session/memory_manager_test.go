@@ -23,32 +23,32 @@ func TestCreateSession(t *testing.T) {
 	manager := newManager()
 
 	t.Run("Create session successfully", func(t *testing.T) {
-		userID := "test-user"
-		session, err := manager.CreateSession(userID)
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
 		require.NotNil(t, session)
 
 		assert.NotEqual(t, uuid.Nil, session.SessionID)
-		assert.Equal(t, userID, session.UserID)
+		assert.Equal(t, clientID, session.ClientID)
 		assert.False(t, session.CreatedAt.IsZero())
 		assert.False(t, session.LastActivity.IsZero())
 		assert.Nil(t, session.ProjectID)
 	})
 
 	t.Run("Create multiple sessions", func(t *testing.T) {
-		userID1 := "user1"
-		userID2 := "user2"
+		clientID1 := "user1"
+		clientID2 := "user2"
 
-		session1, err := manager.CreateSession(userID1)
+		session1, err := manager.CreateSession(clientID1)
 		require.NoError(t, err)
 
-		session2, err := manager.CreateSession(userID2)
+		session2, err := manager.CreateSession(clientID2)
 		require.NoError(t, err)
 
 		// Verify sessions are different
 		assert.NotEqual(t, session1.SessionID, session2.SessionID)
-		assert.Equal(t, userID1, session1.UserID)
-		assert.Equal(t, userID2, session2.UserID)
+		assert.Equal(t, clientID1, session1.ClientID)
+		assert.Equal(t, clientID2, session2.ClientID)
 
 		// Verify both sessions are stored
 		retrieved1, err := manager.GetSession(session1.SessionID)
@@ -65,8 +65,8 @@ func TestGetSession(t *testing.T) {
 	manager := newManager()
 
 	t.Run("Get existing session", func(t *testing.T) {
-		userID := "test-user"
-		originalSession, err := manager.CreateSession(userID)
+		clientID := "test-user"
+		originalSession, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
 
 		// Retrieve the session
@@ -75,8 +75,8 @@ func TestGetSession(t *testing.T) {
 		require.NotNil(t, retrievedSession)
 
 		assert.Equal(t, originalSession.SessionID, retrievedSession.SessionID)
-		assert.Equal(t, originalSession.UserID, retrievedSession.UserID)
-		assert.Equal(t, userID, retrievedSession.UserID)
+		assert.Equal(t, originalSession.ClientID, retrievedSession.ClientID)
+		assert.Equal(t, clientID, retrievedSession.ClientID)
 	})
 
 	t.Run("Get non-existent session", func(t *testing.T) {
@@ -87,8 +87,8 @@ func TestGetSession(t *testing.T) {
 	})
 
 	t.Run("Last activity updated on retrieval", func(t *testing.T) {
-		userID := "test-user"
-		session, err := manager.CreateSession(userID)
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
 
 		originalActivity := session.LastActivity
@@ -109,8 +109,8 @@ func TestSetProject(t *testing.T) {
 	manager := newManager()
 
 	t.Run("Set project for existing session", func(t *testing.T) {
-		userID := "test-user"
-		session, err := manager.CreateSession(userID)
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
 
 		projectID := uuid.New()
@@ -137,8 +137,8 @@ func TestSetProject(t *testing.T) {
 	})
 
 	t.Run("Change project for session", func(t *testing.T) {
-		userID := "test-user"
-		session, err := manager.CreateSession(userID)
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
 
 		// Set initial project
@@ -165,11 +165,11 @@ func TestCloseAll(t *testing.T) {
 
 	t.Run("Close sessions", func(t *testing.T) {
 		// Create multiple sessions
-		userIDs := []string{"user1", "user2", "user3"}
-		sessionIDs := make([]uuid.UUID, 0, len(userIDs))
+		clientIDs := []string{"user1", "user2", "user3"}
+		sessionIDs := make([]uuid.UUID, 0, len(clientIDs))
 
-		for _, userID := range userIDs {
-			session, err := manager.CreateSession(userID)
+		for _, clientID := range clientIDs {
+			session, err := manager.CreateSession(clientID)
 			require.NoError(t, err)
 			sessionIDs = append(sessionIDs, session.SessionID)
 
@@ -212,20 +212,20 @@ func TestCloseAll(t *testing.T) {
 func TestSessionContext(t *testing.T) {
 	t.Run("SessionContext fields", func(t *testing.T) {
 		sessionID := uuid.New()
-		userID := "test-user"
+		clientID := "test-client"
 		projectID := uuid.New()
 		now := time.Now()
 
 		session := &SessionContext{
 			SessionID:    sessionID,
-			UserID:       userID,
+			ClientID:     clientID,
 			ProjectID:    &projectID,
 			CreatedAt:    now,
 			LastActivity: now,
 		}
 
 		assert.Equal(t, sessionID, session.SessionID)
-		assert.Equal(t, userID, session.UserID)
+		assert.Equal(t, clientID, session.ClientID)
 		require.NotNil(t, session.ProjectID)
 		assert.Equal(t, projectID, *session.ProjectID)
 		assert.Equal(t, now, session.CreatedAt)
@@ -234,19 +234,19 @@ func TestSessionContext(t *testing.T) {
 
 	t.Run("SessionContext without project", func(t *testing.T) {
 		sessionID := uuid.New()
-		userID := "test-user"
+		clientID := "test-client"
 		now := time.Now()
 
 		session := &SessionContext{
 			SessionID:    sessionID,
-			UserID:       userID,
+			ClientID:     clientID,
 			ProjectID:    nil,
 			CreatedAt:    now,
 			LastActivity: now,
 		}
 
 		assert.Equal(t, sessionID, session.SessionID)
-		assert.Equal(t, userID, session.UserID)
+		assert.Equal(t, clientID, session.ClientID)
 		assert.Nil(t, session.ProjectID)
 		assert.Equal(t, now, session.CreatedAt)
 		assert.Equal(t, now, session.LastActivity)
@@ -265,9 +265,9 @@ func TestConcurrentAccess(t *testing.T) {
 	for i := 0; i < numGoroutines; i++ {
 		go func(id int) {
 			defer wg.Done()
-			userID := fmt.Sprintf("user-%d", id)
+			clientID := fmt.Sprintf("user-%d", id)
 			for j := 0; j < numOperations; j++ {
-				session, err := manager.CreateSession(userID + fmt.Sprintf("-session-%d", j))
+				session, err := manager.CreateSession(clientID + fmt.Sprintf("-session-%d", j))
 				require.NoError(t, err)
 				require.NotNil(t, session)
 
@@ -292,7 +292,7 @@ func TestConcurrentAccess(t *testing.T) {
 	sessions := manager.ListSessions()
 	for _, session := range sessions {
 		assert.NotEqual(t, uuid.Nil, session.SessionID)
-		assert.NotEmpty(t, session.UserID)
+		assert.NotEmpty(t, session.ClientID)
 	}
 }
 
@@ -306,8 +306,8 @@ func TestMemoryManagement(t *testing.T) {
 
 		// Create many sessions
 		for i := 0; i < numSessions; i++ {
-			userID := fmt.Sprintf("user-%d", i)
-			session, err := manager.CreateSession(userID)
+			clientID := fmt.Sprintf("user-%d", i)
+			session, err := manager.CreateSession(clientID)
 			require.NoError(t, err)
 			sessionIDs = append(sessionIDs, session.SessionID)
 
@@ -343,28 +343,28 @@ func TestEdgeCases(t *testing.T) {
 		session, err := manager.CreateSession("")
 		require.NoError(t, err)
 		assert.NotNil(t, session)
-		assert.Equal(t, "", session.UserID)
+		assert.Equal(t, "", session.ClientID)
 	})
 
 	t.Run("Special characters in user ID", func(t *testing.T) {
-		userID := "user-with-special-chars_123@#$%"
-		session, err := manager.CreateSession(userID)
+		clientID := "user-with-special-chars_123@#$%"
+		session, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
-		assert.Equal(t, userID, session.UserID)
+		assert.Equal(t, clientID, session.ClientID)
 
 		retrieved, err := manager.GetSession(session.SessionID)
 		require.NoError(t, err)
-		assert.Equal(t, userID, retrieved.UserID)
+		assert.Equal(t, clientID, retrieved.ClientID)
 	})
 
 	t.Run("Very long user ID", func(t *testing.T) {
-		userID := string(make([]byte, 1000))
-		for i := range userID {
-			userID = userID[:i] + "a" + userID[i+1:]
+		clientID := string(make([]byte, 1000))
+		for i := range clientID {
+			clientID = clientID[:i] + "a" + clientID[i+1:]
 		}
 
-		session, err := manager.CreateSession(userID)
+		session, err := manager.CreateSession(clientID)
 		require.NoError(t, err)
-		assert.Equal(t, userID, session.UserID)
+		assert.Equal(t, clientID, session.ClientID)
 	})
 }

@@ -20,6 +20,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
 	"github.com/denkhaus/knot/v2/internal/repository"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/denkhaus/knot/v2/internal/repository/postgres"
@@ -47,11 +48,6 @@ func NewContainer() *Container {
 // This allows external code to resolve services when needed.
 func (c *Container) GetInjector() do.Injector {
 	return c.injector
-}
-
-// SetInjector sets the injector (used after service registration)
-func (c *Container) SetInjector(injector do.Injector) {
-	c.injector = injector
 }
 
 // RegisterAllServices registers all application services in the dependency injection container.
@@ -85,12 +81,19 @@ func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context
 	// Register session storage factory for MCP services
 	do.Provide(c.injector, session.NewSessionStorageFactoryProvider)
 
+	// Register session repository provider (only available in MCP mode)
+	do.Provide(c.injector, session.NewSessionRepositoryProvider)
+
 	// Register session managers with named providers
 	do.ProvideNamed(c.injector, session.MemorySessionProvider.String(), session.NewMemorySessionManagerProvider)
 	do.ProvideNamed(c.injector, session.DatabaseSessionProvider.String(), session.NewDatabaseSessionManagerProvider)
 
 	// Register session manager provider that uses factory to select appropriate implementation
 	do.Provide(c.injector, session.NewSessionManager)
+
+	// Register hint system services
+	do.Provide(c.injector, hints.NewHintGeneratorProvider)
+	do.Provide(c.injector, hints.NewHintIntegrationProvider)
 
 	// Register MCP server
 	do.Provide(c.injector, mcp.NewServer)

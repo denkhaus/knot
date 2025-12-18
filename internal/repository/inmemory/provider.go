@@ -5,21 +5,20 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// Provider provides in-memory repository instances with DI support
-type Provider struct{}
+// provider provides in-memory repository instances with DI support
+// Private implementation of RepositoryProvider interface
+type provider struct{}
+
+// Ensure provider implements RepositoryProvider
+var _ types.RepositoryProvider = (*provider)(nil)
 
 // NewProvider creates a new in-memory repository provider
-func NewProvider(injector do.Injector) (*Provider, error) {
-	return &Provider{}, nil
+func NewProvider(injector do.Injector) (types.RepositoryProvider, error) {
+	return &provider{}, nil
 }
 
 // NewRepository creates a new in-memory repository
-func (p *Provider) NewRepository() types.Repository {
-	return NewMemoryRepository()
-}
-
-// ProvideRepository is a convenience function for DI registration
-func ProvideRepository(injector do.Injector) (types.Repository, error) {
-	provider := do.MustInvoke[*Provider](injector)
-	return provider.NewRepository(), nil
+func (p *provider) NewRepository(dsn string, opts ...interface{}) (types.Repository, error) {
+	// In-memory repository doesn't use DSN or options
+	return NewMemoryRepository(), nil
 }

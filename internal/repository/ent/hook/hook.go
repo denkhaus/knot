@@ -33,6 +33,18 @@ func (f ProjectContextFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Val
 	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.ProjectContextMutation", m)
 }
 
+// The SessionFunc type is an adapter to allow the use of ordinary
+// function as Session mutator.
+type SessionFunc func(context.Context, *ent.SessionMutation) (ent.Value, error)
+
+// Mutate calls f(ctx, m).
+func (f SessionFunc) Mutate(ctx context.Context, m ent.Mutation) (ent.Value, error) {
+	if mv, ok := m.(*ent.SessionMutation); ok {
+		return f(ctx, mv)
+	}
+	return nil, fmt.Errorf("unexpected mutation type %T. expect *ent.SessionMutation", m)
+}
+
 // The TaskFunc type is an adapter to allow the use of ordinary
 // function as Task mutator.
 type TaskFunc func(context.Context, *ent.TaskMutation) (ent.Value, error)

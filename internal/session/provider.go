@@ -10,14 +10,11 @@ import (
 )
 
 // NewSessionStorageFactoryProvider creates a session storage factory with DI dependencies
-func NewSessionStorageFactoryProvider(injector do.Injector) (*SessionStorageFactory, error) {
+func NewSessionStorageFactoryProvider(injector do.Injector) (StorageFactory, error) {
 	configService := do.MustInvoke[config.Service](injector)
 	loggerService := do.MustInvoke[logger.Logger](injector)
 
-	return &SessionStorageFactory{
-		configService: configService,
-		logger:        loggerService,
-	}, nil
+	return NewSessionStorageFactory(configService, loggerService), nil
 }
 
 // NewMemorySessionManagerProvider creates a memory-based session manager
@@ -27,7 +24,7 @@ func NewMemorySessionManagerProvider(injector do.Injector) (Manager, error) {
 
 // NewDatabaseSessionManagerProvider creates a database-backed session manager with DI dependencies
 func NewDatabaseSessionManagerProvider(injector do.Injector) (Manager, error) {
-	repo := do.MustInvoke[types.Repository](injector)
+	repo := do.MustInvoke[types.SessionRepository](injector)
 	loggerService := do.MustInvoke[logger.Logger](injector)
 
 	return NewDatabaseSessionManager(repo, loggerService), nil
@@ -37,7 +34,7 @@ func NewDatabaseSessionManagerProvider(injector do.Injector) (Manager, error) {
 // This follows the dependency injection pattern used throughout the application
 func NewSessionManager(injector do.Injector) (Manager, error) {
 	// Get the session storage factory
-	factory := do.MustInvoke[*SessionStorageFactory](injector)
+	factory := do.MustInvoke[StorageFactory](injector)
 
 	// Get repository for database session creation
 	repo := do.MustInvoke[types.Repository](injector)

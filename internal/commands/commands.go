@@ -22,9 +22,6 @@ import (
 // NewBeforeCommand creates a Before action function that initializes DI and configures services
 func NewBeforeCommand(container *di.Container, version string) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
-		// Initialize DI container with all services
-		injector := container.RegisterAllServices(c.Context, c)
-
 		// For now, keep using the global logger approach until full migration
 		logLevel := c.String("log-level")
 		logger.SetLogLevel(logLevel)
@@ -39,25 +36,12 @@ func NewBeforeCommand(container *di.Container, version string) func(c *cli.Conte
 			loggerService.Debug("Template seeding check completed successfully")
 		}
 
-		// Store the injector in the container for later use by commands
-		container.SetInjector(injector)
-
-		// Add commands now that DI is initialized
-		c.App.Commands = []*cli.Command{
-			NewProjectCommand(injector),
-			NewTaskCommand(injector),
-			NewTemplateCommand(injector),
-			NewDependencyCommand(injector),
-			NewConfigCommand(injector),
-			NewHealthCommand(injector),
-			NewStatusCommand(injector),
-			NewValidateCommand(injector),
-			NewGetStartedCommand(injector),
-			NewCompletionCommand(injector),
-			NewMCPCommand(injector),
+		// Store injector in app metadata so commands can access it
+		c.App.Metadata = map[string]interface{}{
+			"injector": injector,
 		}
 
-		loggerService.Info("Knot CLI started with DI", zap.String("version", version))
+		loggerService.Info("startup knot cli", zap.String("version", version))
 
 		return nil
 	}

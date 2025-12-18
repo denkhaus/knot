@@ -73,6 +73,64 @@ var (
 			},
 		},
 	}
+	// SessionsColumns holds the columns for the "sessions" table.
+	SessionsColumns = []*schema.Column{
+		{Name: "id", Type: field.TypeUUID, Unique: true},
+		{Name: "client_id", Type: field.TypeString, Size: 255},
+		{Name: "created_at", Type: field.TypeTime},
+		{Name: "last_activity", Type: field.TypeTime},
+		{Name: "expires_at", Type: field.TypeTime, Nullable: true},
+		{Name: "metadata", Type: field.TypeJSON, Nullable: true},
+		{Name: "actor", Type: field.TypeString, Nullable: true, Size: 255},
+		{Name: "status", Type: field.TypeEnum, Enums: []string{"active", "inactive", "expired"}, Default: "active"},
+		{Name: "session_project", Type: field.TypeUUID, Nullable: true},
+	}
+	// SessionsTable holds the schema information for the "sessions" table.
+	SessionsTable = &schema.Table{
+		Name:       "sessions",
+		Columns:    SessionsColumns,
+		PrimaryKey: []*schema.Column{SessionsColumns[0]},
+		ForeignKeys: []*schema.ForeignKey{
+			{
+				Symbol:     "sessions_projects_project",
+				Columns:    []*schema.Column{SessionsColumns[8]},
+				RefColumns: []*schema.Column{ProjectsColumns[0]},
+				OnDelete:   schema.SetNull,
+			},
+		},
+		Indexes: []*schema.Index{
+			{
+				Name:    "session_client_id",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[1]},
+			},
+			{
+				Name:    "session_created_at",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[2]},
+			},
+			{
+				Name:    "session_last_activity",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[3]},
+			},
+			{
+				Name:    "session_expires_at",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[4]},
+			},
+			{
+				Name:    "session_status",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[7]},
+			},
+			{
+				Name:    "session_client_id_status",
+				Unique:  false,
+				Columns: []*schema.Column{SessionsColumns[1], SessionsColumns[7]},
+			},
+		},
+	}
 	// TasksColumns holds the columns for the "tasks" table.
 	TasksColumns = []*schema.Column{
 		{Name: "id", Type: field.TypeUUID, Unique: true},
@@ -252,6 +310,7 @@ var (
 	Tables = []*schema.Table{
 		ProjectsTable,
 		ProjectContextsTable,
+		SessionsTable,
 		TasksTable,
 		TaskDependenciesTable,
 	}
@@ -259,6 +318,7 @@ var (
 
 func init() {
 	ProjectContextsTable.ForeignKeys[0].RefTable = ProjectsTable
+	SessionsTable.ForeignKeys[0].RefTable = ProjectsTable
 	TasksTable.ForeignKeys[0].RefTable = ProjectsTable
 	TasksTable.ForeignKeys[1].RefTable = TasksTable
 	TaskDependenciesTable.ForeignKeys[0].RefTable = TasksTable

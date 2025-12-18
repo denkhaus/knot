@@ -17,21 +17,13 @@ import (
 func (r *postgresRepository) CreateProject(ctx context.Context, project *types.Project) error {
 	r.logger.Debug("Creating project", zap.String("title", project.Title))
 
-	result, err := r.client.Project.Create().
-		SetTitle(project.Title).
-		SetDescription(project.Description).
-		SetState(entproject.State(project.State)).
-		SetTotalTasks(0).
-		SetCompletedTasks(0).
-		SetProgress(project.Progress).
-		Save(ctx)
-
+	result, err := projectToEntProjectCreate(project, r.client).Save(ctx)
 	if err != nil {
 		r.logger.Error("Failed to create project", zap.Error(err))
 		return fmt.Errorf("failed to create project: %w", err)
 	}
 
-	// Update the project with the generated ID
+	// Update the project with the generated ID and timestamps
 	project.ID = result.ID
 	project.CreatedAt = result.CreatedAt
 	project.UpdatedAt = result.UpdatedAt
@@ -66,7 +58,6 @@ func (r *postgresRepository) UpdateProject(ctx context.Context, project *types.P
 		SetState(entproject.State(project.State)).
 		SetProgress(project.Progress).
 		Save(ctx)
-
 	if err != nil {
 		r.logger.Error("Failed to update project", zap.Error(err))
 		return fmt.Errorf("failed to update project: %w", err)
@@ -128,7 +119,6 @@ func (r *postgresRepository) CreateTask(ctx context.Context, task *types.Task) e
 	}
 
 	result, err := creator.Save(ctx)
-
 	if err != nil {
 		r.logger.Error("Failed to create task", zap.Error(err))
 		return fmt.Errorf("failed to create task: %w", err)
@@ -218,7 +208,6 @@ func (r *postgresRepository) UpdateTask(ctx context.Context, task *types.Task) e
 		SetComplexity(task.Complexity).
 		SetDepth(task.Depth).
 		Save(ctx)
-
 	if err != nil {
 		r.logger.Error("Failed to update task", zap.Error(err))
 		return fmt.Errorf("failed to update task: %w", err)
@@ -392,7 +381,6 @@ func (r *postgresRepository) AddTaskDependency(ctx context.Context, taskID uuid.
 		SetTaskID(taskID).
 		SetDependsOnTaskID(dependsOnTaskID).
 		Save(ctx)
-
 	if err != nil {
 		r.logger.Error("Failed to add task dependency", zap.Error(err))
 		return nil, fmt.Errorf("failed to add task dependency: %w", err)
@@ -416,7 +404,6 @@ func (r *postgresRepository) RemoveTaskDependency(ctx context.Context, taskID uu
 			),
 		).
 		Exec(ctx)
-
 	if err != nil {
 		r.logger.Error("Failed to remove task dependency", zap.Error(err))
 		return nil, fmt.Errorf("failed to remove task dependency: %w", err)
@@ -520,90 +507,3 @@ func (r *postgresRepository) GetTaskCountByDepth(ctx context.Context, projectID 
 	return result, nil
 }
 
-// GetSelectedProject retrieves the currently selected project
-func (r *postgresRepository) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
-	// This would need to be implemented based on the project context table
-	// For now, return nil indicating no selected project
-	return nil, nil
-}
-
-// SetSelectedProject sets the currently selected project
-func (r *postgresRepository) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
-	// This would need to be implemented based on the project context table
-	// For now, return nil as a placeholder
-	return nil
-}
-
-// ClearSelectedProject clears the currently selected project
-func (r *postgresRepository) ClearSelectedProject(ctx context.Context) error {
-	// This would need to be implemented based on the project context table
-	// For now, return nil as a placeholder
-	return nil
-}
-
-// HasSelectedProject checks if there's a currently selected project
-func (r *postgresRepository) HasSelectedProject(ctx context.Context) (bool, error) {
-	// This would need to be implemented based on the project context table
-	// For now, return false as a placeholder
-	return false, nil
-}
-
-// Helper functions to convert between ent types and domain types
-
-func entProjectToProject(p *ent.Project) *types.Project {
-	return &types.Project{
-		ID:             p.ID,
-		Title:          p.Title,
-		Description:    p.Description,
-		State:          types.ProjectState(p.State),
-		TotalTasks:     p.TotalTasks,
-		CompletedTasks: p.CompletedTasks,
-		Progress:       p.Progress,
-		CreatedAt:      p.CreatedAt,
-		UpdatedAt:      p.UpdatedAt,
-	}
-}
-
-// taskPriorityToEntPriority converts domain int priority to Ent string priority
-func taskPriorityToEntPriority(priority types.TaskPriority) enttask.Priority {
-	switch priority {
-	case types.TaskPriorityHigh:
-		return enttask.PriorityHigh
-	case types.TaskPriorityMedium:
-		return enttask.PriorityMedium
-	case types.TaskPriorityLow:
-		return enttask.PriorityLow
-	default:
-		return enttask.PriorityMedium // Default fallback
-	}
-}
-
-// entPriorityToTaskPriority converts Ent string priority to domain int priority
-func entPriorityToTaskPriority(priority enttask.Priority) types.TaskPriority {
-	switch priority {
-	case enttask.PriorityHigh:
-		return types.TaskPriorityHigh
-	case enttask.PriorityMedium:
-		return types.TaskPriorityMedium
-	case enttask.PriorityLow:
-		return types.TaskPriorityLow
-	default:
-		return types.TaskPriorityMedium // Default fallback
-	}
-}
-
-func entTaskToTask(t *ent.Task) *types.Task {
-	return &types.Task{
-		ID:          t.ID,
-		ProjectID:   t.ProjectID,
-		ParentID:    t.ParentID,
-		Title:       t.Title,
-		Description: t.Description,
-		State:       types.TaskState(t.State),
-		Priority:    entPriorityToTaskPriority(t.Priority),
-		Complexity:  t.Complexity,
-		Depth:       t.Depth,
-		CreatedAt:   t.CreatedAt,
-		UpdatedAt:   t.UpdatedAt,
-	}
-}

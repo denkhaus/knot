@@ -7,6 +7,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
 	"github.com/denkhaus/knot/v2/internal/mcp/tools"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
@@ -16,19 +17,21 @@ import (
 // mcpServerImpl is the private implementation of the Server interface
 type mcpServerImpl struct {
 	*server.MCPServer
-	projectManager manager.ProjectManager
-	sessions       session.Manager
-	logger         logger.Logger
-	config         *config.MCPConfig
-	running        bool
+	projectManager  manager.ProjectManager
+	sessions        session.Manager
+	logger          logger.Logger
+	config          *config.MCPConfig
+	hintIntegration hints.Integration
+	running         bool
 }
 
 // ServerConfig holds configuration for creating an MCP server
 type ServerConfig struct {
-	ProjectManager manager.ProjectManager
-	SessionManager session.Manager
-	Logger         logger.Logger
-	Config         *config.MCPConfig
+	ProjectManager  manager.ProjectManager
+	SessionManager  session.Manager
+	Logger          logger.Logger
+	Config          *config.MCPConfig
+	HintIntegration hints.Integration
 }
 
 // NewServer creates a new MCP server with multi-project support using dependency injection
@@ -55,6 +58,7 @@ func newServer(cfg ServerConfig) (Server, error) {
 		sessions:       cfg.SessionManager,
 		logger:         cfg.Logger,
 		config:         cfg.Config,
+		hintIntegration: cfg.HintIntegration,
 		running:        false,
 	}
 
@@ -76,6 +80,9 @@ func (s *mcpServerImpl) registerTools() error {
 
 	// Register task management tools (task_create, task_get, task_update, task_update_state, task_delete)
 	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessions)
+
+	// Register status and query tools (status_ready, status_actionable, status_project)
+	tools.RegisterStatusTools(s.MCPServer, s.projectManager, s.sessions)
 
 	return nil
 }

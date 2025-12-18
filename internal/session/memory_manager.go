@@ -22,14 +22,14 @@ func newManager() Manager {
 }
 
 // CreateSession creates a new session with proper validation and metadata
-func (m *managerImpl) CreateSession(userID string) (*SessionContext, error) {
-	if userID == "" {
-		return nil, fmt.Errorf("user ID cannot be empty")
+func (m *managerImpl) CreateSession(clientID string) (*SessionContext, error) {
+	if clientID == "" {
+		return nil, fmt.Errorf("client ID cannot be empty")
 	}
 
 	session := &SessionContext{
 		SessionID:    uuid.New(),
-		UserID:       userID,
+		ClientID:     clientID,
 		CreatedAt:    time.Now(),
 		LastActivity: time.Now(),
 		Metadata:     make(map[string]interface{}),

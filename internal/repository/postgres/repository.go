@@ -9,7 +9,9 @@ import (
 	"entgo.io/ent/dialect"
 	entsql "entgo.io/ent/dialect/sql"
 	"github.com/denkhaus/knot/v2/internal/repository/ent"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/session"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/google/uuid"
 	"go.uber.org/zap"
 	_ "github.com/lib/pq"
 )
@@ -156,4 +158,233 @@ func (r *postgresRepository) Close() error {
 		return r.client.Close()
 	}
 	return nil
+}
+
+// Session operations - these methods implement the SessionRepository interface
+// Only PostgreSQL repository implements these as sessions are only needed for MCP mode
+
+// CreateSession creates a new session
+func (r *postgresRepository) CreateSession(ctx context.Context, clientID string) (*types.Session, error) {
+	sessionEnt, err := r.client.Session.Create().
+		SetClientID(clientID).
+		SetStatus(session.StatusActive).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session: %w", err)
+	}
+
+	r.logger.Debug("Session created",
+		zap.String("session_id", sessionEnt.ID.String()),
+		zap.String("client_id", clientID))
+
+	return r.convertSessionEntToTypes(sessionEnt), nil
+}
+
+// GetSession retrieves a session by ID and updates last activity
+func (r *postgresRepository) GetSession(ctx context.Context, sessionID uuid.UUID) (*types.Session, error) {
+	session, err := r.client.Session.Get(ctx, sessionID)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, fmt.Errorf("session not found")
+		}
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	// Update last activity
+	updatedSession, err := r.client.Session.UpdateOne(session).
+		SetLastActivity(time.Now()).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to update session activity: %w", err)
+	}
+
+	return r.convertSessionEntToTypes(updatedSession), nil
+}
+
+// DeleteSession removes a session by ID
+func (r *postgresRepository) DeleteSession(ctx context.Context, sessionID uuid.UUID) error {
+	err := r.client.Session.DeleteOneID(sessionID).Exec(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil // Session already deleted
+		}
+		return fmt.Errorf("failed to delete session: %w", err)
+	}
+
+	r.logger.Debug("Session deleted",
+		zap.String("session_id", sessionID.String()))
+
+	return nil
+}
+
+// ListSessions returns all sessions for a client, or all sessions if clientID is empty
+func (r *postgresRepository) ListSessions(ctx context.Context, clientID string) ([]*types.Session, error) {
+	query := r.client.Session.Query()
+	if clientID != "" {
+		query = query.Where(session.ClientID(clientID))
+	}
+
+	sessionEnts, err := query.All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sessions: %w", err)
+	}
+
+	result := make([]*types.Session, len(sessionEnts))
+	for i, s := range sessionEnts {
+		result[i] = r.convertSessionEntToTypes(s)
+	}
+
+	return result, nil
+}
+
+// UpdateSessionActivity updates the last activity timestamp
+func (r *postgresRepository) UpdateSessionActivity(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := r.client.Session.UpdateOneID(sessionID).
+		SetLastActivity(time.Now()).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fmt.Errorf("session not found")
+		}
+		return fmt.Errorf("failed to update session activity: %w", err)
+	}
+
+	return nil
+}
+
+// SetSessionProject associates a project with a session
+func (r *postgresRepository) SetSessionProject(ctx context.Context, sessionID, projectID uuid.UUID) error {
+	// First get the project to ensure it exists
+	project, err := r.client.Project.Get(ctx, projectID)
+	if err != nil {
+		return fmt.Errorf("project not found: %w", err)
+	}
+
+	_, err = r.client.Session.UpdateOneID(sessionID).
+		SetProject(project).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fmt.Errorf("session not found")
+		}
+		return fmt.Errorf("failed to set session project: %w", err)
+	}
+
+	r.logger.Debug("Project set for session",
+		zap.String("session_id", sessionID.String()),
+		zap.String("project_id", projectID.String()))
+
+	return nil
+}
+
+// GetSessionProject retrieves the project ID associated with a session
+func (r *postgresRepository) GetSessionProject(ctx context.Context, sessionID uuid.UUID) (*uuid.UUID, error) {
+	sessionEnt, err := r.client.Session.Query().
+		Where(session.IDEQ(sessionID)).
+		WithProject().
+		Only(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return nil, fmt.Errorf("session not found")
+		}
+		return nil, fmt.Errorf("failed to get session: %w", err)
+	}
+
+	if sessionEnt.Edges.Project != nil {
+		return &sessionEnt.Edges.Project.ID, nil
+	}
+
+	return nil, nil // No project associated
+}
+
+// ClearSessionProject removes the project association from a session
+func (r *postgresRepository) ClearSessionProject(ctx context.Context, sessionID uuid.UUID) error {
+	_, err := r.client.Session.UpdateOneID(sessionID).
+		ClearProject().
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fmt.Errorf("session not found")
+		}
+		return fmt.Errorf("failed to clear session project: %w", err)
+	}
+
+	r.logger.Debug("Project cleared for session",
+		zap.String("session_id", sessionID.String()))
+
+	return nil
+}
+
+// CleanupExpiredSessions removes sessions that have expired
+func (r *postgresRepository) CleanupExpiredSessions(ctx context.Context, before time.Time) error {
+	_, err := r.client.Session.Delete().
+		Where(
+			session.And(
+				session.ExpiresAtNotNil(),
+				session.ExpiresAtLT(before),
+			),
+		).Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to cleanup expired sessions: %w", err)
+	}
+
+	r.logger.Info("Expired sessions cleaned up",
+		zap.Time("before", before))
+
+	return nil
+}
+
+// GetSessionCount returns the number of active sessions
+func (r *postgresRepository) GetSessionCount(ctx context.Context) (int, error) {
+	count, err := r.client.Session.Query().
+		Where(session.StatusEQ(session.StatusActive)).
+		Count(ctx)
+	if err != nil {
+		return 0, fmt.Errorf("failed to get session count: %w", err)
+	}
+
+	return count, nil
+}
+
+// ValidateSession checks if a session exists and is active
+func (r *postgresRepository) ValidateSession(ctx context.Context, sessionID uuid.UUID) bool {
+	exists, err := r.client.Session.Query().
+		Where(
+			session.IDEQ(sessionID),
+			session.StatusEQ(session.StatusActive),
+		).Exist(ctx)
+	if err != nil {
+		r.logger.Error("Failed to validate session",
+			zap.String("session_id", sessionID.String()),
+			zap.Error(err))
+		return false
+	}
+
+	return exists
+}
+
+// convertSessionEntToTypes converts an ent Session entity to a types.Session
+func (r *postgresRepository) convertSessionEntToTypes(sessionEnt *ent.Session) *types.Session {
+	var projectID *uuid.UUID
+	if sessionEnt.Edges.Project != nil {
+		projectID = &sessionEnt.Edges.Project.ID
+	}
+
+	// Handle ExpiresAt conversion
+	var expiresAt *time.Time
+	if !sessionEnt.ExpiresAt.IsZero() {
+		expiresAt = &sessionEnt.ExpiresAt
+	}
+
+	return &types.Session{
+		ID:           sessionEnt.ID,
+		ClientID:     sessionEnt.ClientID,
+		CreatedAt:    sessionEnt.CreatedAt,
+		LastActivity: sessionEnt.LastActivity,
+		ExpiresAt:    expiresAt,
+		Metadata:     sessionEnt.Metadata,
+		Actor:        sessionEnt.Actor,
+		Status:       types.SessionStatus(sessionEnt.Status),
+		ProjectID:    projectID,
+	}
 }

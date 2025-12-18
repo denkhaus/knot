@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
 
@@ -11,7 +12,7 @@ import (
 // This abstracts session management to enable dependency injection and testing.
 type Manager interface {
 	// Session lifecycle management
-	CreateSession(userID string) (*SessionContext, error)
+	CreateSession(clientID string) (*SessionContext, error)
 	GetSession(sessionID uuid.UUID) (*SessionContext, error)
 	DeleteSession(sessionID uuid.UUID) error
 	ListSessions() []*SessionContext
@@ -34,7 +35,7 @@ type Manager interface {
 type SessionContext struct {
 	SessionID    uuid.UUID
 	ProjectID    *uuid.UUID
-	UserID       string
+	ClientID     string
 	CreatedAt    time.Time
 	LastActivity time.Time
 	Metadata     map[string]interface{} // Flexible metadata storage
@@ -44,9 +45,18 @@ type SessionContext struct {
 type SessionInfo struct {
 	SessionID     string
 	ProjectID     *string
-	UserID        string
+	ClientID      string
 	CreatedAt     time.Time
 	LastActivity  time.Time
 	IsExpired     bool
 	MetadataCount int
+}
+
+// StorageFactory defines the interface for creating session managers
+// This enables dependency injection and testing
+type StorageFactory interface {
+	// DetectStorageType determines the appropriate storage type based on configuration
+	DetectStorageType() SessionStorageType
+	// CreateSessionManager creates a session manager based on storage type and repository
+	CreateSessionManager(ctx context.Context, repo types.Repository) (Manager, error)
 }

@@ -18,6 +18,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/project"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/projectcontext"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/session"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/task"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/taskdependency"
 )
@@ -31,6 +32,8 @@ type Client struct {
 	Project *ProjectClient
 	// ProjectContext is the client for interacting with the ProjectContext builders.
 	ProjectContext *ProjectContextClient
+	// Session is the client for interacting with the Session builders.
+	Session *SessionClient
 	// Task is the client for interacting with the Task builders.
 	Task *TaskClient
 	// TaskDependency is the client for interacting with the TaskDependency builders.
@@ -48,6 +51,7 @@ func (c *Client) init() {
 	c.Schema = migrate.NewSchema(c.driver)
 	c.Project = NewProjectClient(c.config)
 	c.ProjectContext = NewProjectContextClient(c.config)
+	c.Session = NewSessionClient(c.config)
 	c.Task = NewTaskClient(c.config)
 	c.TaskDependency = NewTaskDependencyClient(c.config)
 }
@@ -144,6 +148,7 @@ func (c *Client) Tx(ctx context.Context) (*Tx, error) {
 		config:         cfg,
 		Project:        NewProjectClient(cfg),
 		ProjectContext: NewProjectContextClient(cfg),
+		Session:        NewSessionClient(cfg),
 		Task:           NewTaskClient(cfg),
 		TaskDependency: NewTaskDependencyClient(cfg),
 	}, nil
@@ -167,6 +172,7 @@ func (c *Client) BeginTx(ctx context.Context, opts *sql.TxOptions) (*Tx, error) 
 		config:         cfg,
 		Project:        NewProjectClient(cfg),
 		ProjectContext: NewProjectContextClient(cfg),
+		Session:        NewSessionClient(cfg),
 		Task:           NewTaskClient(cfg),
 		TaskDependency: NewTaskDependencyClient(cfg),
 	}, nil
@@ -199,6 +205,7 @@ func (c *Client) Close() error {
 func (c *Client) Use(hooks ...Hook) {
 	c.Project.Use(hooks...)
 	c.ProjectContext.Use(hooks...)
+	c.Session.Use(hooks...)
 	c.Task.Use(hooks...)
 	c.TaskDependency.Use(hooks...)
 }
@@ -208,6 +215,7 @@ func (c *Client) Use(hooks ...Hook) {
 func (c *Client) Intercept(interceptors ...Interceptor) {
 	c.Project.Intercept(interceptors...)
 	c.ProjectContext.Intercept(interceptors...)
+	c.Session.Intercept(interceptors...)
 	c.Task.Intercept(interceptors...)
 	c.TaskDependency.Intercept(interceptors...)
 }
@@ -219,6 +227,8 @@ func (c *Client) Mutate(ctx context.Context, m Mutation) (Value, error) {
 		return c.Project.mutate(ctx, m)
 	case *ProjectContextMutation:
 		return c.ProjectContext.mutate(ctx, m)
+	case *SessionMutation:
+		return c.Session.mutate(ctx, m)
 	case *TaskMutation:
 		return c.Task.mutate(ctx, m)
 	case *TaskDependencyMutation:
@@ -523,6 +533,155 @@ func (c *ProjectContextClient) mutate(ctx context.Context, m *ProjectContextMuta
 		return (&ProjectContextDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
 	default:
 		return nil, fmt.Errorf("ent: unknown ProjectContext mutation op: %q", m.Op())
+	}
+}
+
+// SessionClient is a client for the Session schema.
+type SessionClient struct {
+	config
+}
+
+// NewSessionClient returns a client for the Session from the given config.
+func NewSessionClient(c config) *SessionClient {
+	return &SessionClient{config: c}
+}
+
+// Use adds a list of mutation hooks to the hooks stack.
+// A call to `Use(f, g, h)` equals to `session.Hooks(f(g(h())))`.
+func (c *SessionClient) Use(hooks ...Hook) {
+	c.hooks.Session = append(c.hooks.Session, hooks...)
+}
+
+// Intercept adds a list of query interceptors to the interceptors stack.
+// A call to `Intercept(f, g, h)` equals to `session.Intercept(f(g(h())))`.
+func (c *SessionClient) Intercept(interceptors ...Interceptor) {
+	c.inters.Session = append(c.inters.Session, interceptors...)
+}
+
+// Create returns a builder for creating a Session entity.
+func (c *SessionClient) Create() *SessionCreate {
+	mutation := newSessionMutation(c.config, OpCreate)
+	return &SessionCreate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// CreateBulk returns a builder for creating a bulk of Session entities.
+func (c *SessionClient) CreateBulk(builders ...*SessionCreate) *SessionCreateBulk {
+	return &SessionCreateBulk{config: c.config, builders: builders}
+}
+
+// MapCreateBulk creates a bulk creation builder from the given slice. For each item in the slice, the function creates
+// a builder and applies setFunc on it.
+func (c *SessionClient) MapCreateBulk(slice any, setFunc func(*SessionCreate, int)) *SessionCreateBulk {
+	rv := reflect.ValueOf(slice)
+	if rv.Kind() != reflect.Slice {
+		return &SessionCreateBulk{err: fmt.Errorf("calling to SessionClient.MapCreateBulk with wrong type %T, need slice", slice)}
+	}
+	builders := make([]*SessionCreate, rv.Len())
+	for i := 0; i < rv.Len(); i++ {
+		builders[i] = c.Create()
+		setFunc(builders[i], i)
+	}
+	return &SessionCreateBulk{config: c.config, builders: builders}
+}
+
+// Update returns an update builder for Session.
+func (c *SessionClient) Update() *SessionUpdate {
+	mutation := newSessionMutation(c.config, OpUpdate)
+	return &SessionUpdate{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOne returns an update builder for the given entity.
+func (c *SessionClient) UpdateOne(_m *Session) *SessionUpdateOne {
+	mutation := newSessionMutation(c.config, OpUpdateOne, withSession(_m))
+	return &SessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// UpdateOneID returns an update builder for the given id.
+func (c *SessionClient) UpdateOneID(id uuid.UUID) *SessionUpdateOne {
+	mutation := newSessionMutation(c.config, OpUpdateOne, withSessionID(id))
+	return &SessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// Delete returns a delete builder for Session.
+func (c *SessionClient) Delete() *SessionDelete {
+	mutation := newSessionMutation(c.config, OpDelete)
+	return &SessionDelete{config: c.config, hooks: c.Hooks(), mutation: mutation}
+}
+
+// DeleteOne returns a builder for deleting the given entity.
+func (c *SessionClient) DeleteOne(_m *Session) *SessionDeleteOne {
+	return c.DeleteOneID(_m.ID)
+}
+
+// DeleteOneID returns a builder for deleting the given entity by its id.
+func (c *SessionClient) DeleteOneID(id uuid.UUID) *SessionDeleteOne {
+	builder := c.Delete().Where(session.ID(id))
+	builder.mutation.id = &id
+	builder.mutation.op = OpDeleteOne
+	return &SessionDeleteOne{builder}
+}
+
+// Query returns a query builder for Session.
+func (c *SessionClient) Query() *SessionQuery {
+	return &SessionQuery{
+		config: c.config,
+		ctx:    &QueryContext{Type: TypeSession},
+		inters: c.Interceptors(),
+	}
+}
+
+// Get returns a Session entity by its id.
+func (c *SessionClient) Get(ctx context.Context, id uuid.UUID) (*Session, error) {
+	return c.Query().Where(session.ID(id)).Only(ctx)
+}
+
+// GetX is like Get, but panics if an error occurs.
+func (c *SessionClient) GetX(ctx context.Context, id uuid.UUID) *Session {
+	obj, err := c.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+	return obj
+}
+
+// QueryProject queries the project edge of a Session.
+func (c *SessionClient) QueryProject(_m *Session) *ProjectQuery {
+	query := (&ProjectClient{config: c.config}).Query()
+	query.path = func(context.Context) (fromV *sql.Selector, _ error) {
+		id := _m.ID
+		step := sqlgraph.NewStep(
+			sqlgraph.From(session.Table, session.FieldID, id),
+			sqlgraph.To(project.Table, project.FieldID),
+			sqlgraph.Edge(sqlgraph.M2O, false, session.ProjectTable, session.ProjectColumn),
+		)
+		fromV = sqlgraph.Neighbors(_m.driver.Dialect(), step)
+		return fromV, nil
+	}
+	return query
+}
+
+// Hooks returns the client hooks.
+func (c *SessionClient) Hooks() []Hook {
+	return c.hooks.Session
+}
+
+// Interceptors returns the client interceptors.
+func (c *SessionClient) Interceptors() []Interceptor {
+	return c.inters.Session
+}
+
+func (c *SessionClient) mutate(ctx context.Context, m *SessionMutation) (Value, error) {
+	switch m.Op() {
+	case OpCreate:
+		return (&SessionCreate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdate:
+		return (&SessionUpdate{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpUpdateOne:
+		return (&SessionUpdateOne{config: c.config, hooks: c.Hooks(), mutation: m}).Save(ctx)
+	case OpDelete, OpDeleteOne:
+		return (&SessionDelete{config: c.config, hooks: c.Hooks(), mutation: m}).Exec(ctx)
+	default:
+		return nil, fmt.Errorf("ent: unknown Session mutation op: %q", m.Op())
 	}
 }
 
@@ -875,9 +1034,9 @@ func (c *TaskDependencyClient) mutate(ctx context.Context, m *TaskDependencyMuta
 // hooks and interceptors per client, for fast access.
 type (
 	hooks struct {
-		Project, ProjectContext, Task, TaskDependency []ent.Hook
+		Project, ProjectContext, Session, Task, TaskDependency []ent.Hook
 	}
 	inters struct {
-		Project, ProjectContext, Task, TaskDependency []ent.Interceptor
+		Project, ProjectContext, Session, Task, TaskDependency []ent.Interceptor
 	}
 )

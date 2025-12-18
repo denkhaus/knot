@@ -14,6 +14,7 @@ import (
 	"entgo.io/ent/dialect/sql/sqlgraph"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/project"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/projectcontext"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/session"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/task"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/taskdependency"
 )
@@ -78,6 +79,7 @@ func checkColumn(t, c string) error {
 		columnCheck = sql.NewColumnCheck(map[string]func(string) bool{
 			project.Table:        project.ValidColumn,
 			projectcontext.Table: projectcontext.ValidColumn,
+			session.Table:        session.ValidColumn,
 			task.Table:           task.ValidColumn,
 			taskdependency.Table: taskdependency.ValidColumn,
 		})
