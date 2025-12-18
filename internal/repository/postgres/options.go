@@ -3,75 +3,45 @@ package postgres
 import (
 	"time"
 
-	"github.com/denkhaus/knot/v2/internal/types"
 	"go.uber.org/zap"
 )
 
 // Option is a function that configures a PostgreSQL repository
-type Option func(*Adapter)
+type Option func(*postgresRepository)
 
-// WithConfig sets the entire configuration
-func WithConfig(config *Config) Option {
-	return func(a *Adapter) {
-		a.config = config
-	}
-}
-
-// WithDSN sets the PostgreSQL connection string
-func WithDSN(dsn string) Option {
-	return func(a *Adapter) {
-		a.dsn = dsn
-	}
-}
-
-// WithLogger sets a logger for debugging reasons
+// WithLogger sets a logger for the PostgreSQL repository
 func WithLogger(logger *zap.Logger) Option {
-	return func(a *Adapter) {
-		if a.config == nil {
-			a.config = DefaultConfig()
-		}
-		a.config.Logger = logger
+	return func(r *postgresRepository) {
+		r.logger = logger
 	}
 }
 
-// WithAutoMigrate enables or disables auto-migration
+// WithAutoMigrate enables or disables auto-migration for PostgreSQL
 func WithAutoMigrate(enable bool) Option {
-	return func(a *Adapter) {
-		if a.config == nil {
-			a.config = DefaultConfig()
-		}
-		a.config.AutoMigrate = enable
+	return func(r *postgresRepository) {
+		r.autoMigrate = enable
 	}
 }
 
 // WithConnectionPool configures the connection pool for PostgreSQL
 func WithConnectionPool(maxOpen, maxIdle int) Option {
-	return func(a *Adapter) {
-		if a.config == nil {
-			a.config = DefaultConfig()
-		}
-		a.config.MaxOpenConns = maxOpen
-		a.config.MaxIdleConns = maxIdle
+	return func(r *postgresRepository) {
+		r.maxOpenConns = maxOpen
+		r.maxIdleConns = maxIdle
 	}
 }
 
-// WithConnectionLifetime configures connection lifetimes
+// WithConnectionLifetime configures connection lifetimes for PostgreSQL
 func WithConnectionLifetime(maxLifetime, maxIdleTime time.Duration) Option {
-	return func(a *Adapter) {
-		if a.config == nil {
-			a.config = DefaultConfig()
-		}
-		a.config.ConnMaxLifetime = maxLifetime
-		a.config.ConnMaxIdleTime = maxIdleTime
+	return func(r *postgresRepository) {
+		r.connMaxLifetime = maxLifetime
+		r.connMaxIdleTime = maxIdleTime
 	}
 }
 
-// WithMigrationTimeout sets the migration timeout
+// WithMigrationTimeout sets the migration timeout for PostgreSQL
 func WithMigrationTimeout(timeout time.Duration) Option {
-	return func(a *Adapter) {
-		if a.config == nil {
-			a.config = DefaultConfig()
-		}
-		a.config.MigrationTimeout = timeout
+	return func(r *postgresRepository) {
+		r.migrationTimeout = timeout
 	}
 }

@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent"
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/project"
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/projectcontext"
+	"github.com/denkhaus/knot/v2/internal/repository/ent"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/project"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/projectcontext"
 	"github.com/google/uuid"
 	"go.uber.org/zap"
 )

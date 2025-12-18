@@ -9,7 +9,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/repository/postgres"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
 	"github.com/denkhaus/knot/v2/internal/types"
-	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 )
 
 // RepositoryMode defines the different repository modes
@@ -29,11 +29,14 @@ type RepositoryFactory struct {
 }
 
 // NewRepositoryFactory creates a new repository factory
-func NewRepositoryFactory(configService config.Service, logger logger.Logger) *RepositoryFactory {
+func NewRepositoryFactory(injector do.Injector) (*RepositoryFactory, error) {
+	configService := do.MustInvoke[config.Service](injector)
+	loggerService := do.MustInvoke[logger.Logger](injector)
+
 	return &RepositoryFactory{
 		configService: configService,
-		logger:        logger,
-	}
+		logger:        loggerService,
+	}, nil
 }
 
 // CreateRepository creates a repository based on the specified mode
@@ -60,7 +63,7 @@ func (f *RepositoryFactory) createLocalRepository(ctx context.Context) (types.Re
 	repo, err := sqliteProvider.NewRepository(dbPath,
 		sqlite.WithLogger(f.logger.ToZap()),
 		sqlite.WithAutoMigrate(true),
-		sqlite.WithWorkloadOptimization(sqlite.WorkloadReadHeavy), // CLI is typically read-heavy
+		sqlite.WithConnectionPool(10, 5), // CLI typically has lower concurrency needs
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create Local Mode SQLite repository: %w", err)
@@ -82,20 +85,20 @@ func (f *RepositoryFactory) createMCPRepository(ctx context.Context) (types.Repo
 		return nil, fmt.Errorf("PostgreSQL DSN not configured for MCP Mode")
 	}
 
-	// Create PostgreSQL repository with server optimizations
+	// Create PostgreSQL provider
 	postgresProvider := &postgres.Provider{}
 	repo, err := postgresProvider.NewRepository(dsn,
 		postgres.WithLogger(f.logger.ToZap()),
 		postgres.WithAutoMigrate(true),
-		postgres.WithWorkloadOptimization(postgres.WorkloadMixed), // MCP server has mixed workload
-		postgres.WithConnectionPool(25, 5), // Higher concurrency for server
+		postgres.WithConnectionPool(25, 5), // Higher concurrency for MCP server
+		postgres.WithMigrationTimeout(f.configService.GetMCPConfig().Session.Timeout),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create MCP Mode PostgreSQL repository: %w", err)
 	}
 
 	f.logger.Info("MCP Mode repository created successfully",
-		logger.String("mode", "MCP"))
+		logger.String("dsn", "postgresql://***")) // Mask sensitive DSN
 
 	return repo, nil
 }
@@ -108,6 +111,73 @@ func (f *RepositoryFactory) GetModeFromConfig() RepositoryMode {
 		return MCPMode
 	}
 	return LocalMode
+}
+
+// CreateRepositoryWithDI creates a repository using DI to get the appropriate provider
+// This ensures all services go through the DI system and providers are reusable
+func (f *RepositoryFactory) CreateRepositoryWithDI(injector do.Injector, mode RepositoryMode) (types.Repository, error) {
+	switch mode {
+	case LocalMode:
+		return f.createLocalRepositoryWithDI(injector)
+	case MCPMode:
+		return f.createMCPRepositoryWithDI(injector)
+	default:
+		return nil, fmt.Errorf("unsupported repository mode: %s", mode)
+	}
+}
+
+// createLocalRepositoryWithDI creates a SQLite repository using DI providers
+func (f *RepositoryFactory) createLocalRepositoryWithDI(injector do.Injector) (types.Repository, error) {
+	f.logger.Info("Creating Local Mode repository via DI (SQLite)")
+
+	// Get database path from config
+	dbPath := f.configService.GetDatabasePath()
+
+	// Get SQLite provider from DI (contains reusable Ent ORM code)
+	sqliteProvider := do.MustInvokeNamed[*sqlite.Provider](injector, SQLiteProvider.String())
+
+	// Create repository using the provider
+	repo, err := sqliteProvider.NewRepository(dbPath,
+		sqlite.WithLogger(f.logger.ToZap()),
+		sqlite.WithAutoMigrate(true),
+		sqlite.WithConnectionPool(10, 5), // CLI typically has lower concurrency needs
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create Local Mode SQLite repository: %w", err)
+	}
+
+	f.logger.Info("Local Mode repository created successfully via DI",
+		logger.String("database_path", dbPath))
+
+	return repo, nil
+}
+
+// createMCPRepositoryWithDI creates a PostgreSQL repository using DI providers
+func (f *RepositoryFactory) createMCPRepositoryWithDI(injector do.Injector) (types.Repository, error) {
+	f.logger.Info("Creating MCP Mode repository via DI (PostgreSQL)")
+
+	// Get PostgreSQL DSN from config
+	dsn := f.configService.GetMCPConfig().Database.Endpoint
+	if dsn == "" {
+		return nil, fmt.Errorf("PostgreSQL DSN not configured for MCP Mode")
+	}
+
+	// Get PostgreSQL provider from DI (contains reusable Ent ORM code)
+	postgresProvider := do.MustInvokeNamed[*postgres.Provider](injector, PostgreSQLProvider.String())
+
+	// Create repository using the provider with DI dependencies
+	repo, err := postgresProvider.NewRepository(dsn,
+		postgres.WithLogger(f.logger.ToZap()),
+		postgres.WithAutoMigrate(true),
+		postgres.WithConnectionPool(25, 5), // Higher concurrency for MCP server
+		postgres.WithMigrationTimeout(f.configService.GetMCPConfig().Session.Timeout),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create MCP Mode PostgreSQL repository: %w", err)
+	}
+
+	f.logger.Info("MCP Mode repository created successfully via DI")
+	return repo, nil
 }
 
 // DetectMode attempts to auto-detect the appropriate mode

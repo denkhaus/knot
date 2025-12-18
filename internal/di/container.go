@@ -20,11 +20,11 @@ import (
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp"
-	"github.com/denkhaus/knot/v2/internal/mcp/session"
 	"github.com/denkhaus/knot/v2/internal/repository"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/denkhaus/knot/v2/internal/repository/postgres"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
+	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/denkhaus/knot/v2/internal/templates"
 	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
@@ -63,19 +63,18 @@ func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context
 	do.Provide(c.injector, logger.NewService)
 
 	// Register repository providers with named providers using well-defined types
-	do.ProvideNamedValue(c.injector, repository.SQLiteProvider.String(), sqlite.NewProvider)
-	do.ProvideNamedValue(c.injector, repository.PostgreSQLProvider.String(), postgres.NewProvider)
-	do.ProvideNamedValue(c.injector, repository.InMemoryProvider.String(), inmemory.NewProvider)
+	// These providers contain the Ent ORM code that is reusable for both modes
+	do.ProvideNamed(c.injector, repository.SQLiteProvider.String(), sqlite.NewProvider)
+	do.ProvideNamed(c.injector, repository.PostgreSQLProvider.String(), postgres.NewProvider)
+	do.ProvideNamed(c.injector, repository.InMemoryProvider.String(), inmemory.NewProvider)
 
 	// Register repository factory for mode-based repository creation
+	// The factory will use DI to get the appropriate provider based on mode
 	do.Provide(c.injector, repository.NewRepositoryFactory)
 
-	// Register repositories with named providers using well-defined types
-	do.ProvideNamedValue(c.injector, repository.LocalRepository.String(), repository.NewSQLiteRepository)
-	do.ProvideNamedValue(c.injector, repository.MCPRepository.String(), repository.NewPostgreSQLRepository)
-
-	// Register the default repository based on detected mode
-	do.Provide(c.injector, repository.NewModeBasedRepository)
+	// Register the default repository provider that uses the factory
+	// This ensures the right provider is selected by mode
+	do.Provide(c.injector, repository.NewModeBasedRepositoryProvider)
 
 	// Register template service (depends on repository and logger)
 	do.Provide(c.injector, templates.NewService)
@@ -83,7 +82,14 @@ func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context
 	// Register project manager (depends on repository and config)
 	do.Provide(c.injector, manager.NewService)
 
-	// Register session manager for MCP services
+	// Register session storage factory for MCP services
+	do.Provide(c.injector, session.NewSessionStorageFactoryProvider)
+
+	// Register session managers with named providers
+	do.ProvideNamed(c.injector, session.MemorySessionProvider.String(), session.NewMemorySessionManagerProvider)
+	do.ProvideNamed(c.injector, session.DatabaseSessionProvider.String(), session.NewDatabaseSessionManagerProvider)
+
+	// Register session manager provider that uses factory to select appropriate implementation
 	do.Provide(c.injector, session.NewSessionManager)
 
 	// Register MCP server

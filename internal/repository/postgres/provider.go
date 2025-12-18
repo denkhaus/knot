@@ -1,6 +1,9 @@
 package postgres
 
 import (
+	"fmt"
+
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/samber/do/v2"
@@ -17,19 +20,26 @@ func NewProvider(injector do.Injector) (*Provider, error) {
 
 // NewRepository creates a new PostgreSQL repository with DI dependencies
 func (p *Provider) NewRepository(dsn string, opts ...Option) (types.Repository, error) {
-	// For now, create repository with default configuration
-	// In a full implementation, we would inject logger and config dependencies
 	return NewRepository(dsn, opts...)
 }
 
-// ProvideRepository is a convenience function for DI registration
+// ProvideRepository is a convenience function for DI registration using MCP config
 func ProvideRepository(injector do.Injector) (types.Repository, error) {
 	provider := do.MustInvoke[*Provider](injector)
+	configService := do.MustInvoke[config.Service](injector)
 	loggerService := do.MustInvoke[logger.Logger](injector)
 
-	// Use logger from DI - DSN will come from config in real implementation
-	return provider.NewRepository("",
+	// Get PostgreSQL DSN from MCP config
+	dsn := configService.GetMCPConfig().Database.Endpoint
+	if dsn == "" {
+		return nil, fmt.Errorf("PostgreSQL DSN not configured in MCP config")
+	}
+
+	// Create repository with DI dependencies and MCP config
+	return provider.NewRepository(dsn,
 		WithLogger(loggerService.ToZap()),
 		WithAutoMigrate(true),
+		WithConnectionPool(25, 5), // Higher concurrency for MCP server
+		WithMigrationTimeout(configService.GetMCPConfig().Session.Timeout),
 	)
 }

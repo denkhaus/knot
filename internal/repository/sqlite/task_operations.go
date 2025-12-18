@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent"
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/project"
-	taskpred "github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/task"
-	"github.com/denkhaus/knot/v2/internal/repository/sqlite/ent/taskdependency"
+	"github.com/denkhaus/knot/v2/internal/repository/ent"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/project"
+	taskpred "github.com/denkhaus/knot/v2/internal/repository/ent/task"
+	"github.com/denkhaus/knot/v2/internal/repository/ent/taskdependency"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )

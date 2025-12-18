@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/mcp/session"
+	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"

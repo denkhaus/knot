@@ -7,8 +7,8 @@ import (
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/mcp/session"
 	"github.com/denkhaus/knot/v2/internal/mcp/tools"
+	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
 )
 
