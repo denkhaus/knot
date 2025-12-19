@@ -269,7 +269,7 @@ func (hi *hintIntegration) WrapToolResponse(response interface{}, hints []Hint) 
 	// Create a response wrapper that includes hints
 	wrapper := map[string]interface{}{
 		"response": response,
-		"hints":   hints,
+		"hints":    hints,
 	}
 
 	return wrapper

@@ -4,7 +4,6 @@ import (
 	"embed"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
 )
 
@@ -14,14 +13,6 @@ var getStartedFS embed.FS
 // GetStartedAction provides a summary of available commands for LLM agents
 func GetStartedAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
-
-		// Check if a project is selected
-		_, err := shared.ResolveProjectID(c, container.GetInjector())
-		if err != nil {
-			return err
-		}
-
 		content, err := getStartedFS.ReadFile("get_started.md")
 		if err != nil {
 			return fmt.Errorf("failed to read get-started content: %w", err)

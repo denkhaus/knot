@@ -15,10 +15,7 @@ import (
 )
 
 func TestHierarchyCommands(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
-	commands := HierarchyCommands(testInjector)
+	commands := HierarchyCommands()
 
 	assert.NotEmpty(t, commands)
 
@@ -35,8 +32,7 @@ func TestHierarchyCommands(t *testing.T) {
 
 func TestChildrenAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
+testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -67,7 +63,7 @@ func TestChildrenAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ChildrenAction(testInjector)
+		action := ChildrenAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -81,8 +77,7 @@ func TestChildrenAction(t *testing.T) {
 
 func TestRootsAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
+testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -111,7 +106,7 @@ func TestRootsAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := RootsAction(testInjector)
+		action := RootsAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 

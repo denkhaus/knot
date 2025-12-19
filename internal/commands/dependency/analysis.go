@@ -5,18 +5,16 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // chainAction shows the dependency chain for a task
-func chainAction(injector do.Injector) cli.ActionFunc {
+func chainAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		container := shared.GetContainerFromCLIContext(c)
 		projectManager := container.GetProjectManager()
@@ -137,7 +135,7 @@ func cyclesAction() cli.ActionFunc {
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
-		projectID, err := shared.ResolveProjectID(c)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}
@@ -325,11 +323,13 @@ func detectCycles(tasks []*types.Task) [][]uuid.UUID {
 }
 
 // validateAction validates all dependencies in a project
-func validateAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func validateAction() cli.ActionFunc {
 
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		projectIDStr := c.String("project-id")
 		projectID, err := uuid.Parse(projectIDStr)
 		if err != nil {

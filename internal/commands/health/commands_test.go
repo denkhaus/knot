@@ -13,9 +13,9 @@ import (
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/mocks"
 	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -41,9 +41,7 @@ func TestCommands(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := testutil.NewTestConfig(t)
-			testInjector := config.SetupTestInjector(t)
-			commands := Commands(testInjector)
+			commands := Commands()
 
 			// Verify we get the expected number of commands
 			assert.Len(t, commands, len(tt.expectedCommands))
@@ -63,9 +61,7 @@ func TestCommands(t *testing.T) {
 }
 
 func TestCommandStructure(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Test that all commands have required structure
 	for _, cmd := range commands {
@@ -88,9 +84,7 @@ func TestCommandStructure(t *testing.T) {
 }
 
 func TestCheckCommandFlags(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Find the check command
 	var checkCommand *cli.Command
@@ -131,9 +125,7 @@ func TestCheckCommandFlags(t *testing.T) {
 }
 
 func TestPingCommandFlags(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Find the ping command
 	var pingCommand *cli.Command
@@ -169,9 +161,7 @@ func TestPingCommandFlags(t *testing.T) {
 }
 
 func TestValidateCommandFlags(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Find the validate command
 	var validateCommand *cli.Command
@@ -206,9 +196,7 @@ func TestValidateCommandFlags(t *testing.T) {
 }
 
 func TestCommandUsageText(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Test that commands have meaningful usage text
 	expectedUsages := map[string]string{
@@ -226,10 +214,8 @@ func TestCommandUsageText(t *testing.T) {
 }
 
 func TestCommandsReturnNewSlice(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands1 := Commands(testInjector)
-	commands2 := Commands(testInjector)
+	commands1 := Commands()
+	commands2 := Commands()
 
 	// Commands should return new slices to avoid modification issues
 	assert.NotSame(t, &commands1[0], &commands2[0],
@@ -237,9 +223,7 @@ func TestCommandsReturnNewSlice(t *testing.T) {
 }
 
 func TestCommandIntegration(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	t.Run("command creation with app context", func(t *testing.T) {
 		// Verify commands can be created with a valid app context
@@ -248,6 +232,10 @@ func TestCommandIntegration(t *testing.T) {
 	})
 
 	t.Run("command DI dependency", func(t *testing.T) {
+		// Set up test injector
+		config := testutil.NewTestConfig(t)
+		testInjector := config.SetupTestInjector(t)
+
 		// Test that commands properly work with DI
 		assert.NotNil(t, testInjector, "DI injector should be available")
 
@@ -261,18 +249,14 @@ func TestCommandEdgeCases(t *testing.T) {
 	t.Run("empty app context", func(t *testing.T) {
 		// This test would verify behavior with nil/empty app context
 		// But since we don't want to cause panics, we'll use a valid context
-		config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
 
-		commands := Commands(testInjector)
+		commands := Commands()
 		assert.NotEmpty(t, commands, "Commands should be created even with minimal app context")
 	})
 }
 
 func TestHealthCheckTimeouts(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	t.Run("check command timeout configuration", func(t *testing.T) {
 		var checkCommand *cli.Command
@@ -360,7 +344,7 @@ func Test_performHealthCheck(t *testing.T) {
 			flagSet.Int("max-description-length", 500, "")
 			flagSet.Bool("auto-reduce-complexity", true, "")
 			cliCtx := cli.NewContext(app, flagSet, nil)
-			testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+			testInjector := diContainer.RegisterAllServices(cliCtx)
 			do.OverrideValue(testInjector, mockMgr)
 
 			healthStatus, err := performHealthCheck(context.Background(), mockMgr)
@@ -418,7 +402,7 @@ func Test_performPing(t *testing.T) {
 			flagSet.Int("max-description-length", 500, "")
 			flagSet.Bool("auto-reduce-complexity", true, "")
 			cliCtx := cli.NewContext(app, flagSet, nil)
-			testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+			testInjector := diContainer.RegisterAllServices(cliCtx)
 			do.OverrideValue(testInjector, mockMgr)
 
 			err := performPing(context.Background(), mockMgr)
@@ -493,7 +477,7 @@ func Test_performValidation(t *testing.T) {
 			flagSet.Int("max-description-length", 500, "")
 			flagSet.Bool("auto-reduce-complexity", true, "")
 			cliCtx := cli.NewContext(app, flagSet, nil)
-			testInjector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+			testInjector := diContainer.RegisterAllServices(cliCtx)
 			do.OverrideValue(testInjector, mockMgr)
 
 			err := performValidation(context.Background(), mockMgr)

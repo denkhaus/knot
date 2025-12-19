@@ -26,7 +26,8 @@ func TestGetConfigPath(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			configPath, err := GetConfigPath()
+			svc := &serviceImpl{}
+			configPath, err := svc.GetConfigPath()
 
 			assert.NoError(t, err)
 			assert.NotEmpty(t, configPath)
@@ -49,7 +50,8 @@ func TestGetConfigPathWithWorkingDir(t *testing.T) {
 	err = os.Chdir(tempDir)
 	require.NoError(t, err)
 
-	configPath, err := GetConfigPath()
+	svc := &serviceImpl{}
+	configPath, err := svc.GetConfigPath()
 	assert.NoError(t, err)
 
 	expectedPath := filepath.Join(tempDir, ".knot", "config.json")
@@ -174,7 +176,7 @@ func TestValidateConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := ValidateConfig(tt.config)
+			err := tt.config.Validate()
 
 			if tt.expectError {
 				assert.Error(t, err)
@@ -192,7 +194,8 @@ func TestConfigIntegration(t *testing.T) {
 	// Integration test to verify the whole config workflow
 	t.Run("config path and validation workflow", func(t *testing.T) {
 		// Get config path
-		configPath, err := GetConfigPath()
+		svc := &serviceImpl{}
+		configPath, err := svc.GetConfigPath()
 		assert.NoError(t, err)
 
 		// Create a valid config
@@ -204,7 +207,7 @@ func TestConfigIntegration(t *testing.T) {
 		}
 
 		// Validate config
-		err = ValidateConfig(config)
+		err = config.Validate()
 		assert.NoError(t, err)
 
 		// Verify config path is absolute and contains expected components

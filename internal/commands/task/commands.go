@@ -21,14 +21,11 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -215,7 +212,7 @@ func createAction() cli.ActionFunc {
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
-		projectID, err := shared.ResolveProjectID(c)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}
@@ -308,13 +305,14 @@ func createAction() cli.ActionFunc {
 	}
 }
 
-func listAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func listAction() cli.ActionFunc {
 
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c)
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}

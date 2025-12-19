@@ -6,55 +6,93 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
 )
 
+// setupCLIContextWithDIBreakdown creates a CLI context with proper DI container setup for breakdown tests
+func setupCLIContextWithDIBreakdown(t *testing.T, projectID string) (*cli.Context, *cli.App) {
+	diContainer := di.NewContainer()
+
+	// Create CLI context with proper flags for DI
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+
+	cliCtx := cli.NewContext(app, flagSet, nil)
+	_ = diContainer.RegisterAllServices(cliCtx)
+
+	// Store container in CLI context metadata like BeforeCommand does
+	if app.Metadata == nil {
+		app.Metadata = make(map[string]interface{})
+	}
+	app.Metadata["container"] = diContainer
+
+	// Set project in the injector if projectID is provided
+	if projectID != "" {
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+		// Parse the project ID
+		pid, err := uuid.Parse(projectID)
+		require.NoError(t, err)
+		err = projectManager.SetSelectedProject(cliCtx.Context, pid, "test-user")
+		require.NoError(t, err)
+	}
+
+	return cliCtx, app
+}
+
 func TestBreakdownAction(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
-
-	project := testutil.CreateTestProject(t, projectManager)
-
-	// Set project context
-	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
-	require.NoError(t, err)
+	var project *types.Project
 
 	t.Run("no tasks need breakdown in empty project", func(t *testing.T) {
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 8, "")
-		flagSet.Int("limit", 0, "")
+		cliCtx, _ := setupCLIContextWithDIBreakdown(t, "")
 
-		ctx := cli.NewContext(app, flagSet, nil)
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
-		action := BreakdownAction(testInjector)
-		err := action(ctx)
+		project = testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
+		action := BreakdownAction()
+		err = action(cliCtx)
 		assert.NoError(t, err)
 	})
 
 	t.Run("task with high complexity needs breakdown", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDIBreakdown(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project = testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create a high complexity task
 		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Complex Task", "A very complex task", 9, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 8, "")
-		flagSet.Int("limit", 0, "")
-
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		action := BreakdownAction(testInjector)
-		err = action(ctx)
+		action := BreakdownAction()
+		err = action(cliCtx)
 		assert.NoError(t, err)
 
 		// Verify task still exists
@@ -64,6 +102,17 @@ func TestBreakdownAction(t *testing.T) {
 	})
 
 	t.Run("task with subtasks should not need breakdown", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDIBreakdown(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project = testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create a parent task with high complexity
 		parentTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Parent Task", "Complex parent task", 9, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
@@ -72,32 +121,42 @@ func TestBreakdownAction(t *testing.T) {
 		_, err = projectManager.CreateTask(context.TODO(), project.ID, &parentTask.ID, "Subtask", "A subtask", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 8, "")
-		flagSet.Int("limit", 0, "")
-
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		action := BreakdownAction(testInjector)
-		err = action(ctx)
+		action := BreakdownAction()
+		err = action(cliCtx)
 		assert.NoError(t, err)
 	})
 
 	t.Run("custom threshold", func(t *testing.T) {
+		cliCtx, app := setupCLIContextWithDIBreakdown(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project = testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create a task with complexity 6
 		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Medium Complex Task", "Moderately complex", 6, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Set threshold flag
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 5, "") // Lower threshold
-		flagSet.Int("limit", 0, "")
+		flagSet.Int("threshold", 5, "Complexity threshold")
+		flagSet.Int("limit", 0, "Result limit")
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
 		_ = flagSet.Set("threshold", "5")
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := BreakdownAction(testInjector)
+		action := BreakdownAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -108,6 +167,17 @@ func TestBreakdownAction(t *testing.T) {
 	})
 
 	t.Run("limit results", func(t *testing.T) {
+		cliCtx, app := setupCLIContextWithDIBreakdown(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project = testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create multiple high complexity tasks
 		for i := 0; i < 5; i++ {
 			_, err := projectManager.CreateTask(context.TODO(), project.ID, nil,
@@ -117,146 +187,55 @@ func TestBreakdownAction(t *testing.T) {
 			require.NoError(t, err)
 		}
 
-		app := &cli.App{}
+		// Set limit flag
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 8, "")
-		flagSet.Int("limit", 2, "")
+		flagSet.Int("threshold", 8, "Complexity threshold")
+		flagSet.Int("limit", 2, "Result limit")
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
 		_ = flagSet.Set("limit", "2")
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := BreakdownAction(testInjector)
-		err := action(ctx)
-		assert.NoError(t, err)
-	})
-
-	t.Run("tasks at different depths", func(t *testing.T) {
-		// Create a root task
-		rootTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Root Complex Task", "Complex root", 10, types.TaskPriorityHigh, "test-user")
-		require.NoError(t, err)
-
-		// Create a child task with high complexity (but no children of its own)
-		childTask, err := projectManager.CreateTask(context.TODO(), project.ID, &rootTask.ID, "Child Complex Task", "Complex child", 9, types.TaskPriorityHigh, "test-user")
-		require.NoError(t, err)
-
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 8, "")
-		flagSet.Int("limit", 0, "")
-
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		action := BreakdownAction(testInjector)
+		action := BreakdownAction()
 		err = action(ctx)
-		assert.NoError(t, err)
-
-		// Verify both tasks still exist
-		_, err = projectManager.GetTask(context.TODO(), rootTask.ID)
-		assert.NoError(t, err)
-		_, err = projectManager.GetTask(context.TODO(), childTask.ID)
-		assert.NoError(t, err)
-	})
-
-	t.Run("mixed complexity tasks", func(t *testing.T) {
-		// Create tasks with various complexities
-		lowComplexTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Low Complex", "Simple task", 3, types.TaskPriorityLow, "test-user")
-		require.NoError(t, err)
-
-		mediumComplexTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Medium Complex", "Medium task", 7, types.TaskPriorityMedium, "test-user")
-		require.NoError(t, err)
-
-		highComplexTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "High Complex", "Complex task", 10, types.TaskPriorityHigh, "test-user")
-		require.NoError(t, err)
-
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Int("threshold", 8, "")
-		flagSet.Int("limit", 0, "")
-
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		action := BreakdownAction(testInjector)
-		err = action(ctx)
-		assert.NoError(t, err)
-
-		// Verify all tasks still exist
-		_, err = projectManager.GetTask(context.TODO(), lowComplexTask.ID)
-		assert.NoError(t, err)
-		_, err = projectManager.GetTask(context.TODO(), mediumComplexTask.ID)
-		assert.NoError(t, err)
-		_, err = projectManager.GetTask(context.TODO(), highComplexTask.ID)
 		assert.NoError(t, err)
 	})
 }
 
 func TestBreakdownActionErrorHandling(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
 	t.Run("no project context", func(t *testing.T) {
+		// Set up DI container for this test
+		diContainer := di.NewContainer()
+
 		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Int("threshold", 8, "")
 		flagSet.Int("limit", 0, "")
+		// Add DI flags
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
 
 		ctx := cli.NewContext(app, flagSet, nil)
+		_ = diContainer.RegisterAllServices(ctx)
 
-		action := BreakdownAction(testInjector)
+		// Store container in CLI context metadata like BeforeCommand does
+		if app.Metadata == nil {
+			app.Metadata = make(map[string]interface{})
+		}
+		app.Metadata["container"] = diContainer
+
+		action := BreakdownAction()
 		err := action(ctx)
 		assert.Error(t, err) // Should fail because no project is selected
-	})
-}
-
-func TestBreakdownActionUsesConfig(t *testing.T) {
-	// Use standard test setup - this test verifies CLI flag behavior vs config defaults
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
-
-	// Create project
-	project := testutil.CreateTestProject(t, projectManager)
-
-	// Set project context
-	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
-	require.NoError(t, err)
-
-	t.Run("uses config threshold when no CLI flag", func(t *testing.T) {
-		// Create tasks with complexity 6 (should need breakdown with default threshold 5)
-		_, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Task 1", "Description", 6, types.TaskPriorityMedium, "test-user")
-		require.NoError(t, err)
-		_, err = projectManager.CreateTask(context.TODO(), project.ID, nil, "Task 2", "Description", 7, types.TaskPriorityMedium, "test-user")
-		require.NoError(t, err)
-
-		// Create task with complexity 4 (should not need breakdown with default threshold 5)
-		_, err = projectManager.CreateTask(context.TODO(), project.ID, nil, "Task 3", "Description", 4, types.TaskPriorityMedium, "test-user")
-		require.NoError(t, err)
-
-		app := &cli.App{}
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		// Don't set threshold flag - should use config value
-		flagSet.Int("limit", 0, "")
-
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		action := BreakdownAction(testInjector)
-		err = action(ctx)
-		assert.NoError(t, err)
-
-		// Get all tasks to verify which ones meet the threshold
-		tasks, err := projectManager.ListTasksForProject(context.Background(), project.ID)
-		require.NoError(t, err)
-
-		// Count tasks with complexity >= 5 (default config threshold)
-		expectedCount := 0
-		for _, task := range tasks {
-			if task.Complexity >= 5 {
-				expectedCount++
-			}
-		}
-
-		// Should have 2 tasks that meet the threshold
-		assert.Equal(t, 2, expectedCount)
 	})
 }

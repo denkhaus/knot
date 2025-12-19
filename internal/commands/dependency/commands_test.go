@@ -37,9 +37,7 @@ func TestCommands(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			config := testutil.NewTestConfig(t)
-			testInjector := config.SetupTestInjector(t)
-			commands := Commands(testInjector)
+			commands := Commands()
 
 			// Verify we get some commands
 			assert.NotEmpty(t, commands)
@@ -59,9 +57,7 @@ func TestCommands(t *testing.T) {
 }
 
 func TestCommandStructure(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Test that all commands have required structure
 	for _, cmd := range commands {
@@ -84,9 +80,7 @@ func TestCommandStructure(t *testing.T) {
 }
 
 func TestAddCommandFlags(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Find the add command
 	var addCommand *cli.Command
@@ -113,9 +107,7 @@ func TestAddCommandFlags(t *testing.T) {
 }
 
 func TestRemoveCommandFlags(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Find the remove command
 	var removeCommand *cli.Command
@@ -142,9 +134,7 @@ func TestRemoveCommandFlags(t *testing.T) {
 }
 
 func TestListCommandFlags(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Find the list command
 	var listCommand *cli.Command
@@ -171,9 +161,7 @@ func TestListCommandFlags(t *testing.T) {
 }
 
 func TestCommandUsageText(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	// Test that commands have meaningful usage text
 	expectedUsages := map[string]string{
@@ -191,10 +179,8 @@ func TestCommandUsageText(t *testing.T) {
 }
 
 func TestCommandsReturnNewSlice(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands1 := Commands(testInjector)
-	commands2 := Commands(testInjector)
+	commands1 := Commands()
+	commands2 := Commands()
 
 	// Commands should return new slices to avoid modification issues
 	assert.NotSame(t, &commands1[0], &commands2[0],
@@ -203,9 +189,7 @@ func TestCommandsReturnNewSlice(t *testing.T) {
 
 // Integration test with mock context
 func TestCommandIntegration(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-	commands := Commands(testInjector)
+	commands := Commands()
 
 	t.Run("command creation with app context", func(t *testing.T) {
 		// Verify commands can be created with a valid app context
@@ -214,6 +198,10 @@ func TestCommandIntegration(t *testing.T) {
 	})
 
 	t.Run("command DI dependency", func(t *testing.T) {
+		// Set up test injector
+		config := testutil.NewTestConfig(t)
+		testInjector := config.SetupTestInjector(t)
+
 		// Test that commands properly work with DI
 		assert.NotNil(t, testInjector, "DI injector should be available")
 
@@ -228,10 +216,8 @@ func TestCommandEdgeCases(t *testing.T) {
 	t.Run("empty app context", func(t *testing.T) {
 		// This test would verify behavior with nil/empty app context
 		// But since we don't want to cause panics, we'll use a valid context
-		config := testutil.NewTestConfig(t)
-		testInjector := config.SetupTestInjector(t)
 
-		commands := Commands(testInjector)
+		commands := Commands()
 		assert.NotEmpty(t, commands, "Commands should be created even with minimal app context")
 	})
 }

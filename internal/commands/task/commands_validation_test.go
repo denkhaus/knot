@@ -105,7 +105,7 @@ func TestCreateActionValidation(t *testing.T) {
 			err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 			require.NoError(t, err)
 
-			action := createAction(testInjector)
+			action := createAction()
 
 			// Execute the action
 			err = action(ctx)
@@ -123,7 +123,6 @@ func TestCreateActionValidation(t *testing.T) {
 func TestInputValidationIntegration(t *testing.T) {
 	// This test ensures that our input validation is properly integrated
 	// into the CLI command handlers
-
 	config := testutil.NewTestConfig(t)
 	testInjector := config.SetupTestInjector(t)
 
@@ -152,7 +151,7 @@ func TestInputValidationIntegration(t *testing.T) {
 	err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 	require.NoError(t, err)
 
-	action := createAction(testInjector)
+	action := createAction()
 
 	err = action(ctx)
 	require.Error(t, err)

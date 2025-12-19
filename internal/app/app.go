@@ -20,7 +20,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/commands"
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/logger"
 
 	"github.com/urfave/cli/v2"
 )
@@ -85,11 +84,7 @@ func isUserInputError(err error) bool {
 // New creates a new CLI application with all dependencies initialized
 func New() (*App, error) {
 	flags := append([]cli.Flag{
-		&cli.StringFlag{
-			Name:    "actor",
-			Usage:   "Actor name for audit trail (default: $USER)",
-			EnvVars: []string{"KNOT_ACTOR", "USER"},
-		},
+		flags.NewActorFlag(),
 		flags.NewLogLevelFlag(),
 	}, append(flags.NewManagerConfigFlags(), flags.NewMCPConfigFlags()...)...)
 
@@ -131,14 +126,6 @@ func New() (*App, error) {
 
 // Run starts the CLI application
 func (a *App) Run(args []string) error {
-	defer func() {
-		// Ensure proper shutdown of DI container
-		if a.container != nil {
-			a.container.Shutdown()
-		}
-		// Sync logger
-		logger.Sync()
-	}()
 
 	if err := a.App.Run(args); err != nil {
 		// For user input errors, print them cleanly without JSON logging

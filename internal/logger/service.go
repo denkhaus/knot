@@ -1,9 +1,9 @@
 package logger
 
 import (
+	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-	"github.com/samber/do/v2"
 )
 
 // Logger defines the logging service interface.
@@ -51,11 +51,6 @@ func NewService(injector do.Injector) (Logger, error) {
 	return &serviceImpl{
 		logger: logger,
 	}, nil
-}
-
-// ProvideService is a convenience wrapper for DI registration
-func ProvideService(injector do.Injector) (Logger, error) {
-	return NewService(injector)
 }
 
 // Debug logs a debug message with optional fields

@@ -3,17 +3,13 @@ package commands
 import (
 	"testing"
 
-	"github.com/denkhaus/knot/v2/internal/testutil"
-	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/urfave/cli/v2"
 )
 
 func TestNewDependencyCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewDependencyCommand(testInjector)
+	cmd := NewDependencyCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "dependency", cmd.Name)
@@ -24,10 +20,8 @@ func TestNewDependencyCommand(t *testing.T) {
 }
 
 func TestNewTemplateCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewTemplateCommand(testInjector)
+	cmd := NewTemplateCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "template", cmd.Name)
@@ -38,10 +32,8 @@ func TestNewTemplateCommand(t *testing.T) {
 }
 
 func TestNewHealthCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewHealthCommand(testInjector)
+	cmd := NewHealthCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "health", cmd.Name)
@@ -51,10 +43,8 @@ func TestNewHealthCommand(t *testing.T) {
 }
 
 func TestNewConfigCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewConfigCommand(testInjector)
+	cmd := NewConfigCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "config", cmd.Name)
@@ -65,10 +55,8 @@ func TestNewConfigCommand(t *testing.T) {
 }
 
 func TestNewCompletionCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewCompletionCommand(testInjector)
+	cmd := NewCompletionCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "completion", cmd.Name)
@@ -80,10 +68,8 @@ func TestNewCompletionCommand(t *testing.T) {
 }
 
 func TestNewTaskCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewTaskCommand(testInjector)
+	cmd := NewTaskCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "task", cmd.Name)
@@ -94,10 +80,8 @@ func TestNewTaskCommand(t *testing.T) {
 }
 
 func TestNewGetStartedCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewGetStartedCommand(testInjector)
+	cmd := NewGetStartedCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "get-started", cmd.Name)
@@ -108,10 +92,8 @@ func TestNewGetStartedCommand(t *testing.T) {
 }
 
 func TestNewValidateCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewValidateCommand(testInjector)
+	cmd := NewValidateCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "validate", cmd.Name)
@@ -121,10 +103,8 @@ func TestNewValidateCommand(t *testing.T) {
 }
 
 func TestNewProjectCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewProjectCommand(testInjector)
+	cmd := NewProjectCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "project", cmd.Name)
@@ -142,10 +122,8 @@ func TestNewProjectCommand(t *testing.T) {
 }
 
 func TestNewStatusCommand(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	cmd := NewStatusCommand(testInjector)
+	cmd := NewStatusCommand()
 
 	assert.NotNil(t, cmd)
 	assert.Equal(t, "status", cmd.Name)
@@ -171,37 +149,33 @@ func TestNewStatusCommand(t *testing.T) {
 func TestCommandsWithNilInjector(t *testing.T) {
 	// Test that all command constructors create valid command structures
 	// Using a test injector since some commands need DI for their subcommands
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
-	assert.NotNil(t, NewDependencyCommand(testInjector))
-	assert.NotNil(t, NewTemplateCommand(testInjector))
-	assert.NotNil(t, NewHealthCommand(testInjector))
-	assert.NotNil(t, NewConfigCommand(testInjector))
-	assert.NotNil(t, NewCompletionCommand(testInjector))
-	assert.NotNil(t, NewTaskCommand(testInjector))
-	assert.NotNil(t, NewStatusCommand(testInjector))
-	assert.NotNil(t, NewGetStartedCommand(testInjector))
-	assert.NotNil(t, NewValidateCommand(testInjector))
-	assert.NotNil(t, NewProjectCommand(testInjector))
+	assert.NotNil(t, NewDependencyCommand())
+	assert.NotNil(t, NewTemplateCommand())
+	assert.NotNil(t, NewHealthCommand())
+	assert.NotNil(t, NewConfigCommand())
+	assert.NotNil(t, NewCompletionCommand())
+	assert.NotNil(t, NewTaskCommand())
+	assert.NotNil(t, NewStatusCommand())
+	assert.NotNil(t, NewGetStartedCommand())
+	assert.NotNil(t, NewValidateCommand())
+	assert.NotNil(t, NewProjectCommand())
 }
 
 func TestCommandNamesUniqueness(t *testing.T) {
 	// Test that all command names are unique within the CLI context
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
 	commands := []*cli.Command{
-		NewDependencyCommand(testInjector),
-		NewTemplateCommand(testInjector),
-		NewHealthCommand(testInjector),
-		NewConfigCommand(testInjector),
-		NewCompletionCommand(testInjector),
-		NewTaskCommand(testInjector),
-		NewStatusCommand(testInjector),
-		NewGetStartedCommand(testInjector),
-		NewValidateCommand(testInjector),
-		NewProjectCommand(testInjector),
+		NewDependencyCommand(),
+		NewTemplateCommand(),
+		NewHealthCommand(),
+		NewConfigCommand(),
+		NewCompletionCommand(),
+		NewTaskCommand(),
+		NewStatusCommand(),
+		NewGetStartedCommand(),
+		NewValidateCommand(),
+		NewProjectCommand(),
 	}
 
 	// Check for duplicate names
@@ -228,11 +202,9 @@ func TestCommandNamesUniqueness(t *testing.T) {
 
 func TestCommandsWithValidAppContext(t *testing.T) {
 	// Test that all commands work with a valid test injector
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
 	// All commands should be created successfully
-	cmds := []func(do.Injector) *cli.Command{
+	cmds := []func() *cli.Command{
 		NewDependencyCommand,
 		NewTemplateCommand,
 		NewHealthCommand,
@@ -246,7 +218,7 @@ func TestCommandsWithValidAppContext(t *testing.T) {
 	}
 
 	for i, createCmd := range cmds {
-		cmd := createCmd(testInjector)
+		cmd := createCmd()
 		assert.NotNil(t, cmd, "Command %d should not be nil", i)
 		assert.NotEmpty(t, cmd.Name, "Command %d should have a name", i)
 		assert.NotEmpty(t, cmd.Usage, "Command %d should have usage text", i)
@@ -254,17 +226,15 @@ func TestCommandsWithValidAppContext(t *testing.T) {
 }
 
 func TestCommandStructureConsistency(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
 	// Test that subcommands have consistent structure
-	cmd := NewTaskCommand(testInjector)
+	cmd := NewTaskCommand()
 	assert.NotNil(t, cmd.Subcommands, "Task command should have subcommands")
 
 	// Test that commands with actions don't have subcommands
 	actionCmds := []*cli.Command{
-		NewGetStartedCommand(testInjector),
-		NewCompletionCommand(testInjector),
+		NewGetStartedCommand(),
+		NewCompletionCommand(),
 	}
 
 	for _, cmd := range actionCmds {
@@ -274,14 +244,14 @@ func TestCommandStructureConsistency(t *testing.T) {
 
 	// Test that commands with subcommands don't have actions
 	subcommandCmds := []*cli.Command{
-		NewDependencyCommand(testInjector),
-		NewTemplateCommand(testInjector),
-		NewHealthCommand(testInjector),
-		NewConfigCommand(testInjector),
-		NewTaskCommand(testInjector),
-		NewStatusCommand(testInjector),
-		NewValidateCommand(testInjector),
-		NewProjectCommand(testInjector),
+		NewDependencyCommand(),
+		NewTemplateCommand(),
+		NewHealthCommand(),
+		NewConfigCommand(),
+		NewTaskCommand(),
+		NewStatusCommand(),
+		NewValidateCommand(),
+		NewProjectCommand(),
 	}
 
 	for _, cmd := range subcommandCmds {
@@ -291,11 +261,9 @@ func TestCommandStructureConsistency(t *testing.T) {
 }
 
 func TestCommandFlagTypes(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
 	// Test status command subcommands have correct flag types
-	statusCmd := NewStatusCommand(testInjector)
+	statusCmd := NewStatusCommand()
 	assert.NotEmpty(t, statusCmd.Subcommands, "Status command should have subcommands")
 
 	// Find actionable subcommand and test its flags

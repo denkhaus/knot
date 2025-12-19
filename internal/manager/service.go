@@ -1224,6 +1224,17 @@ func (s *service) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
 	return s.repo.GetSelectedProject(ctx)
 }
 
+// ResolveProjectID resolves the project ID from stored context
+func (s *service) ResolveProjectID(ctx context.Context) (uuid.UUID, error) {
+	// Get project from database stored context
+	if contextProjectID, err := s.repo.GetSelectedProject(ctx); err == nil && contextProjectID != nil {
+		return *contextProjectID, nil
+	}
+
+	// No project available
+	return uuid.Nil, knoterrors.NoProjectContextError()
+}
+
 // SetSelectedProject sets the currently selected project ID
 func (s *service) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
 	return s.repo.SetSelectedProject(ctx, projectID, actor)

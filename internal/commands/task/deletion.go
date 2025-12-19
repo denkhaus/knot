@@ -10,7 +10,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/treeformatter"
-	"github.com/samber/do/v2"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -226,11 +225,13 @@ func DeletionCommands() []*cli.Command {
 }
 
 // deleteAction handles task deletion with two-step confirmation
-func deleteAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func deleteAction() cli.ActionFunc {
 
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskID, dryRun, deleteAll, err := parseDeleteFlags(c)
 		if err != nil {
 			return err
@@ -262,10 +263,10 @@ func deleteAction(injector do.Injector) cli.ActionFunc {
 
 		// Handle based on task state
 		if task.State == types.TaskStateDeletionPending {
-			return executeDeletion(injector, projectManager, loggerService, actor, task, descendants, dryRun, deleteAll)
+			return executeDeletion(projectManager, loggerService, actor, task, descendants, dryRun, deleteAll)
 		}
 
-		return markForDeletion(injector, projectManager, loggerService, actor, task, descendants, dryRun, deleteAll)
+		return markForDeletion(projectManager, loggerService, actor, task, descendants, dryRun, deleteAll)
 	}
 }
 
@@ -298,26 +299,26 @@ func validateDeletionPreconditions(children []*types.Task, deleteAll bool, taskI
 }
 
 // executeDeletion performs the actual deletion of task or subtree
-func executeDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
+func executeDeletion(projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
 	if dryRun {
 		return handleDryRun(deleteAll, len(descendants), true)
 	}
 
 	if deleteAll {
-		return executeSubtreeDeletion(injector, projectManager, loggerService, actor, task, descendants)
+		return executeSubtreeDeletion(projectManager, loggerService, actor, task, descendants)
 	}
 
 	return executeSingleTaskDeletion(projectManager, actor, task)
 }
 
 // markForDeletion marks a task or subtree for deletion
-func markForDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
+func markForDeletion(projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task, dryRun, deleteAll bool) error {
 	if dryRun {
 		return handleDryRun(deleteAll, len(descendants), false)
 	}
 
 	if deleteAll {
-		return markSubtreeForDeletion(injector, projectManager, loggerService, actor, task, descendants)
+		return markSubtreeForDeletion(projectManager, loggerService, actor, task, descendants)
 	}
 
 	return markSingleTaskForDeletion(projectManager, actor, task)
@@ -342,7 +343,7 @@ func handleDryRun(deleteAll bool, descendantCount int, isExecution bool) error {
 }
 
 // executeSubtreeDeletion performs the actual deletion of a task subtree
-func executeSubtreeDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task) error {
+func executeSubtreeDeletion(projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task) error {
 	printDeletionTree("Final deletion of task subtree:", task, descendants)
 
 	totalTasks := 1 + len(descendants)
@@ -380,7 +381,7 @@ func executeSingleTaskDeletion(projectManager manager.ProjectManager, actor stri
 }
 
 // markSubtreeForDeletion marks an entire subtree for deletion
-func markSubtreeForDeletion(injector do.Injector, projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task) error {
+func markSubtreeForDeletion(projectManager manager.ProjectManager, loggerService logger.Logger, actor string, task *types.Task, descendants []*types.Task) error {
 	printDeletionTree("Task subtree to be marked for deletion:", task, descendants)
 
 	totalTasks := 1 + len(descendants)

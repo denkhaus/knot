@@ -720,3 +720,18 @@ func (mr *MockProjectManagerMockRecorder) UpdateTaskTitle(ctx, taskID, title, ac
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTaskTitle", reflect.TypeOf((*MockProjectManager)(nil).UpdateTaskTitle), ctx, taskID, title, actor)
 }
+
+// ResolveProjectID mocks base method.
+func (m *MockProjectManager) ResolveProjectID(ctx context.Context) (uuid.UUID, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ResolveProjectID", ctx)
+	ret0, _ := ret[0].(uuid.UUID)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// ResolveProjectID indicates an expected call of ResolveProjectID.
+func (mr *MockProjectManagerMockRecorder) ResolveProjectID(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ResolveProjectID", reflect.TypeOf((*MockProjectManager)(nil).ResolveProjectID), ctx)
+}

@@ -8,7 +8,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -85,8 +84,9 @@ func (f *CommandFactory) createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		container := shared.GetContainerFromCLIContext(c)
 		loggerService := container.GetLogger()
+		projectManager := container.GetProjectManager()
 
-		config, err := f.parseConfig(c, injector)
+		config, err := f.parseConfig(c, projectManager)
 		if err != nil {
 			return fmt.Errorf("invalid configuration: %w", err)
 		}
@@ -103,13 +103,13 @@ func (f *CommandFactory) createAction() cli.ActionFunc {
 			zap.Int("depth", config.MaxDepth))
 
 		// Execute visualization
-		return f.executeVisualization(injector, config)
+		return f.executeVisualization(config, projectManager)
 	}
 }
 
 // parseConfig parses configuration from CLI context
-func (f *CommandFactory) parseConfig(c *cli.Context, injector do.Injector) (*Config, error) {
-	projectID, err := shared.ResolveProjectID(c, injector)
+func (f *CommandFactory) parseConfig(c *cli.Context, projectManager manager.ProjectManager) (*Config, error) {
+	projectID, err := projectManager.ResolveProjectID(c.Context)
 	if err != nil {
 		return nil, err
 	}
@@ -157,9 +157,7 @@ func (f *CommandFactory) validateConfig(config *Config) error {
 }
 
 // executeVisualization executes the visualization based on configuration
-func (f *CommandFactory) executeVisualization(injector do.Injector, config *Config) error {
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func (f *CommandFactory) executeVisualization(config *Config, projectManager manager.ProjectManager) error {
 	// Get project tasks
 	projectID, err := uuid.Parse(config.ProjectID)
 	if err != nil {

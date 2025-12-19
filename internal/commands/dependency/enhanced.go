@@ -11,7 +11,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -83,7 +82,7 @@ func EnhancedCommands() []*cli.Command {
 	}
 }
 
-func dependentsAction(injector do.Injector) cli.ActionFunc {
+func dependentsAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		container := shared.GetContainerFromCLIContext(c)
 		projectManager := container.GetProjectManager()

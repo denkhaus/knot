@@ -39,8 +39,7 @@ func TestUpdateDescriptionAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
-		action := updateDescriptionSubAction(testInjector)
+		action := updateDescriptionSubAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -64,8 +63,7 @@ func TestUpdateDescriptionAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
-		action := updateDescriptionSubAction(testInjector)
+		action := updateDescriptionSubAction()
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid task-id format")
@@ -99,9 +97,8 @@ func TestUpdatePriorityAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
 
-		action := updatePrioritySubAction(testInjector)
+		action := updatePrioritySubAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -139,9 +136,8 @@ func TestUpdateComplexityAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
 
-		action := updateComplexitySubAction(testInjector)
+		action := updateComplexitySubAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -169,9 +165,8 @@ func TestUpdateComplexityAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
 
-		action := updateComplexitySubAction(testInjector)
+		action := updateComplexitySubAction()
 		err = action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "complexity 15 is out of range")
@@ -203,9 +198,8 @@ func TestGetAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
 
-		action := getAction(testInjector)
+		action := getAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -222,9 +216,8 @@ func TestGetAction(t *testing.T) {
 		ctx := cli.NewContext(app, flagSet, nil)
 
 		// Use testutil to create DI injector
-		testInjector := config.SetupTestInjector(t)
 
-		action := getAction(testInjector)
+		action := getAction()
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "invalid task-id format")
@@ -300,7 +293,6 @@ func TestUpdateAction(t *testing.T) {
 			// Create a test task to update
 			task := testutil.CreateTestTask(t, mgr, projectID)
 			// Create DI injector for this test
-			testInjector := config.SetupTestInjector(t)
 			// Replace the placeholder UUID with the actual task ID
 			for i, arg := range tt.args {
 				if arg == "--id" && i+1 < len(tt.args) && tt.args[i+1] == "123e4567-e89b-12d3-a456-426614174000" {
@@ -316,7 +308,7 @@ func TestUpdateAction(t *testing.T) {
 					{
 						Name:   "update",
 						Usage:  "Update task fields",
-						Action: updateAction(testInjector),
+						Action: updateAction(),
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:     "id",

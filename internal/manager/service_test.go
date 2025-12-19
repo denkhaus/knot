@@ -7,6 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -19,17 +20,17 @@ import (
 // TestServiceCreation tests the creation of the service
 func TestServiceCreation(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
+	cfg := config.DefaultConfig()
 
-	service := NewManagerWithRepository(repo, config)
+	service := NewManagerWithRepository(repo, cfg)
 	assert.NotNil(t, service)
 }
 
 // TestProjectManagement tests basic project CRUD operations
 func TestProjectManagement(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	service := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
 	ctx := context.Background()
 
 	t.Run("Create project", func(t *testing.T) {
@@ -105,8 +106,8 @@ func TestProjectManagement(t *testing.T) {
 // TestTaskManagement tests basic task CRUD operations
 func TestTaskManagement(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	service := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
 	ctx := context.Background()
 
 	// Create a project first
@@ -229,8 +230,8 @@ func TestTaskManagement(t *testing.T) {
 // TestTaskDependencies tests task dependency management
 func TestTaskDependencies(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	service := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
 	ctx := context.Background()
 
 	// Create a project
@@ -300,8 +301,8 @@ func TestTaskDependencies(t *testing.T) {
 // TestValidationRules tests business logic validation
 func TestValidationRules(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	service := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
 	ctx := context.Background()
 
 	// Create a project
@@ -337,7 +338,7 @@ func TestValidationRules(t *testing.T) {
 
 	t.Run("Description length validation", func(t *testing.T) {
 		// Test very long description
-		longDesc := string(make([]byte, config.MaxDescriptionLength+100))
+		longDesc := string(make([]byte, cfg.MaxDescriptionLength+100))
 		for i := range longDesc {
 			longDesc = longDesc[:i] + "a" + longDesc[i+1:]
 		}
@@ -350,8 +351,8 @@ func TestValidationRules(t *testing.T) {
 // TestErrorHandling tests error scenarios
 func TestErrorHandling(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	service := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
 	ctx := context.Background()
 
 	t.Run("Get non-existent project", func(t *testing.T) {
@@ -389,8 +390,8 @@ func TestErrorHandling(t *testing.T) {
 // TestConcurrency tests concurrent operations (basic)
 func TestConcurrency(t *testing.T) {
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	service := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
 	ctx := context.Background()
 
 	// Create a project
@@ -459,8 +460,8 @@ func TestManagerWithSQLite(t *testing.T) {
 		repo, cleanup := setupSQLiteTestRepository(t)
 		defer cleanup()
 
-		config := DefaultConfig()
-		service := NewManagerWithRepository(repo, config)
+		cfg := config.DefaultConfig()
+		service := NewManagerWithRepository(repo, cfg)
 
 		// Create a project
 		project, err := service.CreateProject(ctx, "SQLite Test Project", "Testing with SQLite", "test-user")
@@ -483,8 +484,8 @@ func TestManagerWithSQLite(t *testing.T) {
 		repo, cleanup := setupSQLiteTestRepository(t)
 		defer cleanup()
 
-		config := DefaultConfig()
-		service := NewManagerWithRepository(repo, config)
+		cfg := config.DefaultConfig()
+		service := NewManagerWithRepository(repo, cfg)
 
 		// Test project creation
 		project, err := service.CreateProject(ctx, "Manager Test", "Manager operations test", "creator")

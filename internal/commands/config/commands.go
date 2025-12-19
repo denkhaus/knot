@@ -13,26 +13,25 @@ package config
 
 import (
 	"fmt"
+	"strconv"
 
 	knotconfig "github.com/denkhaus/knot/v2/internal/config"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // Commands returns the config management commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "show",
 			Usage:  "Show current configuration",
-			Action: ShowAction(injector),
+			Action: ShowAction(),
 		},
 		{
 			Name:   "set",
 			Usage:  "Set configuration value",
-			Action: SetAction(injector),
+			Action: SetAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "key",
@@ -51,17 +50,17 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "reset",
 			Usage:  "Reset configuration to defaults",
-			Action: ResetAction(injector),
+			Action: ResetAction(),
 		},
 	}
 }
 
 // ShowAction displays the current configuration
-func ShowAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	configService := do.MustInvoke[knotconfig.Service](injector)
-
-	return func(_ *cli.Context) error {
+func ShowAction() cli.ActionFunc {
+	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		configService := container.GetConfigService()
 		cfg := configService.GetManagerConfig()
 
 		fmt.Println("Current Knot Configuration:")
@@ -86,14 +85,20 @@ func ShowAction(injector do.Injector) cli.ActionFunc {
 }
 
 // SetAction sets a configuration value
-func SetAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	configService := do.MustInvoke[knotconfig.Service](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func SetAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		configService := container.GetConfigService()
+		projectManager := container.GetProjectManager()
 		key := c.String("key")
-		value := c.Int("value")
+		valueStr := c.String("value")
+
+		// Parse the string value to int
+		value, err := strconv.ParseInt(valueStr, 10, 64)
+		if err != nil {
+			return fmt.Errorf("invalid value '%s' for key '%s': must be a number", valueStr, key)
+		}
 
 		// Get current config
 		currentConfig := configService.GetManagerConfig()
@@ -105,22 +110,22 @@ func SetAction(injector do.Injector) cli.ActionFunc {
 			if value < 1 || value > 10 {
 				return fmt.Errorf("complexity-threshold must be between 1 and 10, got %d", value)
 			}
-			newConfig.ComplexityThreshold = value
+			newConfig.ComplexityThreshold = int(value)
 		case shared.ConfigKeyMaxDepth:
 			if value < 1 {
 				return fmt.Errorf("max-depth must be at least 1, got %d", value)
 			}
-			newConfig.MaxDepth = value
+			newConfig.MaxDepth = int(value)
 		case shared.ConfigKeyMaxTasksPerDepth:
 			if value < 1 {
 				return fmt.Errorf("max-tasks-per-depth must be at least 1, got %d", value)
 			}
-			newConfig.MaxTasksPerDepth = value
+			newConfig.MaxTasksPerDepth = int(value)
 		case shared.ConfigKeyMaxDescriptionLength:
 			if value < 1 {
 				return fmt.Errorf("max-description-length must be at least 1, got %d", value)
 			}
-			newConfig.MaxDescriptionLength = value
+			newConfig.MaxDescriptionLength = int(value)
 		case shared.ConfigKeyAutoReduceComplexity:
 			// Convert int to bool: 0 = false, 1 = true
 			if value != 0 && value != 1 {
@@ -136,22 +141,21 @@ func SetAction(injector do.Injector) cli.ActionFunc {
 		// Also update project manager to reflect the new config
 		projectManager.UpdateConfig(&newConfig)
 
-		fmt.Printf("Configuration updated: %s = %d\n", key, value)
+		fmt.Printf("Configuration updated: %s = %s\n", key, valueStr)
 		return nil
 	}
 }
 
 // ResetAction resets configuration to defaults
-func ResetAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	configService := do.MustInvoke[knotconfig.Service](injector)
-
-	return func(_ *cli.Context) error {
+func ResetAction() cli.ActionFunc {
+	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		configService := container.GetConfigService()
 		// Reset to default config
 		defaultConfig := knotconfig.DefaultConfig()
 		configService.SetManagerConfig(defaultConfig)
 
-	
 		fmt.Println("Configuration reset to defaults:")
 		fmt.Printf("  Complexity Threshold:    %d\n", defaultConfig.ComplexityThreshold)
 		fmt.Printf("  Max Depth:               %d\n", defaultConfig.MaxDepth)

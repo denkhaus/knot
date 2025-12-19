@@ -97,7 +97,7 @@ func TestTaskCreateAction(t *testing.T) {
 			require.NoError(t, err)
 
 			// Execute action
-			action := createAction(testInjector)
+			action := createAction()
 			err = action(ctx)
 
 			if tt.expectError {
@@ -131,7 +131,7 @@ func TestTaskListAction(t *testing.T) {
 		require.NoError(t, err)
 
 		// Execute action
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 
 		// Should succeed but show no tasks
@@ -154,7 +154,7 @@ func TestTaskListAction(t *testing.T) {
 		require.NoError(t, err)
 
 		// Execute action
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 
 		// Should succeed
@@ -233,7 +233,7 @@ func TestTaskUpdateStateAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := updateStateSubAction(testInjector)
+			action := updateStateSubAction()
 			err := action(ctx)
 
 			if tt.expectError {
@@ -308,7 +308,7 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 			ctx := cli.NewContext(app, flagSet, nil)
 
 			// Execute action
-			action := updateTitleSubAction(testInjector)
+			action := updateTitleSubAction()
 			err := action(ctx)
 
 			if tt.expectError {
@@ -353,7 +353,7 @@ func TestTaskWorkflow(t *testing.T) {
 		err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
 		require.NoError(t, err)
 
-		createActionFunc := createAction(testInjector)
+		createActionFunc := createAction()
 		err = createActionFunc(ctx)
 		require.NoError(t, err)
 
@@ -362,7 +362,7 @@ func TestTaskWorkflow(t *testing.T) {
 
 		listCtx := cli.NewContext(app, listFlagSet, nil)
 
-		listActionFunc := listAction(testInjector)
+		listActionFunc := listAction()
 		err = listActionFunc(listCtx)
 		assert.NoError(t, err)
 
@@ -381,7 +381,7 @@ func TestTaskWorkflow(t *testing.T) {
 
 		updateCtx := cli.NewContext(app, updateFlagSet, nil)
 
-		updateActionFunc := updateStateSubAction(testInjector)
+		updateActionFunc := updateStateSubAction()
 		err = updateActionFunc(updateCtx)
 		assert.NoError(t, err)
 

@@ -58,7 +58,6 @@ func TestAppNew(t *testing.T) {
 	assert.NoError(t, err)
 	assert.NotNil(t, app)
 	assert.NotNil(t, app.App)
-	assert.NotNil(t, app.container)
 	assert.Equal(t, "knot", app.Name)
 }
 
@@ -159,28 +158,24 @@ func TestSetVersionFromBuild(t *testing.T) {
 }
 
 func TestAppWithMemoryRepository(t *testing.T) {
-	// This test verifies the app structure and DI integration
+	// This test verifies the app structure
 	app, err := New()
 	require.NoError(t, err)
 	require.NotNil(t, app)
 
 	// Verify the app structure
 	assert.Equal(t, "knot", app.Name)
-	assert.NotNil(t, app.container)
-
-	// Test that we can access the DI container
-	assert.NotNil(t, app.container)
+	assert.NotNil(t, app.App)
 }
 
 func TestAppDIInitialization(t *testing.T) {
 	app, err := New()
 	require.NoError(t, err)
-	require.NotNil(t, app.container)
+	require.NotNil(t, app)
 
-	// Test that the DI container is properly initialized
-	// We can't directly access services from the container without the proper DI interfaces
-	// but we can verify the container exists
-	assert.NotNil(t, app.container)
+	// Test that the app is properly initialized
+	assert.NotNil(t, app.App)
+	assert.Equal(t, "knot", app.Name)
 }
 
 func TestAppRunWithValidArgs(t *testing.T) {
@@ -261,16 +256,15 @@ func TestAppBeforeHook(t *testing.T) {
 }
 
 func TestAppIntegration(t *testing.T) {
-	// Full integration test: create app, verify DI container works
+	// Full integration test: create app, verify app works
 	app, err := New()
 	require.NoError(t, err)
 
-	// Test that we can get the DI container and injector
-	injector := app.container.GetInjector()
-	require.NotNil(t, injector)
+	// Test that the app is properly initialized
+	assert.NotNil(t, app.App)
+	assert.Equal(t, "knot", app.Name)
 
-	// This test verifies the DI container is working, but we don't test specific
+	// This test verifies the app is working, but we don't test specific
 	// project operations here since this is the app-level test and not a manager test
 	// The manager tests should handle their own integration testing
-	assert.NotNil(t, injector)
 }

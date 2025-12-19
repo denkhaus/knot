@@ -4,24 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // ReadyAction shows tasks that are ready to work on (no blockers)
-func ReadyAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func ReadyAction() cli.ActionFunc {
 
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, injector)
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}
@@ -74,7 +73,7 @@ func ReadyAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, injector)
+		shared.ShowProjectContextWithSeparator(c)
 
 		if limit > 0 && len(readyTasks) == limit {
 			fmt.Printf("Ready work (showing %d of %d tasks with no blockers):\n\n", limit, len(readyTasks))

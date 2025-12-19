@@ -20,7 +20,6 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 	// Setup test environment with DI
 	config := testutil.NewTestConfig(t)
 	testInjector := config.SetupTestInjector(t)
-
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
@@ -149,9 +148,9 @@ func TestBlockedCommandWithDependencies(t *testing.T) {
 // TestBlockedCommandEdgeCases tests edge cases for the blocked command
 func TestBlockedCommandEdgeCases(t *testing.T) {
 	// Setup test environment with DI
+
 	config := testutil.NewTestConfig(t)
 	testInjector := config.SetupTestInjector(t)
-
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
@@ -278,9 +277,9 @@ func TestBlockedCommandEdgeCases(t *testing.T) {
 // TestBlockedCommandDependencyChains tests complex dependency chains
 func TestBlockedCommandDependencyChains(t *testing.T) {
 	// Setup test environment with DI
+
 	config := testutil.NewTestConfig(t)
 	testInjector := config.SetupTestInjector(t)
-
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 

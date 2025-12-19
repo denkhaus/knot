@@ -210,7 +210,7 @@ func projectAction() cli.ActionFunc {
 		loggerService := container.GetLogger()
 
 		// Get project from database stored context
-		projectID, err := shared.ResolveProjectID(c)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}

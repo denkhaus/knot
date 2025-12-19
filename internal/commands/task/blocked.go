@@ -4,24 +4,23 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // BlockedAction shows tasks that are blocked by dependencies
-func BlockedAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func BlockedAction() cli.ActionFunc {
 
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, injector)
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}
@@ -54,7 +53,7 @@ func BlockedAction(injector do.Injector) cli.ActionFunc {
 		loggerService.Info("Blocked tasks found", zap.Int("count", len(blockedTasks)))
 
 		// Show project context indicator
-		shared.ShowProjectContextWithSeparator(c, injector)
+		shared.ShowProjectContextWithSeparator(c)
 
 		if len(blockedTasks) == 0 {
 			fmt.Println("No blocked tasks found. All tasks are either ready, completed, or have no dependencies.")

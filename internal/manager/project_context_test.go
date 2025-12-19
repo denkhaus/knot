@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/google/uuid"
 )
@@ -11,8 +12,8 @@ import (
 func TestProjectSelection(t *testing.T) {
 	// Setup test environment
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	manager := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	manager := NewManagerWithRepository(repo, cfg)
 
 	// Create test projects
 	project1, err := manager.CreateProject(context.Background(), "Project 1", "First test project", "test-actor")
@@ -116,8 +117,8 @@ func TestProjectSelection(t *testing.T) {
 func TestProjectSelectionPersistence(t *testing.T) {
 	// Setup test environment
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	manager := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	manager := NewManagerWithRepository(repo, cfg)
 
 	// Create test project
 	project, err := manager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -146,8 +147,8 @@ func TestProjectSelectionPersistence(t *testing.T) {
 func TestProjectSelectionWithDeletedProject(t *testing.T) {
 	// Setup test environment
 	repo := inmemory.NewMemoryRepository()
-	config := DefaultConfig()
-	manager := NewManagerWithRepository(repo, config)
+	cfg := config.DefaultConfig()
+	manager := NewManagerWithRepository(repo, cfg)
 
 	// Create test project
 	project, err := manager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")

@@ -70,7 +70,7 @@ func ListByStateAction() cli.ActionFunc {
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
-		projectID, err := resolveProjectIDWithDI(c, injector)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}
@@ -126,7 +126,7 @@ func BulkCreateAction() cli.ActionFunc {
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
-		projectID, err := resolveProjectIDWithDI(c, injector)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}

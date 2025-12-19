@@ -15,10 +15,7 @@ import (
 )
 
 func TestBulkCommands(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
-	commands := BulkCommands(testInjector)
+	commands := BulkCommands()
 
 	assert.NotEmpty(t, commands)
 
@@ -39,8 +36,7 @@ func TestBulkCommands(t *testing.T) {
 
 func TestListByStateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
+testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -69,7 +65,7 @@ func TestListByStateAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ListByStateAction(testInjector)
+		action := ListByStateAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -91,7 +87,7 @@ func TestListByStateAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ListByStateAction(testInjector)
+		action := ListByStateAction()
 		err := action(ctx)
 		// Note: Action may not error for invalid state, just return empty results
 		assert.NoError(t, err)
@@ -108,7 +104,7 @@ func TestListByStateAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ListByStateAction(testInjector)
+		action := ListByStateAction()
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "state is required")
@@ -117,8 +113,7 @@ func TestListByStateAction(t *testing.T) {
 
 func TestDuplicateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
+testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -145,7 +140,7 @@ func TestDuplicateAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := DuplicateAction(testInjector)
+		action := DuplicateAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -166,7 +161,7 @@ func TestDuplicateAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := DuplicateAction(testInjector)
+		action := DuplicateAction()
 		err := action(ctx)
 		assert.Error(t, err)
 		assert.Contains(t, err.Error(), "task-id is required")

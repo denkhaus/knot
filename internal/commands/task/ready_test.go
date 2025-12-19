@@ -40,7 +40,7 @@ func TestReadyAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ReadyAction(testInjector)
+		action := ReadyAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -69,7 +69,7 @@ func TestReadyAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ReadyAction(testInjector)
+		action := ReadyAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -100,7 +100,7 @@ func TestReadyAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := ReadyAction(testInjector)
+		action := ReadyAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})

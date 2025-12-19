@@ -122,7 +122,7 @@ func (tc *TestConfig) SetupTestManager(t *testing.T) manager.ProjectManager {
 	cliCtx := cli.NewContext(app, flagSet, nil)
 
 	// Register services
-	injector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+	injector := diContainer.RegisterAllServices(cliCtx)
 
 	// Override repository with test repository
 	do.Override(injector, func(do.Injector) (types.Repository, error) {
@@ -160,7 +160,7 @@ func (tc *TestConfig) SetupTestInjector(t *testing.T) do.Injector {
 	cliCtx := cli.NewContext(app, flagSet, nil)
 
 	// Register services
-	injector := diContainer.RegisterAllServices(context.Background(), cliCtx)
+	injector := diContainer.RegisterAllServices(cliCtx)
 
 	// Override repository with test repository (in-memory)
 	do.Override(injector, func(do.Injector) (types.Repository, error) {

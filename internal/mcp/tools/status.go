@@ -133,7 +133,7 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 				ID:          task.ID.String(),
 				Title:       task.Title,
 				State:       string(task.State),
-				Priority:    string(task.Priority),
+				Priority:    task.Priority.ToExternalString(),
 				Complexity:  task.Complexity,
 			})
 		}
@@ -219,7 +219,7 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 				ID:          task.ID.String(),
 				Title:       task.Title,
 				State:       string(task.State),
-				Priority:    string(task.Priority),
+				Priority:    task.Priority.ToExternalString(),
 				Complexity:  task.Complexity,
 			})
 		}
@@ -338,7 +338,7 @@ func calculateTaskStats(tasks []*types.Task) TaskStats {
 		stats.TotalByState[state]++
 
 		// Count by priority
-		priority := string(task.Priority)
+		priority := task.Priority.ToExternalString()
 		stats.TotalByPriority[priority]++
 
 		// Sum complexity for average

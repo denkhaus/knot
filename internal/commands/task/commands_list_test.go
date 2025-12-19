@@ -54,7 +54,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -72,7 +72,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -90,7 +90,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -108,7 +108,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -126,7 +126,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -144,7 +144,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := listAction(testInjector)
+		action := listAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})

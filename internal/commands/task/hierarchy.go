@@ -326,7 +326,7 @@ func RootsAction() cli.ActionFunc {
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
-		projectID, err := shared.ResolveProjectID(c, injector)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			return err
 		}

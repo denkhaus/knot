@@ -5,14 +5,11 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -21,7 +18,7 @@ import (
 // Uses existing update actions as sub-actions to maintain all validation logic
 // Reference: Knot Task 15969eda-320f-482b-aac5-ef25e386fbfa
 // Reference: Brain Memory 3de5544c-1ac8-40f1-88ae-88a1ae1488a0
-func updateAction(injector do.Injector) cli.ActionFunc {
+func updateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		container := shared.GetContainerFromCLIContext(c)
 		projectManager := container.GetProjectManager()
@@ -66,7 +63,7 @@ func updateAction(injector do.Injector) cli.ActionFunc {
 		// Execute updates using existing actions
 		if stateStr != "" {
 			// Use state validation and transition logic from updateStateSubAction
-			if err := updateStateSubAction(injector)(c); err != nil {
+			if err := updateStateSubAction()(c); err != nil {
 				return err
 			}
 			updates = append(updates, fmt.Sprintf("State: %s -> %s", initialTask.State, stateStr))
@@ -74,7 +71,7 @@ func updateAction(injector do.Injector) cli.ActionFunc {
 
 		if title != "" {
 			// Use title validation from updateTitleSubAction
-			if err := updateTitleSubAction(injector)(c); err != nil {
+			if err := updateTitleSubAction()(c); err != nil {
 				return err
 			}
 			updates = append(updates, fmt.Sprintf("Title: \"%s\" -> \"%s\"", initialTask.Title, title))
@@ -82,7 +79,7 @@ func updateAction(injector do.Injector) cli.ActionFunc {
 
 		if description != "" {
 			// Use description validation from updateDescriptionSubAction
-			if err := updateDescriptionSubAction(injector)(c); err != nil {
+			if err := updateDescriptionSubAction()(c); err != nil {
 				return err
 			}
 			if initialTask.Description == "" {
@@ -94,7 +91,7 @@ func updateAction(injector do.Injector) cli.ActionFunc {
 
 		if priority != "" {
 			// Use priority validation from updatePrioritySubAction
-			if err := updatePrioritySubAction(injector)(c); err != nil {
+			if err := updatePrioritySubAction()(c); err != nil {
 				return err
 			}
 			updates = append(updates, fmt.Sprintf("Priority: %s -> %s", initialTask.Priority.ToExternalString(), priority))
@@ -102,7 +99,7 @@ func updateAction(injector do.Injector) cli.ActionFunc {
 
 		if complexity != 0 {
 			// Use complexity validation from updateComplexitySubAction
-			if err := updateComplexitySubAction(injector)(c); err != nil {
+			if err := updateComplexitySubAction()(c); err != nil {
 				return err
 			}
 			updates = append(updates, fmt.Sprintf("Complexity: %d -> %d", initialTask.Complexity, complexity))
@@ -154,7 +151,7 @@ func updateStateSubAction() cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Resolve project context to ensure task belongs to current project
-		projectID, err := shared.ResolveProjectID(c, injector)
+		projectID, err := projectManager.ResolveProjectID(c.Context)
 		if err != nil {
 			loggerService.Error("Failed to resolve project context", zap.Error(err))
 			return err
@@ -201,12 +198,12 @@ func updateStateSubAction() cli.ActionFunc {
 	}
 }
 
-func updateTitleSubAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func updateTitleSubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		loggerService := container.GetLogger()
+		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -250,12 +247,12 @@ func updateTitleSubAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func updateDescriptionSubAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func updateDescriptionSubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		loggerService := container.GetLogger()
+		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -300,12 +297,12 @@ func updateDescriptionSubAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func updatePrioritySubAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func updatePrioritySubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		loggerService := container.GetLogger()
+		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -352,12 +349,12 @@ func updatePrioritySubAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func updateComplexitySubAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func updateComplexitySubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		// Get container from CLI context
+		container := shared.GetContainerFromCLIContext(c)
+		loggerService := container.GetLogger()
+		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {

@@ -104,10 +104,10 @@ type ProjectManager interface {
 
 	// Utility methods
 	GetCurrentTime() time.Time
+	ResolveProjectID(ctx context.Context) (uuid.UUID, error)
 }
 
 // ToolSetProvider defines the interface for creating project task tool sets (not used in CLI)
 // type ToolSetProvider interface {
 //	CreateToolSet(opts ...Option) (tool.ToolSet, error)
 // }
-

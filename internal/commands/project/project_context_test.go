@@ -30,7 +30,7 @@ func TestProjectSelectCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
-					Action: selectAction(testInjector),
+					Action: selectAction(),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "id",
@@ -64,7 +64,7 @@ func TestProjectSelectCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
-					Action: selectAction(testInjector),
+					Action: selectAction(),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "id",
@@ -89,7 +89,7 @@ func TestProjectSelectCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
-					Action: selectAction(testInjector),
+					Action: selectAction(),
 					Flags: []cli.Flag{
 						&cli.StringFlag{
 							Name:     "id",
@@ -132,7 +132,7 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "get-selected",
-					Action: getSelectedAction(testInjector),
+					Action: getSelectedAction(),
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Name: "json",
@@ -162,7 +162,7 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "get-selected",
-					Action: getSelectedAction(testInjector),
+					Action: getSelectedAction(),
 					Flags: []cli.Flag{
 						&cli.BoolFlag{
 							Name: "json",
@@ -207,7 +207,7 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "clear-selection",
-					Action: clearSelectionAction(testInjector),
+					Action: clearSelectionAction(),
 				},
 			},
 		}
@@ -238,7 +238,7 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 			Commands: []*cli.Command{
 				{
 					Name:   "clear-selection",
-					Action: clearSelectionAction(testInjector),
+					Action: clearSelectionAction(),
 				},
 			},
 		}

@@ -1,30 +1,49 @@
 package config
 
 import (
+	"flag"
 	"os"
-	"sync"
 	"testing"
 
+	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 func TestConfigServiceSingleton(t *testing.T) {
-	// Reset singleton for testing
-	instance = nil
-	once = sync.Once{}
+	// Create a new injector for testing
+	injector := do.New()
 
-	svc1 := GetConfigService()
-	svc2 := GetConfigService()
+	// Create service using NewService
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+	svcFactory := NewService(cliCtx)
+	svc1, err := svcFactory(injector)
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	if svc1 != svc2 {
-		t.Error("GetConfigService should return the same singleton instance")
+	svc2, err := svcFactory(injector)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Services should be different instances since we create them each time
+	// but they should have the same configuration
+	if svc1.GetLogLevel() != svc2.GetLogLevel() {
+		t.Error("Services should have the same log level")
 	}
 }
 
 func TestInitializeFromCLIContext(t *testing.T) {
-	// Reset singleton for testing
-	instance = nil
-	once = sync.Once{}
+	// Create a new injector for testing
+	injector := do.New()
 
 	// Save original os.Args and restore after test
 	originalArgs := os.Args
@@ -49,6 +68,36 @@ func TestInitializeFromCLIContext(t *testing.T) {
 			Name:    "postgres-endpoint",
 			EnvVars: []string{"KNOT_POSTGRES_ENDPOINT"},
 		},
+		// Add manager config flags with proper defaults
+		&cli.IntFlag{
+			Name:    "max-tasks-per-depth",
+			Value:   100,
+			EnvVars: []string{"KNOT_MAX_TASKS_PER_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "complexity-threshold",
+			Value:   8,
+			EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
+		},
+		&cli.IntFlag{
+			Name:    "max-depth",
+			Value:   5,
+			EnvVars: []string{"KNOT_MAX_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "max-description-length",
+			Value:   2000,
+			EnvVars: []string{"KNOT_MAX_DESCRIPTION_LENGTH"},
+		},
+		&cli.BoolFlag{
+			Name:    "auto-reduce-complexity",
+			Value:   true,
+			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
+		},
+		&cli.StringFlag{
+			Name:    "log-level",
+			Value:   "off",
+		},
 	}
 
 	// Create a complete app structure that matches real usage
@@ -56,17 +105,20 @@ func TestInitializeFromCLIContext(t *testing.T) {
 		Name:  "knot",
 		Flags: flags,
 		Action: func(c *cli.Context) error {
-			// Initialize configuration (detects MCP mode)
-			InitializeFromCLIContext(c)
+			// Create service using NewService
+			svcFactory := NewService(c)
+			svc, err := svcFactory(injector)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			// Test that MCP mode was detected
-			svc := GetConfigService()
 			if !svc.IsMCPMode() {
 				t.Error("Should be in MCP mode when args contain 'mcp'")
 			}
 
 			// Test that configuration comes from CLI context
-			config := svc.GetMCPConfig(c)
+			config := svc.GetMCPConfig()
 			if config.Address != "0.0.0.0" {
 				t.Errorf("Expected address '0.0.0.0', got %s", config.Address)
 			}
@@ -85,9 +137,8 @@ func TestInitializeFromCLIContext(t *testing.T) {
 }
 
 func TestEnvironmentVariableHandling(t *testing.T) {
-	// Reset singleton for testing
-	instance = nil
-	once = sync.Once{}
+	// Create a new injector for testing
+	injector := do.New()
 
 	// Save original os.Args and restore after test
 	originalArgs := os.Args
@@ -122,6 +173,36 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 			Name:    "postgres-endpoint",
 			EnvVars: []string{"KNOT_POSTGRES_ENDPOINT"},
 		},
+		// Add manager config flags with proper defaults
+		&cli.IntFlag{
+			Name:    "max-tasks-per-depth",
+			Value:   100,
+			EnvVars: []string{"KNOT_MAX_TASKS_PER_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "complexity-threshold",
+			Value:   8,
+			EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
+		},
+		&cli.IntFlag{
+			Name:    "max-depth",
+			Value:   5,
+			EnvVars: []string{"KNOT_MAX_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "max-description-length",
+			Value:   2000,
+			EnvVars: []string{"KNOT_MAX_DESCRIPTION_LENGTH"},
+		},
+		&cli.BoolFlag{
+			Name:    "auto-reduce-complexity",
+			Value:   true,
+			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
+		},
+		&cli.StringFlag{
+			Name:    "log-level",
+			Value:   "off",
+		},
 	}
 
 	// Create app
@@ -129,11 +210,14 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 		Name:  "knot",
 		Flags: flags,
 		Action: func(c *cli.Context) error {
-			// Initialize configuration
-			InitializeFromCLIContext(c)
+			// Create service using NewService
+			svcFactory := NewService(c)
+			svc, err := svcFactory(injector)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			svc := GetConfigService()
-			config := svc.GetMCPConfig(c)
+			config := svc.GetMCPConfig()
 
 			// urfave/cli/v2 should prioritize environment vars when CLI flags not set
 			if config.Address != "env.example.com" {
@@ -157,9 +241,8 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 }
 
 func TestPriorityCLIOverEnvVars(t *testing.T) {
-	// Reset singleton for testing
-	instance = nil
-	once = sync.Once{}
+	// Create a new injector for testing
+	injector := do.New()
 
 	// Save original os.Args and restore after test
 	originalArgs := os.Args
@@ -188,6 +271,36 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 			EnvVars: []string{"KNOT_MCP_PORT"},
 			Value:   8080,
 		},
+		// Add manager config flags with proper defaults
+		&cli.IntFlag{
+			Name:    "max-tasks-per-depth",
+			Value:   100,
+			EnvVars: []string{"KNOT_MAX_TASKS_PER_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "complexity-threshold",
+			Value:   8,
+			EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
+		},
+		&cli.IntFlag{
+			Name:    "max-depth",
+			Value:   5,
+			EnvVars: []string{"KNOT_MAX_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "max-description-length",
+			Value:   2000,
+			EnvVars: []string{"KNOT_MAX_DESCRIPTION_LENGTH"},
+		},
+		&cli.BoolFlag{
+			Name:    "auto-reduce-complexity",
+			Value:   true,
+			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
+		},
+		&cli.StringFlag{
+			Name:    "log-level",
+			Value:   "off",
+		},
 	}
 
 	// Create app
@@ -195,11 +308,14 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 		Name:  "knot",
 		Flags: flags,
 		Action: func(c *cli.Context) error {
-			// Initialize configuration
-			InitializeFromCLIContext(c)
+			// Create service using NewService
+			svcFactory := NewService(c)
+			svc, err := svcFactory(injector)
+			if err != nil {
+				t.Fatal(err)
+			}
 
-			svc := GetConfigService()
-			config := svc.GetMCPConfig(c)
+			config := svc.GetMCPConfig()
 
 			// CLI flags should have higher priority than environment variables
 			if config.Address != "cli.example.com" {
@@ -220,9 +336,8 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 }
 
 func TestDefaultValues(t *testing.T) {
-	// Reset singleton for testing
-	instance = nil
-	once = sync.Once{}
+	// Create a new injector for testing
+	injector := do.New()
 
 	// Create flags with defaults
 	flags := []cli.Flag{
@@ -241,6 +356,32 @@ func TestDefaultValues(t *testing.T) {
 			EnvVars: []string{"KNOT_LOG_LEVEL"},
 			Value:   "info",
 		},
+		// Add manager config flags with proper defaults
+		&cli.IntFlag{
+			Name:    "max-tasks-per-depth",
+			Value:   100,
+			EnvVars: []string{"KNOT_MAX_TASKS_PER_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "complexity-threshold",
+			Value:   8,
+			EnvVars: []string{"KNOT_COMPLEXITY_THRESHOLD"},
+		},
+		&cli.IntFlag{
+			Name:    "max-depth",
+			Value:   5,
+			EnvVars: []string{"KNOT_MAX_DEPTH"},
+		},
+		&cli.IntFlag{
+			Name:    "max-description-length",
+			Value:   2000,
+			EnvVars: []string{"KNOT_MAX_DESCRIPTION_LENGTH"},
+		},
+		&cli.BoolFlag{
+			Name:    "auto-reduce-complexity",
+			Value:   true,
+			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
+		},
 	}
 
 	// Create app without MCP mode (no mcp command)
@@ -248,10 +389,12 @@ func TestDefaultValues(t *testing.T) {
 		Name:  "knot",
 		Flags: flags,
 		Action: func(c *cli.Context) error {
-			// Initialize configuration
-			InitializeFromCLIContext(c)
-
-			svc := GetConfigService()
+			// Create service using NewService
+			svcFactory := NewService(c)
+			svc, err := svcFactory(injector)
+			if err != nil {
+				t.Fatal(err)
+			}
 
 			// Should not be in MCP mode
 			if svc.IsMCPMode() {
@@ -259,15 +402,15 @@ func TestDefaultValues(t *testing.T) {
 			}
 
 			// Test default values from CLI context
-			config := svc.GetMCPConfig(c)
+			config := svc.GetMCPConfig()
 			if config.Address != "localhost" {
 				t.Errorf("Expected default address 'localhost', got %s", config.Address)
 			}
 			if config.Port != 8080 {
 				t.Errorf("Expected default port 8080, got %d", config.Port)
 			}
-			if config.LogLevel != "info" {
-				t.Errorf("Expected default log level 'info', got %s", config.LogLevel)
+			if svc.GetLogLevel() != "info" {
+				t.Errorf("Expected default log level 'info', got %s", svc.GetLogLevel())
 			}
 			return nil
 		},

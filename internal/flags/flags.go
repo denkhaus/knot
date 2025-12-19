@@ -48,6 +48,14 @@ func NewLogLevelFlag() cli.Flag {
 	}
 }
 
+func NewActorFlag() cli.Flag {
+	return &cli.StringFlag{
+		Name:    "actor",
+		Usage:   "Actor name for audit trail (default: $USER)",
+		EnvVars: []string{"KNOT_ACTOR", "USER"},
+	}
+}
+
 // NewManagerConfigFlags creates flags for manager configuration
 func NewManagerConfigFlags() []cli.Flag {
 	return []cli.Flag{

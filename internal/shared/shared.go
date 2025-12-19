@@ -4,24 +4,8 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/errors"
-	"github.com/google/uuid"
 	"github.com/urfave/cli/v2"
 )
-
-// ResolveProjectID resolves the project ID from stored context
-func ResolveProjectID(c *cli.Context) (uuid.UUID, error) {
-	container := GetContainerFromCLIContext(c)
-	projectManager := container.GetProjectManager()
-
-	// Get project from database stored context
-	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
-		return *contextProjectID, nil
-	}
-
-	// No project available
-	return uuid.Nil, errors.NoProjectContextError()
-}
 
 // ShowProjectContext displays the current project context if one is selected
 // Returns true if context was shown, false if no project is selected

@@ -16,8 +16,7 @@ import (
 
 func TestGetStartedAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
+testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -39,7 +38,7 @@ func TestGetStartedAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 	})
@@ -73,7 +72,7 @@ func TestGetStartedAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -112,7 +111,7 @@ func TestGetStartedAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -140,7 +139,7 @@ func TestGetStartedAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -169,7 +168,7 @@ func TestGetStartedAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err = action(ctx)
 		assert.NoError(t, err)
 
@@ -192,15 +191,13 @@ func TestGetStartedAction(t *testing.T) {
 
 		// Use testInjector instead of AppContext
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err := action(ctx)
 		assert.NoError(t, err)
 	})
 }
 
 func TestGetStartedErrorHandling(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
 
 	// Don't set a project context to test error handling
 
@@ -210,7 +207,7 @@ func TestGetStartedErrorHandling(t *testing.T) {
 
 		ctx := cli.NewContext(app, flagSet, nil)
 
-		action := GetStartedAction(testInjector)
+		action := GetStartedAction()
 		err := action(ctx)
 		assert.Error(t, err) // Should fail because no project is selected
 	})

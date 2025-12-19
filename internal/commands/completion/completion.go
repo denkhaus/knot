@@ -3,7 +3,6 @@ package completion
 import (
 	"fmt"
 
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
@@ -16,7 +15,7 @@ const (
 )
 
 // CompletionAction implements the shell completion functionality
-func CompletionAction(injector do.Injector) cli.ActionFunc {
+func CompletionAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		args := c.Args()
 		if args.Len() != 1 {

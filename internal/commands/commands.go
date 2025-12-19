@@ -24,10 +24,7 @@ func NewAfterCommand() func(c *cli.Context) error {
 	return func(cliCtx *cli.Context) error {
 		container := shared.GetContainerFromCLIContext(cliCtx)
 		logger := container.GetLogger()
-		if err := logger.Sync(); err != nil {
-			// Log sync error but don't fail exit
-			logger.Error("Error syncing logger", zap.Error(err))
-		}
+		logger.Sync() // Sync doesn't return an error for zap logger
 
 		// Shutdown errors shouldn't affect the exit code since the command already completed
 		if err := container.Shutdown(); err != nil {
@@ -46,6 +43,9 @@ func NewBeforeCommand(version string) func(c *cli.Context) error {
 		logger.SetLogLevel(logLevel)
 
 		container := di.NewContainer()
+		if c.App.Metadata == nil {
+			c.App.Metadata = make(map[string]interface{})
+		}
 		c.App.Metadata["container"] = container
 
 		injector := container.RegisterAllServices(c)
@@ -66,7 +66,7 @@ func NewBeforeCommand(version string) func(c *cli.Context) error {
 	}
 }
 
-func NewDependencyCommand(injector do.Injector) *cli.Command {
+func NewDependencyCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "dependency",
 		Aliases:     []string{"dep"},
@@ -84,7 +84,7 @@ func NewTemplateCommand() *cli.Command {
 	}
 }
 
-func NewHealthCommand(injector do.Injector) *cli.Command {
+func NewHealthCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "health",
 		Usage:       "Database health and connectivity checks",
@@ -92,7 +92,7 @@ func NewHealthCommand(injector do.Injector) *cli.Command {
 	}
 }
 
-func NewConfigCommand(injector do.Injector) *cli.Command {
+func NewConfigCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "config",
 		Aliases:     []string{"cfg"},
@@ -102,7 +102,7 @@ func NewConfigCommand(injector do.Injector) *cli.Command {
 }
 
 // Command creates the shell completion command (renamed from CompletionCommand to avoid stuttering)
-func NewCompletionCommand(injector do.Injector) *cli.Command {
+func NewCompletionCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "completion",
 		Usage: "Generate shell completion scripts",
@@ -127,7 +127,7 @@ Installation:
   # Zsh (user-specific)
   mkdir -p ~/.zsh/completions
   knot completion zsh > ~/.zsh/completions/_knot`,
-		Action: completion.CompletionAction(injector),
+		Action: completion.CompletionAction(),
 	}
 }
 
