@@ -20,24 +20,21 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // Commands returns all project-related CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "create",
 			Usage:  "Create a new project",
-			Action: createAction(injector),
+			Action: createAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "title",
@@ -55,7 +52,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "list",
 			Usage:  "List all projects",
-			Action: listAction(injector),
+			Action: listAction(),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 			},
@@ -63,7 +60,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "get",
 			Usage:  "Get project details",
-			Action: getAction(injector),
+			Action: getAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
@@ -75,7 +72,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "delete",
 			Usage:  "Delete a project with two-step confirmation",
-			Action: deleteAction(injector),
+			Action: deleteAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
@@ -92,7 +89,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "select",
 			Usage:  "Select a project as the current context",
-			Action: selectAction(injector),
+			Action: selectAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
@@ -104,7 +101,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "get-selected",
 			Usage:  "Show the currently selected project",
-			Action: getSelectedAction(injector),
+			Action: getSelectedAction(),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:    "json",
@@ -116,17 +113,17 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "clear-selection",
 			Usage:  "Clear the currently selected project",
-			Action: clearSelectionAction(injector),
+			Action: clearSelectionAction(),
 		},
 	}
 }
 
-func createAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		title := c.String("title")
 		description := c.String("description")
 		actor := c.String("actor")
@@ -164,12 +161,11 @@ func createAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func listAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func listAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
 
 		loggerService.Info("Listing projects")
 
@@ -209,12 +205,12 @@ func listAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func getAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func getAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		idStr := c.String("id")
 		projectID, err := uuid.Parse(idStr)
 		if err != nil {
@@ -243,11 +239,11 @@ func getAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func deleteAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func deleteAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+
 		projectIDStr := c.String("id")
 		actor := shared.ResolveActor(c.String("actor"))
 		projectID, err := uuid.Parse(projectIDStr)
@@ -368,11 +364,11 @@ func deleteAction(injector do.Injector) cli.ActionFunc {
 }
 
 // selectAction selects a project as the current context
-func selectAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func selectAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+
 		projectIDStr := c.String("id")
 		projectID, err := uuid.Parse(projectIDStr)
 		if err != nil {
@@ -398,12 +394,12 @@ func selectAction(injector do.Injector) cli.ActionFunc {
 }
 
 // getSelectedAction shows the currently selected project
-func getSelectedAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func getSelectedAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		selectedProjectID, err := projectManager.GetSelectedProject(context.Background())
+		container := shared.GetContainerFromCLIContext(c)
+		pm := container.GetProjectManager()
+
+		selectedProjectID, err := pm.GetSelectedProject(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to get selected project: %w", err)
 		}
@@ -419,7 +415,7 @@ func getSelectedAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Get project details
-		project, err := projectManager.GetProject(context.Background(), *selectedProjectID)
+		project, err := pm.GetProject(context.Background(), *selectedProjectID)
 		if err != nil {
 			return fmt.Errorf("selected project not found: %w", err)
 		}
@@ -445,14 +441,15 @@ func getSelectedAction(injector do.Injector) cli.ActionFunc {
 }
 
 // clearSelectionAction clears the currently selected project
-func clearSelectionAction(injector do.Injector) cli.ActionFunc {
+func clearSelectionAction() cli.ActionFunc {
 	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		pm := container.GetProjectManager()
 
 		// Check if there's a selection to clear
-		hasSelected, err := projectManager.HasSelectedProject(context.Background())
+		hasSelected, err := pm.HasSelectedProject(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to check selected project: %w", err)
 		}
@@ -463,7 +460,7 @@ func clearSelectionAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Clear the selection
-		err = projectManager.ClearSelectedProject(context.Background())
+		err = pm.ClearSelectedProject(context.Background())
 		if err != nil {
 			return fmt.Errorf("failed to clear selected project: %w", err)
 		}

@@ -7,11 +7,8 @@ import (
 	"strings"
 
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/treeformatter"
-	"github.com/samber/do/v2"
 
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -20,12 +17,12 @@ import (
 )
 
 // HierarchyCommands returns hierarchy navigation CLI commands
-func HierarchyCommands(injector do.Injector) []*cli.Command {
+func HierarchyCommands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "children",
 			Usage:  "Get direct children of a task",
-			Action: ChildrenAction(injector),
+			Action: ChildrenAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -42,7 +39,7 @@ func HierarchyCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "parent",
 			Usage:  "Get parent task of a task",
-			Action: ParentAction(injector),
+			Action: ParentAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -54,7 +51,7 @@ func HierarchyCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "roots",
 			Usage:  "Get root tasks of a project",
-			Action: RootsAction(injector),
+			Action: RootsAction(),
 			Flags: []cli.Flag{
 				&cli.IntFlag{
 					Name:  "limit",
@@ -66,7 +63,7 @@ func HierarchyCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "tree",
 			Usage:  "Show task hierarchy as a tree",
-			Action: TreeAction(injector),
+			Action: TreeAction(),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				flags.NewQuietFlag(),
@@ -203,12 +200,12 @@ func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task
 }
 
 // ChildrenAction gets direct children of a task
-func ChildrenAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func ChildrenAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -272,12 +269,12 @@ func ChildrenAction(injector do.Injector) cli.ActionFunc {
 }
 
 // ParentAction gets parent task of a task
-func ParentAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func ParentAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -323,10 +320,12 @@ func ParentAction(injector do.Injector) cli.ActionFunc {
 }
 
 // RootsAction gets root tasks of a project
-func RootsAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func RootsAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err
@@ -376,4 +375,3 @@ func RootsAction(injector do.Injector) cli.ActionFunc {
 		return nil
 	}
 }
-

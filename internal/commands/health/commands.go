@@ -18,20 +18,19 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/samber/do/v2"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // Commands returns health check related CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "check",
 			Usage:  "Check database connection health",
-			Action: checkAction(injector),
+			Action: checkAction(),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:  "json",
@@ -48,7 +47,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "ping",
 			Usage:  "Simple database connectivity test",
-			Action: pingAction(injector),
+			Action: pingAction(),
 			Flags: []cli.Flag{
 				&cli.DurationFlag{
 					Name:  "timeout",
@@ -60,7 +59,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "validate",
 			Usage:  "Comprehensive database connection validation",
-			Action: validateAction(injector),
+			Action: validateAction(),
 			Flags: []cli.Flag{
 				&cli.DurationFlag{
 					Name:  "timeout",
@@ -72,12 +71,12 @@ func Commands(injector do.Injector) []*cli.Command {
 	}
 }
 
-func checkAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func checkAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		timeout := c.Duration("timeout")
 		jsonOutput := c.Bool("json")
 
@@ -112,12 +111,12 @@ func checkAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func pingAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func pingAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		timeout := c.Duration("timeout")
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)
@@ -148,12 +147,12 @@ func pingAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func validateAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func validateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		timeout := c.Duration("timeout")
 
 		ctx, cancel := context.WithTimeout(context.Background(), timeout)

@@ -5,16 +5,14 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // ResolveProjectID resolves the project ID from stored context
-func ResolveProjectID(c *cli.Context, injector do.Injector) (uuid.UUID, error) {
-
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+func ResolveProjectID(c *cli.Context) (uuid.UUID, error) {
+	container := GetContainerFromCLIContext(c)
+	projectManager := container.GetProjectManager()
 
 	// Get project from database stored context
 	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
@@ -27,9 +25,10 @@ func ResolveProjectID(c *cli.Context, injector do.Injector) (uuid.UUID, error) {
 
 // ShowProjectContext displays the current project context if one is selected
 // Returns true if context was shown, false if no project is selected
-func ShowProjectContext(c *cli.Context, injector do.Injector) bool {
+func ShowProjectContext(c *cli.Context) bool {
+	container := GetContainerFromCLIContext(c)
+	projectManager := container.GetProjectManager()
 
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 	// Skip context display for JSON output or quiet mode
 	if c.Bool("json") || c.Bool("quiet") {
 		return false
@@ -53,8 +52,8 @@ func ShowProjectContext(c *cli.Context, injector do.Injector) bool {
 }
 
 // ShowProjectContextWithSeparator displays project context with a separator line
-func ShowProjectContextWithSeparator(c *cli.Context, injector do.Injector) bool {
-	if ShowProjectContext(c, injector) {
+func ShowProjectContextWithSeparator(c *cli.Context) bool {
+	if ShowProjectContext(c) {
 		fmt.Println()
 		return true
 	}

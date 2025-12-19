@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/shared"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
@@ -13,10 +12,12 @@ import (
 var getStartedFS embed.FS
 
 // GetStartedAction provides a summary of available commands for LLM agents
-func GetStartedAction(injector do.Injector) cli.ActionFunc {
+func GetStartedAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+
 		// Check if a project is selected
-		_, err := shared.ResolveProjectID(c, injector)
+		_, err := shared.ResolveProjectID(c, container.GetInjector())
 		if err != nil {
 			return err
 		}

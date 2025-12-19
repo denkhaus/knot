@@ -22,11 +22,11 @@ import (
 // Reference: Knot Task 15969eda-320f-482b-aac5-ef25e386fbfa
 // Reference: Brain Memory 3de5544c-1ac8-40f1-88ae-88a1ae1488a0
 func updateAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		// Get update values from flags
 		title := c.String("title")
 		description := c.String("description")
@@ -123,12 +123,12 @@ func updateAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func updateStateSubAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func updateStateSubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {

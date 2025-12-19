@@ -7,24 +7,21 @@ import (
 	"os"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // DuplicateAction creates a copy of a task
-func DuplicateAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func DuplicateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		if taskIDStr == "" {
 			return fmt.Errorf("task-id is required")
@@ -67,12 +64,12 @@ func DuplicateAction(injector do.Injector) cli.ActionFunc {
 }
 
 // ListByStateAction lists tasks filtered by state
-func ListByStateAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func ListByStateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
@@ -123,12 +120,12 @@ func ListByStateAction(injector do.Injector) cli.ActionFunc {
 }
 
 // BulkCreateAction creates multiple tasks from JSON input
-func BulkCreateAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func BulkCreateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err
@@ -221,12 +218,12 @@ func BulkCreateAction(injector do.Injector) cli.ActionFunc {
 }
 
 // BulkDeleteAction deletes multiple tasks with safety checks
-func BulkDeleteAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func BulkDeleteAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDsStr := c.String("task-ids")
 		if taskIDsStr == "" {
 			return fmt.Errorf("task-ids are required")
@@ -314,12 +311,12 @@ func BulkDeleteAction(injector do.Injector) cli.ActionFunc {
 }
 
 // BulkCommands returns bulk operation CLI commands
-func BulkCommands(injector do.Injector) []*cli.Command {
+func BulkCommands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "bulk-create",
 			Usage:  "Create multiple tasks from JSON file",
-			Action: BulkCreateAction(injector),
+			Action: BulkCreateAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "file",
@@ -332,7 +329,7 @@ func BulkCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "bulk-delete",
 			Usage:  "Delete multiple tasks with safety checks",
-			Action: BulkDeleteAction(injector),
+			Action: BulkDeleteAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-ids",
@@ -352,7 +349,7 @@ func BulkCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "duplicate",
 			Usage:  "Duplicate a task to another project",
-			Action: DuplicateAction(injector),
+			Action: DuplicateAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -369,7 +366,7 @@ func BulkCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "list-by-state",
 			Usage:  "List tasks filtered by state",
-			Action: ListByStateAction(injector),
+			Action: ListByStateAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "state",

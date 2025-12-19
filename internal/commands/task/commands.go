@@ -33,29 +33,15 @@ import (
 	"go.uber.org/zap"
 )
 
-// resolveProjectIDWithDI resolves the project ID using dependency injection
-func resolveProjectIDWithDI(c *cli.Context, injector do.Injector) (uuid.UUID, error) {
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
-	// Get project from database stored context
-	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
-		return *contextProjectID, nil
-	}
-
-	// No project available
-	return uuid.Nil, errors.NoProjectContextError()
-}
-
 // showProjectContextWithDI displays the current project context using dependency injection
-func showProjectContextWithDI(c *cli.Context, injector do.Injector) bool {
+func showProjectContextWithDI(c *cli.Context) bool {
 	// Skip context display for JSON output or quiet mode
 	if c.Bool("json") || c.Bool("quiet") {
 		return false
 	}
 
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	container := shared.GetContainerFromCLIContext(c)
+	projectManager := container.GetProjectManager()
 
 	// Get selected project
 	selectedProjectID, err := projectManager.GetSelectedProject(c.Context)
@@ -75,13 +61,13 @@ func showProjectContextWithDI(c *cli.Context, injector do.Injector) bool {
 }
 
 // Commands returns all task-related CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	// Basic task commands
 	basicCommands := []*cli.Command{
 		{
 			Name:   "create",
 			Usage:  "Create a new task",
-			Action: createAction(injector),
+			Action: createAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "title",
@@ -116,7 +102,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "get",
 			Usage:  "Get a task by ID",
-			Action: getAction(injector),
+			Action: getAction(),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				flags.NewQuietFlag(),
@@ -126,7 +112,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "list",
 			Usage:  "List tasks with filtering options",
-			Action: listAction(injector),
+			Action: listAction(),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				flags.NewQuietFlag(),
@@ -168,7 +154,7 @@ Examples:
   knot task update --id <task-id> --title "New title" --priority high
   knot task update --id <task-id> --description "New description" --complexity 6
   knot task update --id <task-id> --state completed --title "Done" --complexity 3`,
-			Action: updateAction(injector),
+			Action: updateAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",
@@ -205,13 +191,13 @@ Examples:
 	}
 
 	// Hierarchy navigation commands
-	hierarchyCommands := HierarchyCommands(injector)
+	hierarchyCommands := HierarchyCommands()
 
 	// Task deletion commands
-	deletionCommands := DeletionCommands(injector)
+	deletionCommands := DeletionCommands()
 
 	// Bulk operation commands
-	bulkCommands := BulkCommands(injector)
+	bulkCommands := BulkCommands()
 
 	// Combine all commands
 	allCommands := make([]*cli.Command, 0, len(basicCommands)+len(hierarchyCommands)+len(deletionCommands)+len(bulkCommands))
@@ -223,13 +209,13 @@ Examples:
 	return allCommands
 }
 
-func createAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := resolveProjectIDWithDI(c, injector)
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
+		projectID, err := shared.ResolveProjectID(c)
 		if err != nil {
 			return err
 		}
@@ -328,7 +314,7 @@ func listAction(injector do.Injector) cli.ActionFunc {
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
 	return func(c *cli.Context) error {
-		projectID, err := resolveProjectIDWithDI(c, injector)
+		projectID, err := shared.ResolveProjectID(c)
 		if err != nil {
 			return err
 		}
@@ -365,7 +351,7 @@ func listAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Show project context indicator using DI
-		showProjectContextWithDI(c, injector)
+		showProjectContextWithDI(c)
 
 		// Show filter summary if filters were applied
 		if hasFiltersApplied(c) {
@@ -403,12 +389,12 @@ func listAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func getAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func getAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -430,7 +416,7 @@ func getAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Show project context indicator using DI
-		showProjectContextWithDI(c, injector)
+		showProjectContextWithDI(c)
 
 		// Display task details
 		fmt.Printf("Task Details:\n")

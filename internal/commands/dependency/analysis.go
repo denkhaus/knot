@@ -17,10 +17,11 @@ import (
 
 // chainAction shows the dependency chain for a task
 func chainAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -130,12 +131,13 @@ func showDownstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID
 }
 
 // cyclesAction detects circular dependencies in a project
-func cyclesAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func cyclesAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		projectID, err := shared.ResolveProjectID(c, injector)
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
+		projectID, err := shared.ResolveProjectID(c)
 		if err != nil {
 			return err
 		}
@@ -207,7 +209,7 @@ func cyclesAction(injector do.Injector) cli.ActionFunc {
 		}
 
 		// Text output
-		shared.ShowProjectContextWithSeparator(c, injector)
+		shared.ShowProjectContextWithSeparator(c)
 		fmt.Printf("Circular dependency analysis for project %s:\n\n", projectID)
 
 		if len(cycles) == 0 {

@@ -17,22 +17,20 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // Commands returns all dependency-related CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	// Basic commands
 	basicCommands := []*cli.Command{
 		{
 			Name:   "add",
 			Usage:  "Add task dependency",
-			Action: addAction(injector),
+			Action: addAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -49,7 +47,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "remove",
 			Usage:  "Remove task dependency",
-			Action: removeAction(injector),
+			Action: removeAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -66,7 +64,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "list",
 			Usage:  "List task dependencies",
-			Action: listAction(injector),
+			Action: listAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -78,7 +76,7 @@ func Commands(injector do.Injector) []*cli.Command {
 	}
 
 	// Enhanced commands
-	enhancedCommands := EnhancedCommands(injector)
+	enhancedCommands := EnhancedCommands()
 
 	// Combine all commands
 	allCommands := make([]*cli.Command, 0, len(basicCommands)+len(enhancedCommands))
@@ -88,11 +86,11 @@ func Commands(injector do.Injector) []*cli.Command {
 	return allCommands
 }
 
-func addAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func addAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -125,11 +123,12 @@ func addAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func removeAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func removeAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -162,11 +161,12 @@ func removeAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func listAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func listAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {

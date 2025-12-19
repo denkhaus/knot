@@ -17,24 +17,21 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/errors"
 	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	internalValidation "github.com/denkhaus/knot/v2/internal/validation"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // Commands returns validation related CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "states",
 			Usage:  "Show valid task states and transitions",
-			Action: statesAction(injector),
+			Action: statesAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:  "from",
@@ -50,7 +47,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "transition",
 			Usage:  "Validate a state transition without applying it",
-			Action: transitionAction(injector),
+			Action: transitionAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -72,7 +69,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "project",
 			Usage:  "Validate all task states in a project",
-			Action: projectAction(injector),
+			Action: projectAction(),
 			Flags: []cli.Flag{
 				&cli.BoolFlag{
 					Name:  "fix",
@@ -84,7 +81,7 @@ func Commands(injector do.Injector) []*cli.Command {
 	}
 }
 
-func statesAction(injector do.Injector) cli.ActionFunc {
+func statesAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		fromState := c.String("from")
 		showMatrix := c.Bool("matrix")
@@ -142,11 +139,11 @@ func statesAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func transitionAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func transitionAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {
@@ -206,14 +203,14 @@ func transitionAction(injector do.Injector) cli.ActionFunc {
 	}
 }
 
-func projectAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func projectAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		// Get project from database stored context
-		projectID, err := resolveProjectID(c, projectManager)
+		projectID, err := shared.ResolveProjectID(c)
 		if err != nil {
 			return err
 		}
@@ -286,15 +283,4 @@ func projectAction(injector do.Injector) cli.ActionFunc {
 
 		return nil
 	}
-}
-
-// resolveProjectID resolves the project ID from stored context using project manager
-func resolveProjectID(c *cli.Context, projectManager manager.ProjectManager) (uuid.UUID, error) {
-	// Get project from database stored context
-	if contextProjectID, err := projectManager.GetSelectedProject(c.Context); err == nil && contextProjectID != nil {
-		return *contextProjectID, nil
-	}
-
-	// No project available
-	return uuid.Nil, errors.NoProjectContextError()
 }

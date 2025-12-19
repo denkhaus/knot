@@ -7,12 +7,11 @@ import (
 	"sort"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/treeformatter"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 
 	"github.com/urfave/cli/v2"
@@ -25,12 +24,12 @@ type TreeNode struct {
 }
 
 // TreeAction shows task hierarchy as a tree
-func TreeAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func TreeAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		projectID, err := resolveProjectIDWithDI(c, injector)
 		if err != nil {
 			return err

@@ -7,8 +7,8 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/commands/dependency/visualization"
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
@@ -17,14 +17,14 @@ import (
 )
 
 // EnhancedCommands returns enhanced dependency-related CLI commands
-func EnhancedCommands(injector do.Injector) []*cli.Command {
+func EnhancedCommands() []*cli.Command {
 	factory := visualization.NewCommandFactory()
 
 	return []*cli.Command{
 		{
 			Name:   "dependents",
 			Usage:  "List tasks that depend on this task",
-			Action: dependentsAction(injector),
+			Action: dependentsAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -41,7 +41,7 @@ func EnhancedCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "chain",
 			Usage:  "Show dependency chain for a task",
-			Action: chainAction(injector),
+			Action: chainAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "task-id",
@@ -63,7 +63,7 @@ func EnhancedCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "cycles",
 			Usage:  "Detect circular dependencies in project",
-			Action: cyclesAction(injector),
+			Action: cyclesAction(),
 			Flags: []cli.Flag{
 				flags.NewJSONFlag(),
 				&cli.BoolFlag{
@@ -76,18 +76,19 @@ func EnhancedCommands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "validate",
 			Usage:  "Validate all dependencies in project",
-			Action: validateAction(injector),
+			Action: validateAction(),
 		},
 		// New enhanced visualization command
-		factory.CreateCommand(injector),
+		factory.CreateCommand(),
 	}
 }
 
 func dependentsAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		taskIDStr := c.String("task-id")
 		taskID, err := uuid.Parse(taskIDStr)
 		if err != nil {

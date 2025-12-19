@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/flags"
-	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/google/uuid"
@@ -23,7 +22,7 @@ func NewCommandFactory() *CommandFactory {
 }
 
 // CreateCommand creates the enhanced dependency visualization command
-func (f *CommandFactory) CreateCommand(injector do.Injector) *cli.Command {
+func (f *CommandFactory) CreateCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "show",
 		Usage: "Show enhanced dependency visualization with arrows and clear relationships",
@@ -42,7 +41,7 @@ Examples:
   knot dependency show --project             # Show all project dependencies
   knot dependency show --tree                # Show dependency tree
   knot dependency show --graph               # Show dependency graph`,
-		Action: f.createAction(injector),
+		Action: f.createAction(),
 		Flags: []cli.Flag{
 			&cli.StringFlag{
 				Name:    "task-id",
@@ -82,11 +81,10 @@ Examples:
 }
 
 // createAction creates the action function for the command
-func (f *CommandFactory) createAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-
+func (f *CommandFactory) createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		// Parse configuration
+		container := shared.GetContainerFromCLIContext(c)
+		loggerService := container.GetLogger()
 
 		config, err := f.parseConfig(c, injector)
 		if err != nil {

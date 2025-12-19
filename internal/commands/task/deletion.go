@@ -193,12 +193,12 @@ func printDeletionNodeChildren(formatter treeformatter.TreeFormatter, node *Node
 }
 
 // DeletionCommands returns task deletion related CLI commands
-func DeletionCommands(injector do.Injector) []*cli.Command {
+func DeletionCommands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "delete",
 			Usage:  "Delete a task with two-step confirmation. Use --all to delete task and all descendants",
-			Action: deleteAction(injector),
+			Action: deleteAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "id",

@@ -19,22 +19,20 @@ import (
 	"os/exec"
 	"strings"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/templates"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
 
 // Commands returns all template-related CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "list",
 			Usage:  "List available task templates",
-			Action: listAction(injector),
+			Action: listAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:    "category",
@@ -65,7 +63,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "show",
 			Usage:  "Show detailed information about a template",
-			Action: showAction(injector),
+			Action: showAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "name",
@@ -83,7 +81,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "apply",
 			Usage:  "Apply a template to create tasks",
-			Action: applyAction(injector),
+			Action: applyAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "name",
@@ -114,7 +112,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "create",
 			Usage:  "Create a new template from file",
-			Action: createAction(injector),
+			Action: createAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "file",
@@ -127,7 +125,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "validate",
 			Usage:  "Validate a template file",
-			Action: validateAction(injector),
+			Action: validateAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "file",
@@ -140,7 +138,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "info",
 			Usage:  "Show detailed information about a template including source",
-			Action: infoAction(injector),
+			Action: infoAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "name",
@@ -158,7 +156,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "edit",
 			Usage:  "Edit a user template in default editor",
-			Action: editAction(injector),
+			Action: editAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "name",
@@ -171,7 +169,7 @@ func Commands(injector do.Injector) []*cli.Command {
 		{
 			Name:   "delete",
 			Usage:  "Delete a user template",
-			Action: deleteAction(injector),
+			Action: deleteAction(),
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "name",
@@ -189,11 +187,7 @@ func Commands(injector do.Injector) []*cli.Command {
 }
 
 // listAction lists available templates
-func listAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func listAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Load all templates (user + built-in)
 		templates, err := loadAllTemplates()
@@ -234,11 +228,7 @@ func listAction(injector do.Injector) cli.ActionFunc {
 }
 
 // showAction shows detailed information about a template
-func showAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func showAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
 
@@ -303,11 +293,11 @@ func showAction(injector do.Injector) cli.ActionFunc {
 }
 
 // applyAction applies a template to create tasks
-func applyAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func applyAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+
 		// Resolve project ID using DI-resolved ProjectManager
 		contextProjectID, err := projectManager.GetSelectedProject(c.Context)
 		if err != nil || contextProjectID == nil {
@@ -390,11 +380,7 @@ func applyAction(injector do.Injector) cli.ActionFunc {
 }
 
 // createAction creates a new template from file
-func createAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		filePath := c.String("file")
 
@@ -417,11 +403,7 @@ func createAction(injector do.Injector) cli.ActionFunc {
 }
 
 // validateAction validates a template file
-func validateAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func validateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		filePath := c.String("file")
 
@@ -443,11 +425,7 @@ func validateAction(injector do.Injector) cli.ActionFunc {
 }
 
 // infoAction shows detailed information about a template including source
-func infoAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func infoAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
 
@@ -501,11 +479,7 @@ func infoAction(injector do.Injector) cli.ActionFunc {
 }
 
 // editAction opens a user template in the default editor
-func editAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func editAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
 
@@ -550,11 +524,7 @@ func editAction(injector do.Injector) cli.ActionFunc {
 }
 
 // deleteAction deletes a user template
-func deleteAction(injector do.Injector) cli.ActionFunc {
-	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	_ = loggerService // Not used currently but available for future logging
-
+func deleteAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		templateName := c.String("name")
 		force := c.Bool("force")

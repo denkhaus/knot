@@ -4,21 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
-	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
 // BreakdownAction finds tasks that need breakdown based on complexity threshold
-func BreakdownAction(injector do.Injector) cli.ActionFunc {
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
+func BreakdownAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		projectManager := container.GetProjectManager()
+		loggerService := container.GetLogger()
+
 		projectID, err := shared.ResolveProjectID(c, injector)
 		if err != nil {
 			return err

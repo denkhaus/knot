@@ -22,7 +22,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/logger"
 
-	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/urfave/cli/v2"
 )
 
@@ -47,7 +46,6 @@ func SetVersionFromBuild(v, c, d string) {
 // App represents the CLI application
 type App struct {
 	*cli.App
-	container *di.Container
 }
 
 // isUserInputError checks if an error is due to user input (like missing required flags)
@@ -86,11 +84,6 @@ func isUserInputError(err error) bool {
 
 // New creates a new CLI application with all dependencies initialized
 func New() (*App, error) {
-	// Initialize DI container
-	container := di.NewContainer()
-	// Initialize DI container with all services
-	injector := container.RegisterAllServices(c.Context, c)
-
 	flags := append([]cli.Flag{
 		&cli.StringFlag{
 			Name:    "actor",
@@ -112,26 +105,27 @@ func New() (*App, error) {
 				Email: "denkhaus@github.com",
 			},
 		},
-		Flags:  flags,
-		Before: commands.NewBeforeCommand(diContainer, version),
+		Flags: flags,
+
+		After:  commands.NewAfterCommand(),
+		Before: commands.NewBeforeCommand(version),
 		Commands: []*cli.Command{
-			commands.NewProjectCommand(injector),
-			commands.NewTaskCommand(injector),
-			commands.NewTemplateCommand(injector),
-			commands.NewDependencyCommand(injector),
-			commands.NewConfigCommand(injector),
-			commands.NewHealthCommand(injector),
-			commands.NewStatusCommand(injector),
-			commands.NewValidateCommand(injector),
-			commands.NewGetStartedCommand(injector),
-			commands.NewCompletionCommand(injector),
-			commands.NewMCPCommand(injector),
+			commands.NewProjectCommand(),
+			commands.NewTaskCommand(),
+			commands.NewTemplateCommand(),
+			commands.NewDependencyCommand(),
+			commands.NewConfigCommand(),
+			commands.NewHealthCommand(),
+			commands.NewStatusCommand(),
+			commands.NewValidateCommand(),
+			commands.NewGetStartedCommand(),
+			commands.NewCompletionCommand(),
+			commands.NewMCPCommand(),
 		},
 	}
 
 	return &App{
-		App:       cliApp,
-		container: diContainer,
+		App: cliApp,
 	}, nil
 }
 

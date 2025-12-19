@@ -13,3 +13,16 @@
 //
 // Cross-reference: Knot Task 86f3ba2d-3a87-493b-b8fc-96d19f344e89
 package shared
+
+import (
+	"github.com/denkhaus/knot/v2/internal/di"
+	"github.com/urfave/cli/v2"
+)
+
+func GetContainerFromCLIContext(cliCtx *cli.Context) *di.Container {
+	if v, ok := cliCtx.App.Metadata["container"]; ok {
+		return v.(*di.Container)
+	}
+
+	panic("container not available from app metadata")
+}

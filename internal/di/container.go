@@ -14,8 +14,7 @@
 package di
 
 import (
-	"context"
-
+	"github.com/denkhaus/knot/v2/internal/config"
 	configsvc "github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
@@ -53,7 +52,7 @@ func (c *Container) GetInjector() do.Injector {
 // RegisterAllServices registers all application services in the dependency injection container.
 // Services are registered in dependency order to ensure proper initialization.
 // Returns the injector for immediate use if needed.
-func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context) do.Injector {
+func (c *Container) RegisterAllServices(cliCtx *cli.Context) do.Injector {
 	// Register core services first (no dependencies)
 	do.Provide(c.injector, configsvc.NewService(cliCtx))
 	do.Provide(c.injector, logger.NewService)
@@ -103,6 +102,22 @@ func (c *Container) RegisterAllServices(ctx context.Context, cliCtx *cli.Context
 
 // Shutdown gracefully shuts down the container and all registered services.
 // This should be called during application shutdown to clean up resources.
-func (c *Container) Shutdown() {
-	do.Shutdown[any](c.injector)
+func (c *Container) Shutdown() error {
+	return do.Shutdown[any](c.injector)
+}
+
+func (c *Container) GetLogger() logger.Logger {
+	return do.MustInvoke[logger.Logger](c.injector)
+}
+
+func (c *Container) GetProjectManager() manager.ProjectManager {
+	return do.MustInvoke[manager.ProjectManager](c.injector)
+}
+
+func (c *Container) GetConfigService() config.Service {
+	return do.MustInvoke[config.Service](c.injector)
+}
+
+func (c *Container) GetMCPServer() mcp.Server {
+	return do.MustInvoke[mcp.Server](c.injector)
 }

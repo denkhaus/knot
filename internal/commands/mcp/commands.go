@@ -4,32 +4,31 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/denkhaus/knot/v2/internal/config"
-	knotmcp "github.com/denkhaus/knot/v2/internal/mcp"
 	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/samber/do/v2"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/urfave/cli/v2"
 )
 
 // Commands returns the MCP CLI commands
-func Commands(injector do.Injector) []*cli.Command {
+func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
 			Name:   "server",
 			Usage:  "Start the MCP server",
-			Action: serverAction(injector),
+			Action: serverAction(),
 		},
 	}
 }
 
 // serverAction handles the MCP server startup using dependency injection
-func serverAction(injector do.Injector) cli.ActionFunc {
+func serverAction() cli.ActionFunc {
 	// Resolve dependencies from DI
-	loggerService := do.MustInvoke[logger.Logger](injector)
-	configSvc := do.MustInvoke[config.Service](injector)
-	mcpServer := do.MustInvoke[knotmcp.Server](injector)
 
 	return func(c *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(c)
+		configSvc := container.GetConfigService()
+		loggerService := container.GetLogger()
+		mcpServer := container.GetMCPServer()
 		mcpConfig := configSvc.GetMCPConfig()
 
 		loggerService.Info("Starting MCP server",

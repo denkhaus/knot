@@ -13,18 +13,42 @@ import (
 	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/flags"
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/templates"
 	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
 
+func NewAfterCommand() func(c *cli.Context) error {
+	return func(cliCtx *cli.Context) error {
+		container := shared.GetContainerFromCLIContext(cliCtx)
+		logger := container.GetLogger()
+		if err := logger.Sync(); err != nil {
+			// Log sync error but don't fail exit
+			logger.Error("Error syncing logger", zap.Error(err))
+		}
+
+		// Shutdown errors shouldn't affect the exit code since the command already completed
+		if err := container.Shutdown(); err != nil {
+			// Log the error but don't return it to avoid affecting exit codes
+			logger.Error("Error during shutdown", zap.Error(err))
+		}
+		return nil
+	}
+}
+
 // NewBeforeCommand creates a Before action function that initializes DI and configures services
-func NewBeforeCommand(container *di.Container, version string) func(c *cli.Context) error {
+func NewBeforeCommand(version string) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
 		// For now, keep using the global logger approach until full migration
 		logLevel := c.String("log-level")
 		logger.SetLogLevel(logLevel)
+
+		container := di.NewContainer()
+		c.App.Metadata["container"] = container
+
+		injector := container.RegisterAllServices(c)
 
 		// Use DI template service for seeding instead of static function
 		templateService := do.MustInvoke[templates.Service](injector)
@@ -34,11 +58,6 @@ func NewBeforeCommand(container *di.Container, version string) func(c *cli.Conte
 			loggerService.Warn("Failed to seed templates during initialization", zap.Error(err))
 		} else {
 			loggerService.Debug("Template seeding check completed successfully")
-		}
-
-		// Store injector in app metadata so commands can access it
-		c.App.Metadata = map[string]interface{}{
-			"injector": injector,
 		}
 
 		loggerService.Info("startup knot cli", zap.String("version", version))
@@ -52,16 +71,16 @@ func NewDependencyCommand(injector do.Injector) *cli.Command {
 		Name:        "dependency",
 		Aliases:     []string{"dep"},
 		Usage:       "Task dependency management",
-		Subcommands: dependency.Commands(injector),
+		Subcommands: dependency.Commands(),
 	}
 }
 
-func NewTemplateCommand(injector do.Injector) *cli.Command {
+func NewTemplateCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "template",
 		Aliases:     []string{"tmpl"},
 		Usage:       "Task template management commands",
-		Subcommands: template.Commands(injector),
+		Subcommands: template.Commands(),
 	}
 }
 
@@ -69,7 +88,7 @@ func NewHealthCommand(injector do.Injector) *cli.Command {
 	return &cli.Command{
 		Name:        "health",
 		Usage:       "Database health and connectivity checks",
-		Subcommands: health.Commands(injector),
+		Subcommands: health.Commands(),
 	}
 }
 
@@ -78,7 +97,7 @@ func NewConfigCommand(injector do.Injector) *cli.Command {
 		Name:        "config",
 		Aliases:     []string{"cfg"},
 		Usage:       "Configuration management",
-		Subcommands: config.Commands(injector),
+		Subcommands: config.Commands(),
 	}
 }
 
@@ -112,37 +131,37 @@ Installation:
 	}
 }
 
-func NewTaskCommand(injector do.Injector) *cli.Command {
+func NewTaskCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "task",
 		Aliases:     []string{"t"},
 		Usage:       "Task management commands",
-		Subcommands: task.Commands(injector),
+		Subcommands: task.Commands(),
 	}
 }
 
-func NewGetStartedCommand(injector do.Injector) *cli.Command {
+func NewGetStartedCommand() *cli.Command {
 	return &cli.Command{
 		Name:   "get-started",
 		Usage:  "Get started guide for LLM agents with available commands and usage",
-		Action: task.GetStartedAction(injector),
+		Action: task.GetStartedAction(),
 	}
 }
 
-func NewValidateCommand(injector do.Injector) *cli.Command {
+func NewValidateCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "validate",
 		Usage:       "Task state validation and transition checks",
-		Subcommands: validation.Commands(injector),
+		Subcommands: validation.Commands(),
 	}
 }
 
-func NewProjectCommand(injector do.Injector) *cli.Command {
+func NewProjectCommand() *cli.Command {
 	return &cli.Command{
 		Name:        "project",
 		Aliases:     []string{"p"},
 		Usage:       "Project management commands",
-		Subcommands: project.Commands(injector),
+		Subcommands: project.Commands(),
 		Flags: []cli.Flag{
 			flags.NewJSONFlag(),
 		},
@@ -150,7 +169,7 @@ func NewProjectCommand(injector do.Injector) *cli.Command {
 }
 
 // NewStatusCommand creates a status command with subcommands for different status views
-func NewStatusCommand(injector do.Injector) *cli.Command {
+func NewStatusCommand() *cli.Command {
 	return &cli.Command{
 		Name:    "status",
 		Usage:   "Show tasks by status (actionable, ready, blocked, breakdown)",
@@ -187,7 +206,7 @@ Examples:
   knot status actionable --strategy=depth-first   # Prioritize completing branches
   knot status actionable --strategy=priority      # Focus on high-priority tasks
   knot status actionable --verbose --json         # Detailed JSON output`,
-				Action: task.ActionableAction(injector),
+				Action: task.ActionableAction(),
 				Flags: []cli.Flag{
 					&cli.StringFlag{
 						Name:    "strategy",
@@ -217,7 +236,7 @@ Examples:
 				Name:    "ready",
 				Aliases: []string{"rd"},
 				Usage:   "Show tasks with no blockers (ready to work on)",
-				Action:  task.ReadyAction(injector),
+				Action:  task.ReadyAction(),
 				Flags: []cli.Flag{
 					flags.NewTaskLimitFlag(),
 					flags.NewJSONFlag(),
@@ -227,7 +246,7 @@ Examples:
 				Name:    "blocked",
 				Aliases: []string{"blk"},
 				Usage:   "Show tasks blocked by dependencies",
-				Action:  task.BlockedAction(injector),
+				Action:  task.BlockedAction(),
 				Flags: []cli.Flag{
 					flags.NewTaskLimitFlag(),
 					flags.NewJSONFlag(),
@@ -237,7 +256,7 @@ Examples:
 				Name:    "breakdown",
 				Aliases: []string{"bd"},
 				Usage:   "Find tasks that need breakdown based on complexity",
-				Action:  task.BreakdownAction(injector),
+				Action:  task.BreakdownAction(),
 				Flags: []cli.Flag{
 					flags.NewTaskLimitFlag(),
 					flags.NewJSONFlag(),
@@ -256,7 +275,7 @@ Examples:
 }
 
 // NewMCPCommand creates a Model Context Protocol (MCP) server command
-func NewMCPCommand(injector do.Injector) *cli.Command {
+func NewMCPCommand() *cli.Command {
 	return &cli.Command{
 		Name:  "mcp",
 		Usage: "Model Context Protocol (MCP) server commands",
@@ -273,6 +292,6 @@ Examples:
   knot mcp server                                    # Start MCP server with defaults
   knot mcp server --address 0.0.0.0 --port 9090     # Start on custom address/port
   knot mcp server --log-level debug                 # Enable debug logging`,
-		Subcommands: cmdmcp.Commands(injector),
+		Subcommands: cmdmcp.Commands(),
 	}
 }
