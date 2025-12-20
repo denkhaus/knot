@@ -6,11 +6,12 @@ import (
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/session"
-	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/server"
 	"github.com/samber/do/v2"
 )
+
 
 // Private implementation of the Generator interface
 type hintGenerator struct {
@@ -145,24 +146,13 @@ func NewHintIntegrationImpl(generator Generator, logger logger.Logger) Integrati
 
 // GetSessionContext extracts session context information
 func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.Manager) (*SessionState, error) {
-	// Get session ID from context
-	sessionIDStr := getSessionIDFromContext(ctx)
-	if sessionIDStr == "" {
-		return &SessionState{
-			Actor:       "anonymous",
-			TaskCount:   0,
-			RecentTools: []string{},
-		}, nil
-	}
-
-	// Parse session ID as UUID
-	sessionID, err := uuid.Parse(sessionIDStr)
+	// Get session UUID from context
+	sessionID, err := shared.GetSessionUUID(ctx)
 	if err != nil {
 		hi.logger.Warn("Invalid session ID format for hint generation",
-			logger.String("session_id", sessionIDStr),
-			logger.Error(err))
+			logger.String("error", err.Error()))
 		return &SessionState{
-			Actor:       "mcp-user",
+			Actor:       shared.ActorAnonymous,
 			TaskCount:   0,
 			RecentTools: []string{},
 		}, nil
@@ -172,10 +162,10 @@ func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager
 	sess, err := sessionManager.GetSession(sessionID)
 	if err != nil {
 		hi.logger.Warn("Failed to get session for hint generation",
-			logger.String("session_id", sessionIDStr),
+			logger.String("session_id", sessionID.String()),
 			logger.Error(err))
 		return &SessionState{
-			Actor:       "mcp-user",
+			Actor:       shared.ActorMCPUser,
 			TaskCount:   0,
 			RecentTools: []string{},
 		}, nil

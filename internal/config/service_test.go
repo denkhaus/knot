@@ -95,8 +95,8 @@ func TestInitializeFromCLIContext(t *testing.T) {
 			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
 		},
 		&cli.StringFlag{
-			Name:    "log-level",
-			Value:   "off",
+			Name:  "log-level",
+			Value: "off",
 		},
 	}
 
@@ -200,8 +200,8 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
 		},
 		&cli.StringFlag{
-			Name:    "log-level",
-			Value:   "off",
+			Name:  "log-level",
+			Value: "off",
 		},
 	}
 
@@ -298,8 +298,8 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
 		},
 		&cli.StringFlag{
-			Name:    "log-level",
-			Value:   "off",
+			Name:  "log-level",
+			Value: "off",
 		},
 	}
 

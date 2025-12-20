@@ -42,7 +42,21 @@
       "Bash(mcp__brain__create_project)",
       "Bash(mcp__brain__store_memory:*)",
       "mcp__plugin_beads_beads__where_am_i",
-      "mcp__plugin_beads_beads__blocked"
+      "mcp__plugin_beads_beads__blocked",
+      "mcp__plugin_beads_beads__dep",
+      "Bash(docker-compose logs:*)",
+      "Bash(docker logs:*)",
+      "Bash(docker compose ps:*)",
+      "Bash(docker compose logs:*)",
+      "mcp__knot-mcp__task_create",
+      "mcp__knot-mcp__status_project",
+      "mcp__knot-mcp__status_actionable",
+      "mcp__knot-mcp__project_list",
+      "mcp__knot-mcp__status_ready",
+      "mcp__knot-mcp__project_get",
+      "Bash(docker compose:*)",
+      "mcp__knot-mcp__project_create",
+      "mcp__knot-mcp__project_select"
     ],
     "deny": [],
     "ask": []

@@ -96,10 +96,10 @@ func NewManagerConfigFlags() []cli.Flag {
 func NewMCPConfigFlags() []cli.Flag {
 	return []cli.Flag{
 		&cli.StringFlag{
-			Name:    "mcp-endpoint",
-			Usage:   "MCP server endpoint",
+			Name:    "mcp-address",
+			Usage:   "MCP server address",
 			Value:   "localhost",
-			EnvVars: []string{"KNOT_MCP_ENDPOINT"},
+			EnvVars: []string{"KNOT_MCP_ADDRESS"},
 		},
 		&cli.IntFlag{
 			Name:    "mcp-port",

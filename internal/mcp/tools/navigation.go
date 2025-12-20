@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
@@ -79,8 +80,7 @@ func RegisterNavigationTools(server *server.MCPServer, projectManager manager.Pr
 			return ProjectSelectResponse{}, fmt.Errorf("invalid project_id format: %w", err)
 		}
 
-		sessionID := getSessionID(ctx)
-		sessionIDUUID, err := uuid.Parse(sessionID)
+		sessionIDUUID, err := shared.GetSessionUUID(ctx)
 		if err != nil {
 			return ProjectSelectResponse{}, fmt.Errorf("invalid session_id format: %w", err)
 		}

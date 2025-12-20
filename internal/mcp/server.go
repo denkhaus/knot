@@ -14,7 +14,6 @@ import (
 	"github.com/mark3labs/mcp-go/server"
 )
 
-
 // mcpServerImpl is the private implementation of the Server interface
 type mcpServerImpl struct {
 	*server.MCPServer
@@ -56,12 +55,12 @@ func newServer(cfg ServerConfig) (Server, error) {
 
 	// Create transport dependencies
 	transportDeps := transports.TransportDependencies{
-		MCPServer:      mcpServer,
-		ProjectManager: cfg.ProjectManager,
-		SessionManager: cfg.SessionManager,
-		Logger:         cfg.Logger,
+		MCPServer:       mcpServer,
+		ProjectManager:  cfg.ProjectManager,
+		SessionManager:  cfg.SessionManager,
+		Logger:          cfg.Logger,
 		HintIntegration: cfg.HintIntegration,
-		ServerConfig:   cfg.Config,
+		ServerConfig:    cfg.Config,
 	}
 
 	// Create transport based on configuration
@@ -71,14 +70,14 @@ func newServer(cfg ServerConfig) (Server, error) {
 	}
 
 	s := &mcpServerImpl{
-		MCPServer:      mcpServer,
-		projectManager: cfg.ProjectManager,
-		sessions:       cfg.SessionManager,
-		logger:         cfg.Logger,
-		config:         cfg.Config,
+		MCPServer:       mcpServer,
+		projectManager:  cfg.ProjectManager,
+		sessions:        cfg.SessionManager,
+		logger:          cfg.Logger,
+		config:          cfg.Config,
 		hintIntegration: cfg.HintIntegration,
-		running:        false,
-		transport:      transport,
+		running:         false,
+		transport:       transport,
 	}
 
 	// Register core tools

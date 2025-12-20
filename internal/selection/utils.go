@@ -204,17 +204,17 @@ func (pa *ProjectAnalyzer) AnalyzeProject(tasks []*types.Task) *ProjectCharacter
 		}
 	}
 
-	// Calculate averages
-	characteristics.AverageDependencies = float64(totalDependencies) / float64(len(tasks))
+	// Calculate averages (with protection against division by zero)
+	if len(tasks) > 0 {
+		characteristics.AverageDependencies = float64(totalDependencies) / float64(len(tasks))
+		characteristics.DependencyRatio = float64(tasksWithDependencies) / float64(len(tasks))
+		characteristics.HierarchyRatio = float64(tasksWithParents) / float64(len(tasks))
+		characteristics.AveragePriority = float64(prioritySum) / float64(len(tasks))
+		characteristics.HighPriorityRatio = float64(highPriorityCount) / float64(len(tasks))
+	}
 	characteristics.MaxDependencies = maxDependencies
-	characteristics.DependencyRatio = float64(tasksWithDependencies) / float64(len(tasks))
-
 	characteristics.MaxHierarchyDepth = maxHierarchyDepth
-	characteristics.HierarchyRatio = float64(tasksWithParents) / float64(len(tasks))
 	characteristics.HasHierarchy = maxHierarchyDepth > 0
-
-	characteristics.AveragePriority = float64(prioritySum) / float64(len(tasks))
-	characteristics.HighPriorityRatio = float64(highPriorityCount) / float64(len(tasks))
 
 	// Determine complexity
 	characteristics.Complexity = pa.determineComplexity(characteristics)

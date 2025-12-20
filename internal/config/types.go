@@ -6,12 +6,12 @@ import (
 
 // Configurations for different components
 type MCPConfig struct {
-	Address string         `json:"address"`
-	Port    int            `json:"port"`
-	Timeout time.Duration  `json:"timeout"`
-	Database DatabaseConfig `json:"database"`
-	Session  SessionConfig  `json:"session"`
-	Hints    HintsConfig    `json:"hints"`
+	Address   string          `json:"address"`
+	Port      int             `json:"port"`
+	Timeout   time.Duration   `json:"timeout"`
+	Database  DatabaseConfig  `json:"database"`
+	Session   SessionConfig   `json:"session"`
+	Hints     HintsConfig     `json:"hints"`
 	Transport TransportConfig `json:"transport"`
 }
 
@@ -59,11 +59,6 @@ func (t TransportType) IsValid() bool {
 type TransportConfig struct {
 	// Primary transport mode (stdio, http, sse, all)
 	Mode TransportType `json:"mode"`
-
-	// Individual transport enable flags
-	StdioEnabled bool `json:"stdio_enabled"`
-	HTTPEnabled  bool `json:"http_enabled"`
-	SSEEnabled   bool `json:"sse_enabled"`
 
 	// HTTP-specific configuration
 	HTTP HTTPTransportConfig `json:"http"`

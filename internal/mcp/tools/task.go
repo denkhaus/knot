@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -118,11 +119,10 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		}
 
 		priority := parsePriority(args.Priority)
-		actor := getSessionActor(ctx)
+		actor := shared.GetSessionActor(ctx)
 
 		// Get session context
-		sessionID := getSessionID(ctx)
-		sessionIDUUID, err := uuid.Parse(sessionID)
+		sessionIDUUID, err := shared.GetSessionUUID(ctx)
 		if err != nil {
 			return TaskCreateResponse{}, fmt.Errorf("invalid session_id format: %w", err)
 		}
@@ -226,7 +226,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 			return TaskUpdateResponse{}, fmt.Errorf("invalid task_id format: %w", err)
 		}
 
-		actor := getSessionActor(ctx)
+		actor := shared.GetSessionActor(ctx)
 		priority := parsePriority(args.Priority)
 
 		task, err := projectManager.UpdateTask(ctx, taskID, args.Title, args.Description, args.Complexity, types.TaskState(""), actor)
@@ -278,7 +278,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		}
 
 		state := parseTaskState(args.State)
-		actor := getSessionActor(ctx)
+		actor := shared.GetSessionActor(ctx)
 
 		task, err := projectManager.UpdateTaskState(ctx, taskID, state, actor)
 		if err != nil {
@@ -320,7 +320,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 			return TaskDeleteResponse{}, fmt.Errorf("invalid task_id format: %w", err)
 		}
 
-		actor := getSessionActor(ctx)
+		actor := shared.GetSessionActor(ctx)
 		err = projectManager.DeleteTask(ctx, taskID, actor)
 		if err != nil {
 			return TaskDeleteResponse{}, fmt.Errorf("failed to delete task: %w", err)

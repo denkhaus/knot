@@ -475,11 +475,16 @@ func (r *postgresRepository) GetProjectProgress(ctx context.Context, projectID u
 		return nil, fmt.Errorf("failed to get completed task count: %w", err)
 	}
 
+	var overallProgress float64
+	if total > 0 {
+		overallProgress = float64(completed) / float64(total) * 100
+	}
+
 	progress := &types.ProjectProgress{
 		ProjectID:       projectID,
 		TotalTasks:      int(total),
 		CompletedTasks:  int(completed),
-		OverallProgress: float64(completed) / float64(total) * 100,
+		OverallProgress: overallProgress,
 	}
 
 	return progress, nil

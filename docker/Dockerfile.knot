@@ -1,0 +1,48 @@
+# Build stage with persistent cache
+FROM golang:1.25-alpine AS builder
+
+# Install git and ca-certificates (required for go modules)
+RUN apk add --no-cache git ca-certificates
+
+# Set working directory
+WORKDIR /app
+
+# Create cache directories
+RUN mkdir -p /root/.cache/go-build
+
+# Copy go mod files first (for better caching)
+COPY go.mod go.sum ./
+
+# Download dependencies (will be cached if go.mod/go.sum don't change)
+RUN go mod download && go mod verify
+
+# Copy the entire project source
+COPY . .
+
+# Build with persistent cache
+RUN --mount=type=cache,target=/root/.cache/go-build \
+  CGO_ENABLED=0 GOOS=linux go build -o knot ./cmd/knot
+
+# Final minimal stage
+FROM alpine:latest
+
+# Install runtime dependencies
+RUN apk --no-cache add ca-certificates tzdata curl
+
+WORKDIR /root/
+
+# Copy the binary from builder stage
+COPY --from=builder /app/knot .
+
+# Make binary executable
+RUN chmod +x /root/knot
+
+# Expose MCP port
+EXPOSE 9094
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+  CMD curl -f http://localhost:9094/health || exit 1
+
+# Run knot in MCP server mode with output to stdout
+ENTRYPOINT ["./knot","--log-level=debug", "mcp", "server"]

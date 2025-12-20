@@ -1,0 +1,55 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: knot-postgres-test
+    environment:
+      POSTGRES_DB: knot_test
+      POSTGRES_USER: knot_user
+      POSTGRES_PASSWORD: knot_password
+      POSTGRES_HOST_AUTH_METHOD: trust
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./docker/init-db.sql:/docker-entrypoint-initdb.d/init-db.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U knot_user -d knot_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    networks:
+      - knot-network
+
+  knot-mcp:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile.knot
+      cache_from:
+        - knot-knot-mcp:latest
+      # Persistent build cache
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+    image: knot-knot-mcp:latest
+    container_name: knot-mcp-server
+    ports:
+      - "9094:9094"
+    environment:
+      - KNOT_POSTGRES_ENDPOINT=postgres://knot_user:knot_password@postgres:5432/knot_test?sslmode=disable
+      - KNOT_MCP_TRANSPORT_MODE=http
+      - KNOT_MCP_ADDRESS=0.0.0.0
+      - KNOT_MCP_PORT=9094
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - knot-network
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+    driver: local
+
+networks:
+  knot-network:
+    driver: bridge

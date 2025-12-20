@@ -38,9 +38,8 @@ func NewAfterCommand() func(c *cli.Context) error {
 // NewBeforeCommand creates a Before action function that initializes DI and configures services
 func NewBeforeCommand(version string) func(c *cli.Context) error {
 	return func(c *cli.Context) error {
-		// For now, keep using the global logger approach until full migration
+		// Configure log level for DI logger
 		logLevel := c.String("log-level")
-		logger.SetLogLevel(logLevel)
 
 		container := di.NewContainer()
 		if c.App.Metadata == nil {
@@ -53,6 +52,9 @@ func NewBeforeCommand(version string) func(c *cli.Context) error {
 		// Use DI template service for seeding instead of static function
 		templateService := do.MustInvoke[templates.Service](injector)
 		loggerService := do.MustInvoke[logger.Logger](injector)
+
+		// Configure the DI logger service with the specified log level
+		loggerService.SetLevel(logLevel)
 
 		if err := templateService.CheckAndSeedIfNeeded(); err != nil {
 			loggerService.Warn("Failed to seed templates during initialization", zap.Error(err))

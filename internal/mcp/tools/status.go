@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -84,14 +85,9 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 		// Get project ID from request or session
 		projectID := args.ProjectID
 		if projectID == "" {
-			sessionID := getSessionID(ctx)
-			if sessionID == "" {
-				return StatusReadyResponse{}, fmt.Errorf("no session found and no project_id provided")
-			}
-
-			sessionUUID, err := uuid.Parse(sessionID)
+			sessionUUID, err := shared.GetSessionUUID(ctx)
 			if err != nil {
-				return StatusReadyResponse{}, fmt.Errorf("invalid session ID: %w", err)
+				return StatusReadyResponse{}, fmt.Errorf("no session found and no project_id provided")
 			}
 
 			selectedProjectID, err := sessionManager.GetProject(sessionUUID)
@@ -156,14 +152,9 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 		// Get project ID from request or session
 		projectID := args.ProjectID
 		if projectID == "" {
-			sessionID := getSessionID(ctx)
-			if sessionID == "" {
-				return StatusActionableResponse{}, fmt.Errorf("no session found and no project_id provided")
-			}
-
-			sessionUUID, err := uuid.Parse(sessionID)
+			sessionUUID, err := shared.GetSessionUUID(ctx)
 			if err != nil {
-				return StatusActionableResponse{}, fmt.Errorf("invalid session ID: %w", err)
+				return StatusActionableResponse{}, fmt.Errorf("no session found and no project_id provided")
 			}
 
 			selectedProjectID, err := sessionManager.GetProject(sessionUUID)
@@ -247,14 +238,9 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 		// Get project ID from request or session
 		projectID := args.ProjectID
 		if projectID == "" {
-			sessionID := getSessionID(ctx)
-			if sessionID == "" {
-				return StatusProjectResponse{}, fmt.Errorf("no session found and no project_id provided")
-			}
-
-			sessionUUID, err := uuid.Parse(sessionID)
+			sessionUUID, err := shared.GetSessionUUID(ctx)
 			if err != nil {
-				return StatusProjectResponse{}, fmt.Errorf("invalid session ID: %w", err)
+				return StatusProjectResponse{}, fmt.Errorf("no session found and no project_id provided")
 			}
 
 			selectedProjectID, err := sessionManager.GetProject(sessionUUID)

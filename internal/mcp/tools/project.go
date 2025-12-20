@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -57,7 +58,7 @@ func RegisterProjectManagementTools(server *server.MCPServer, projectManager man
 		mcp.WithOutputSchema[ProjectCreateResponse](),
 	)
 	server.AddTool(projectCreateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args ProjectCreateRequest) (ProjectCreateResponse, error) {
-	project, err := projectManager.CreateProject(ctx, args.Title, args.Description, getSessionActor(ctx))
+	project, err := projectManager.CreateProject(ctx, args.Title, args.Description, shared.GetSessionActor(ctx))
 		if err != nil {
 			return ProjectCreateResponse{}, fmt.Errorf("failed to create project: %w", err)
 		}
@@ -81,7 +82,7 @@ func RegisterProjectManagementTools(server *server.MCPServer, projectManager man
 			return ProjectUpdateResponse{}, fmt.Errorf("invalid project_id format: %w", err)
 		}
 
-		project, err := projectManager.UpdateProject(ctx, projectID, args.Title, args.Description, getSessionActor(ctx))
+		project, err := projectManager.UpdateProject(ctx, projectID, args.Title, args.Description, shared.GetSessionActor(ctx))
 		if err != nil {
 			return ProjectUpdateResponse{}, fmt.Errorf("failed to update project: %w", err)
 		}

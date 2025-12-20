@@ -45,8 +45,18 @@ type serviceImpl struct {
 // NewService creates a new logger service instance.
 // This follows the dependency injection pattern from di.md.
 func NewService(injector do.Injector) (Logger, error) {
-	// For now, create a no-op logger. Will be configured later via SetLevel
-	logger := zap.NewNop()
+	// Default to info-level logger, will be configured later via SetLevel
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig.TimeKey = ""
+	config.EncoderConfig.CallerKey = ""
+	config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	config.OutputPaths = []string{"stderr"}
+	config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+
+	logger, err := config.Build()
+	if err != nil {
+		logger = zap.NewNop()
+	}
 
 	return &serviceImpl{
 		logger: logger,

@@ -263,7 +263,7 @@ func (s *serviceImpl) initializeMCPConfig(c *cli.Context) {
 	}
 
 	s.mcpConfig = &MCPConfig{
-		Address: c.String("mcp-endpoint"),
+		Address: c.String("mcp-address"),
 		Port:    c.Int("mcp-port"),
 		Database: DatabaseConfig{
 			Backend:  "postgres", // Default backend
@@ -280,15 +280,12 @@ func (s *serviceImpl) initializeMCPConfig(c *cli.Context) {
 			Categories: []string{"next_action", "recovery", "workflow"},
 		},
 		Transport: TransportConfig{
-			Mode:         transportMode,
-			StdioEnabled: transportMode == TransportTypeStdio,
-			HTTPEnabled:  transportMode == TransportTypeHTTP,
-			SSEEnabled:   transportMode == TransportTypeSSE,
+			Mode: transportMode,
 			HTTP: HTTPTransportConfig{
 				RequestTimeout: 30, // default 30 seconds
 			},
 			SSE: SSETransportConfig{
-				HeartbeatInterval: 30, // default 30 seconds
+				HeartbeatInterval: 30,  // default 30 seconds
 				ClientTimeout:     120, // default 2 minutes
 			},
 		},
@@ -310,20 +307,17 @@ func (s *serviceImpl) getDefaultMCPConfig() *MCPConfig {
 			MaxSessions: 100,
 		},
 		Hints: HintsConfig{
-			Enabled:  true, // Hints are always enabled as core feature
-			MaxHints: 5,
+			Enabled:    true, // Hints are always enabled as core feature
+			MaxHints:   5,
 			Categories: []string{"next_action", "recovery", "workflow"},
 		},
 		Transport: TransportConfig{
-			Mode:         TransportTypeStdio, // Default to stdio for backwards compatibility
-			StdioEnabled: true,               // Enable stdio by default
-			HTTPEnabled:  false,              // HTTP disabled by default
-			SSEEnabled:   false,              // SSE disabled by default
+			Mode: TransportTypeStdio, // Default to stdio for backwards compatibility
 			HTTP: HTTPTransportConfig{
 				RequestTimeout: 30, // default 30 seconds
 			},
 			SSE: SSETransportConfig{
-				HeartbeatInterval: 30, // default 30 seconds
+				HeartbeatInterval: 30,  // default 30 seconds
 				ClientTimeout:     120, // default 2 minutes
 			},
 		},
