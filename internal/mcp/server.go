@@ -8,6 +8,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/hints"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/mcp/tools"
 	"github.com/denkhaus/knot/v2/internal/mcp/transports"
 	"github.com/denkhaus/knot/v2/internal/session"
@@ -17,13 +18,14 @@ import (
 // mcpServerImpl is the private implementation of the Server interface
 type mcpServerImpl struct {
 	*server.MCPServer
-	projectManager  manager.ProjectManager
-	sessions        session.Manager
-	logger          logger.Logger
-	config          *config.MCPConfig
-	hintIntegration hints.Integration
-	running         bool
-	transport       transports.Transport
+	projectManager   manager.ProjectManager
+	sessionManager   session.Manager
+	sessionRegistry  *shared.SessionRegistry
+	logger           logger.Logger
+	config           *config.MCPConfig
+	hintIntegration  hints.Integration
+	running          bool
+	transport        transports.Transport
 }
 
 // ServerConfig holds configuration for creating an MCP server
@@ -53,11 +55,15 @@ func newServer(cfg ServerConfig) (Server, error) {
 	// Create mcp-go server
 	mcpServer := server.NewMCPServer("knot", "1.0.0")
 
+	// Create session registry for MCP integration
+	sessionRegistry := shared.NewSessionRegistry(cfg.SessionManager, mcpServer, cfg.Logger)
+
 	// Create transport dependencies
 	transportDeps := transports.TransportDependencies{
 		MCPServer:       mcpServer,
 		ProjectManager:  cfg.ProjectManager,
 		SessionManager:  cfg.SessionManager,
+		SessionRegistry: sessionRegistry,
 		Logger:          cfg.Logger,
 		HintIntegration: cfg.HintIntegration,
 		ServerConfig:    cfg.Config,
@@ -72,7 +78,8 @@ func newServer(cfg ServerConfig) (Server, error) {
 	s := &mcpServerImpl{
 		MCPServer:       mcpServer,
 		projectManager:  cfg.ProjectManager,
-		sessions:        cfg.SessionManager,
+		sessionManager:  cfg.SessionManager,
+		sessionRegistry: sessionRegistry,
 		logger:          cfg.Logger,
 		config:          cfg.Config,
 		hintIntegration: cfg.HintIntegration,
@@ -91,16 +98,16 @@ func newServer(cfg ServerConfig) (Server, error) {
 // registerTools registers all MCP tools with the server
 func (s *mcpServerImpl) registerTools() error {
 	// Register navigation tools (project_select, project_list, project_get)
-	tools.RegisterNavigationTools(s.MCPServer, s.projectManager, s.sessions)
+	tools.RegisterNavigationTools(s.MCPServer, s.projectManager, s.sessionManager)
 
 	// Register project management tools (project_create, project_update, project_delete)
 	tools.RegisterProjectManagementTools(s.MCPServer, s.projectManager)
 
 	// Register task management tools (task_create, task_get, task_update, task_update_state, task_delete)
-	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessions)
+	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessionManager)
 
 	// Register status and query tools (status_ready, status_actionable, status_project)
-	tools.RegisterStatusTools(s.MCPServer, s.projectManager, s.sessions)
+	tools.RegisterStatusTools(s.MCPServer, s.projectManager, s.sessionManager)
 
 	return nil
 }
@@ -113,6 +120,12 @@ func (s *mcpServerImpl) Start() error {
 		logger.Int("port", s.config.Port),
 		logger.String("database", s.config.Database.Endpoint),
 	)
+
+	// Sync existing sessions with MCP server
+	if err := s.sessionRegistry.SyncExistingSessions(context.Background()); err != nil {
+		s.logger.Warn("Failed to sync existing sessions",
+			logger.Error(err))
+	}
 
 	s.running = true
 	s.logger.Info("MCP server started",
@@ -127,6 +140,11 @@ func (s *mcpServerImpl) Start() error {
 func (s *mcpServerImpl) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping MCP server")
 	s.running = false
+
+	// Close all sessions
+	if err := s.sessionManager.CloseAll(ctx); err != nil {
+		s.logger.Warn("Error closing sessions", logger.Error(err))
+	}
 
 	// Stop the transport
 	if err := s.transport.Stop(ctx); err != nil {
@@ -144,12 +162,12 @@ func (s *mcpServerImpl) IsRunning() bool {
 
 // GetSessionCount returns the number of active sessions
 func (s *mcpServerImpl) GetSessionCount() int {
-	return s.sessions.GetSessionCount()
+	return s.sessionRegistry.GetSessionCount()
 }
 
 // CleanupExpiredSessions removes expired sessions using the configured timeout
 func (s *mcpServerImpl) CleanupExpiredSessions(ctx context.Context) error {
-	return s.sessions.CleanupExpiredSessions(ctx, s.config.Timeout)
+	return s.sessionRegistry.CleanupExpiredSessions(ctx, s.config.Timeout)
 }
 
 // GetConfig returns the server configuration

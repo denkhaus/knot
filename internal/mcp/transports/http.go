@@ -9,13 +9,12 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
-	"github.com/mark3labs/mcp-go/server"
 )
 
 // HTTPTransport implements the Transport interface for HTTP communication
 type HTTPTransport struct {
 	*BaseTransport
-	httpServer       *server.StreamableHTTPServer
+	httpServer       *SessionWrapper // Session wrapper for MCP server
 	customHTTPServer *http.Server
 }
 
@@ -34,10 +33,13 @@ func (h *HTTPTransport) Start(ctx context.Context) error {
 	// Create custom HTTP handler that combines MCP and health endpoints
 	handler := http.NewServeMux()
 
-	// Add MCP endpoint handler (from streamable server)
-	h.httpServer = server.NewStreamableHTTPServer(
+	// Add MCP endpoint handler with session wrapper
+	sessionWrapper := NewSessionWrapper(
 		deps.MCPServer,
+		deps.SessionRegistry,
+		deps.Logger,
 	)
+	h.httpServer = sessionWrapper
 
 	// Register the MCP server handler
 	handler.Handle("/mcp", h.httpServer)
