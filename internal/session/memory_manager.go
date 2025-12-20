@@ -39,6 +39,29 @@ func (m *managerImpl) CreateSession(clientID string) (*SessionContext, error) {
 	return session, nil
 }
 
+// CreateSessionWithID creates a new session with a specific session ID
+func (m *managerImpl) CreateSessionWithID(sessionID uuid.UUID, clientID string) (*SessionContext, error) {
+	if clientID == "" {
+		return nil, fmt.Errorf("client ID cannot be empty")
+	}
+
+	// Check if session already exists
+	if _, exists := m.sessions.Load(sessionID); exists {
+		return nil, fmt.Errorf("session with ID %s already exists", sessionID.String())
+	}
+
+	session := &SessionContext{
+		SessionID:    sessionID,
+		ClientID:     clientID,
+		CreatedAt:    time.Now(),
+		LastActivity: time.Now(),
+		Metadata:     make(map[string]interface{}),
+	}
+
+	m.sessions.Store(sessionID, session)
+	return session, nil
+}
+
 // GetSession gets a session by ID and updates activity timestamp
 func (m *managerImpl) GetSession(sessionID uuid.UUID) (*SessionContext, error) {
 	value, ok := m.sessions.Load(sessionID)
@@ -49,6 +72,25 @@ func (m *managerImpl) GetSession(sessionID uuid.UUID) (*SessionContext, error) {
 	session := value.(*SessionContext)
 	session.LastActivity = time.Now()
 	return session, nil
+}
+
+// GetSessionByClientID gets a session by client ID and updates activity timestamp
+func (m *managerImpl) GetSessionByClientID(clientID string) (*SessionContext, error) {
+	var foundSession *SessionContext
+	m.sessions.Range(func(key, value interface{}) bool {
+		if session, ok := value.(*SessionContext); ok && session.ClientID == clientID {
+			foundSession = session
+			session.LastActivity = time.Now()
+			return false // Stop iteration
+		}
+		return true
+	})
+
+	if foundSession == nil {
+		return nil, fmt.Errorf("session not found for client: %s", clientID)
+	}
+
+	return foundSession, nil
 }
 
 // DeleteSession removes a session by ID

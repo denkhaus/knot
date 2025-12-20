@@ -35,6 +35,9 @@ type SessionRepository interface {
 	// CreateSession creates a new session
 	CreateSession(ctx context.Context, clientID string) (*Session, error)
 
+	// CreateSessionWithID creates a new session with a specific session ID
+	CreateSessionWithID(ctx context.Context, sessionID uuid.UUID, clientID string) (*Session, error)
+
 	// GetSession retrieves a session by ID and updates last activity
 	GetSession(ctx context.Context, sessionID uuid.UUID) (*Session, error)
 

@@ -180,6 +180,24 @@ func (r *postgresRepository) CreateSession(ctx context.Context, clientID string)
 	return r.convertSessionEntToTypes(sessionEnt), nil
 }
 
+// CreateSessionWithID creates a new session with a specific session ID
+func (r *postgresRepository) CreateSessionWithID(ctx context.Context, sessionID uuid.UUID, clientID string) (*types.Session, error) {
+	sessionEnt, err := r.client.Session.Create().
+		SetID(sessionID).
+		SetClientID(clientID).
+		SetStatus(session.StatusActive).
+		Save(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session with ID: %w", err)
+	}
+
+	r.logger.Debug("Session created with specific ID",
+		zap.String("session_id", sessionEnt.ID.String()),
+		zap.String("client_id", clientID))
+
+	return r.convertSessionEntToTypes(sessionEnt), nil
+}
+
 // GetSession retrieves a session by ID and updates last activity
 func (r *postgresRepository) GetSession(ctx context.Context, sessionID uuid.UUID) (*types.Session, error) {
 	session, err := r.client.Session.Get(ctx, sessionID)

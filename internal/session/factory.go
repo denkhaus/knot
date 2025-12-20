@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -22,23 +21,15 @@ const (
 	DatabaseStorage SessionStorageType = "database"
 )
 
-// DatabaseSessionManager implements session.Manager using a database for persistent storage
+// databaseSessionManagerImpl implements session.Manager using a database for persistent storage
 // Works with PostgreSQL (MCP Mode) via the SessionRepository interface
-type DatabaseSessionManager struct {
+type databaseSessionManagerImpl struct {
 	repo   types.SessionRepository
 	logger logger.Logger
 }
 
-// NewDatabaseSessionManager creates a database-backed session manager
-func NewDatabaseSessionManager(repo types.SessionRepository, logger logger.Logger) Manager {
-	return &DatabaseSessionManager{
-		repo:   repo,
-		logger: logger,
-	}
-}
-
 // CreateSession creates a new session and stores it in the database
-func (m *DatabaseSessionManager) CreateSession(clientID string) (*SessionContext, error) {
+func (m *databaseSessionManagerImpl) CreateSession(clientID string) (*SessionContext, error) {
 	if clientID == "" {
 		return nil, fmt.Errorf("client ID cannot be empty")
 	}
@@ -67,8 +58,38 @@ func (m *DatabaseSessionManager) CreateSession(clientID string) (*SessionContext
 	return sessionCtx, nil
 }
 
+// CreateSessionWithID creates a new session with a specific session ID and stores it in the database
+func (m *databaseSessionManagerImpl) CreateSessionWithID(sessionID uuid.UUID, clientID string) (*SessionContext, error) {
+	if clientID == "" {
+		return nil, fmt.Errorf("client ID cannot be empty")
+	}
+
+	ctx := context.Background()
+
+	// Create session in database with specific ID
+	dbSession, err := m.repo.CreateSessionWithID(ctx, sessionID, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create session with ID: %w", err)
+	}
+
+	// Create session context
+	sessionCtx := &SessionContext{
+		SessionID:    dbSession.ID,
+		ClientID:     dbSession.ClientID,
+		CreatedAt:    dbSession.CreatedAt,
+		LastActivity: dbSession.LastActivity,
+		Metadata:     dbSession.Metadata,
+	}
+
+	m.logger.Debug("Session created in database with specific ID",
+		logger.String("session_id", sessionCtx.SessionID.String()),
+		logger.String("client_id", clientID))
+
+	return sessionCtx, nil
+}
+
 // GetSession gets a session by ID and updates activity timestamp
-func (m *DatabaseSessionManager) GetSession(sessionID uuid.UUID) (*SessionContext, error) {
+func (m *databaseSessionManagerImpl) GetSession(sessionID uuid.UUID) (*SessionContext, error) {
 	ctx := context.Background()
 
 	// Get session from database (updates activity automatically)
@@ -92,8 +113,70 @@ func (m *DatabaseSessionManager) GetSession(sessionID uuid.UUID) (*SessionContex
 	return sessionCtx, nil
 }
 
+// GetSessionByClientID gets a session by client ID and updates activity timestamp
+func (m *databaseSessionManagerImpl) GetSessionByClientID(clientID string) (*SessionContext, error) {
+	ctx := context.Background()
+
+	m.logger.Debug("GetSessionByClientID called",
+		logger.String("client_id", clientID))
+
+	// List sessions for this client
+	dbSessions, err := m.repo.ListSessions(ctx, clientID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list sessions for client: %w", err)
+	}
+
+	m.logger.Debug("GetSessionByClientID found sessions",
+		logger.String("client_id", clientID),
+		logger.Int("count", len(dbSessions)))
+
+	if len(dbSessions) == 0 {
+		return nil, fmt.Errorf("no sessions found for client: %s", clientID)
+	}
+
+	// First, try to find a session with a project set
+	for _, dbSession := range dbSessions {
+		if dbSession.ProjectID != nil {
+			// Create session context
+			sessionCtx := &SessionContext{
+				SessionID:    dbSession.ID,
+				ClientID:     dbSession.ClientID,
+				CreatedAt:    dbSession.CreatedAt,
+				LastActivity: dbSession.LastActivity,
+				Metadata:     dbSession.Metadata,
+				ProjectID:    dbSession.ProjectID,
+			}
+
+			m.logger.Debug("Session retrieved by client ID (with project)",
+				logger.String("client_id", clientID),
+				logger.String("session_id", sessionCtx.SessionID.String()))
+
+			return sessionCtx, nil
+		}
+	}
+
+	// If no session has a project set, use the most recent one
+	dbSession := dbSessions[0]
+
+	// Create session context
+	sessionCtx := &SessionContext{
+		SessionID:    dbSession.ID,
+		ClientID:     dbSession.ClientID,
+		CreatedAt:    dbSession.CreatedAt,
+		LastActivity: dbSession.LastActivity,
+		Metadata:     dbSession.Metadata,
+		ProjectID:    dbSession.ProjectID,
+	}
+
+	m.logger.Debug("Session retrieved by client ID (most recent)",
+		logger.String("client_id", clientID),
+		logger.String("session_id", sessionCtx.SessionID.String()))
+
+	return sessionCtx, nil
+}
+
 // DeleteSession removes a session by ID
-func (m *DatabaseSessionManager) DeleteSession(sessionID uuid.UUID) error {
+func (m *databaseSessionManagerImpl) DeleteSession(sessionID uuid.UUID) error {
 	ctx := context.Background()
 
 	err := m.repo.DeleteSession(ctx, sessionID)
@@ -108,7 +191,7 @@ func (m *DatabaseSessionManager) DeleteSession(sessionID uuid.UUID) error {
 }
 
 // ListSessions returns all active sessions
-func (m *DatabaseSessionManager) ListSessions() []*SessionContext {
+func (m *databaseSessionManagerImpl) ListSessions() []*SessionContext {
 	ctx := context.Background()
 
 	// Get all sessions (empty clientID means all clients)
@@ -137,7 +220,7 @@ func (m *DatabaseSessionManager) ListSessions() []*SessionContext {
 }
 
 // SetProject sets the project for a session
-func (m *DatabaseSessionManager) SetProject(sessionID, projectID uuid.UUID) error {
+func (m *databaseSessionManagerImpl) SetProject(sessionID, projectID uuid.UUID) error {
 	ctx := context.Background()
 
 	err := m.repo.SetSessionProject(ctx, sessionID, projectID)
@@ -153,7 +236,7 @@ func (m *DatabaseSessionManager) SetProject(sessionID, projectID uuid.UUID) erro
 }
 
 // GetProject retrieves the project ID for a session
-func (m *DatabaseSessionManager) GetProject(sessionID uuid.UUID) (*uuid.UUID, error) {
+func (m *databaseSessionManagerImpl) GetProject(sessionID uuid.UUID) (*uuid.UUID, error) {
 	ctx := context.Background()
 
 	projectID, err := m.repo.GetSessionProject(ctx, sessionID)
@@ -165,7 +248,7 @@ func (m *DatabaseSessionManager) GetProject(sessionID uuid.UUID) (*uuid.UUID, er
 }
 
 // ClearProject removes the project binding from a session
-func (m *DatabaseSessionManager) ClearProject(sessionID uuid.UUID) error {
+func (m *databaseSessionManagerImpl) ClearProject(sessionID uuid.UUID) error {
 	ctx := context.Background()
 
 	err := m.repo.ClearSessionProject(ctx, sessionID)
@@ -180,14 +263,14 @@ func (m *DatabaseSessionManager) ClearProject(sessionID uuid.UUID) error {
 }
 
 // ValidateSession checks if a session exists and is active
-func (m *DatabaseSessionManager) ValidateSession(sessionID uuid.UUID) bool {
+func (m *databaseSessionManagerImpl) ValidateSession(sessionID uuid.UUID) bool {
 	ctx := context.Background()
 
 	return m.repo.ValidateSession(ctx, sessionID)
 }
 
 // CleanupExpiredSessions removes sessions that have exceeded the timeout
-func (m *DatabaseSessionManager) CleanupExpiredSessions(ctx context.Context, timeout time.Duration) error {
+func (m *databaseSessionManagerImpl) CleanupExpiredSessions(ctx context.Context, timeout time.Duration) error {
 	cutoff := time.Now().Add(-timeout)
 
 	err := m.repo.CleanupExpiredSessions(ctx, cutoff)
@@ -203,7 +286,7 @@ func (m *DatabaseSessionManager) CleanupExpiredSessions(ctx context.Context, tim
 }
 
 // CloseAll closes all sessions
-func (m *DatabaseSessionManager) CloseAll(ctx context.Context) error {
+func (m *databaseSessionManagerImpl) CloseAll(ctx context.Context) error {
 	// In PostgreSQL, sessions are cleaned up by expiration
 	// This is mainly for cleanup during shutdown
 	m.logger.Info("All sessions closed")
@@ -211,7 +294,7 @@ func (m *DatabaseSessionManager) CloseAll(ctx context.Context) error {
 }
 
 // GetSessionCount returns the number of active sessions
-func (m *DatabaseSessionManager) GetSessionCount() int {
+func (m *databaseSessionManagerImpl) GetSessionCount() int {
 	ctx := context.Background()
 
 	count, err := m.repo.GetSessionCount(ctx)
@@ -221,72 +304,6 @@ func (m *DatabaseSessionManager) GetSessionCount() int {
 	}
 
 	return count
-}
-
-// sessionStorageFactory creates session managers based on storage type
-// Private implementation of StorageFactory interface
-type sessionStorageFactory struct {
-	configService config.Service
-	logger        logger.Logger
-}
-
-// Ensure sessionStorageFactory implements StorageFactory
-var _ StorageFactory = (*sessionStorageFactory)(nil)
-
-// NewSessionStorageFactory creates a new session storage factory
-func NewSessionStorageFactory(configService config.Service, logger logger.Logger) StorageFactory {
-	return &sessionStorageFactory{
-		configService: configService,
-		logger:        logger,
-	}
-}
-
-// DetectStorageType determines the appropriate storage type based on configuration
-func (f *sessionStorageFactory) DetectStorageType() SessionStorageType {
-	// Check if MCP mode is configured with a database
-	if f.configService.IsMCPMode() && f.configService.GetMCPConfig().Database.Endpoint != "" {
-		return DatabaseStorage
-	}
-	return MemoryStorage
-}
-
-// CreateSessionManager creates a session manager based on the detected storage type
-func (f *sessionStorageFactory) CreateSessionManager(ctx context.Context, repo types.Repository) (Manager, error) {
-	storageType := f.DetectStorageType()
-
-	f.logger.Info("Creating session manager",
-		logger.String("storage_type", string(storageType)))
-
-	switch storageType {
-	case DatabaseStorage:
-		// For database storage, we need a SessionRepository
-		// Try to assert the repository to SessionRepository interface
-		if sessionRepo, ok := repo.(types.SessionRepository); ok {
-			return f.createDatabaseSessionManager(ctx, sessionRepo)
-		}
-		return nil, fmt.Errorf("repository does not implement SessionRepository interface for database sessions")
-	case MemoryStorage:
-		return f.createMemorySessionManager(ctx)
-	default:
-		return nil, fmt.Errorf("unsupported session storage type: %s", storageType)
-	}
-}
-
-// createDatabaseSessionManager creates a database-backed session manager for MCP mode
-func (f *sessionStorageFactory) createDatabaseSessionManager(ctx context.Context, repo types.SessionRepository) (Manager, error) {
-	f.logger.Info("Creating database session manager for MCP mode")
-
-	sessionManager := NewDatabaseSessionManager(repo, f.logger)
-	f.logger.Info("Database session manager created successfully")
-	return sessionManager, nil
-}
-
-// createMemorySessionManager creates an in-memory session manager for Local mode
-func (f *sessionStorageFactory) createMemorySessionManager(ctx context.Context) (Manager, error) {
-	f.logger.Info("Creating memory session manager for Local mode")
-
-	// Use the existing memory-based session manager
-	return newManager(), nil
 }
 
 // IsDatabaseStorage checks if the storage type is Database
@@ -300,7 +317,7 @@ func IsMemoryStorage(storageType SessionStorageType) bool {
 }
 
 // GetProviderTypeFromStorageType converts storage type to provider type
-func (f *sessionStorageFactory) GetProviderTypeFromStorageType(storageType SessionStorageType) SessionProviderType {
+func GetProviderTypeFromStorageType(storageType SessionStorageType) SessionProviderType {
 	switch storageType {
 	case DatabaseStorage:
 		return DatabaseSessionProvider

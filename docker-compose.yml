@@ -39,6 +39,7 @@ services:
       - KNOT_MCP_TRANSPORT_MODE=http
       - KNOT_MCP_ADDRESS=0.0.0.0
       - KNOT_MCP_PORT=9094
+      - KNOT_LOG_LEVEL=debug
     depends_on:
       postgres:
         condition: service_healthy
