@@ -202,7 +202,7 @@ func printChildrenUsingTreeFormat(children []*types.Task, parentTask *types.Task
 // ChildrenAction gets direct children of a task
 func ChildrenAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -271,7 +271,7 @@ func ChildrenAction() cli.ActionFunc {
 // ParentAction gets parent task of a task
 func ParentAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -322,7 +322,7 @@ func ParentAction() cli.ActionFunc {
 // RootsAction gets root tasks of a project
 func RootsAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

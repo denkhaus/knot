@@ -114,10 +114,10 @@ func (c *Container) GetProjectManager() manager.ProjectManager {
 	return do.MustInvoke[manager.ProjectManager](c.injector)
 }
 
-func (c *Container) GetConfigService() config.Service {
-	return do.MustInvoke[config.Service](c.injector)
+func (c *Container) GetConfigService() (config.Service, error) {
+	return do.Invoke[config.Service](c.injector)
 }
 
-func (c *Container) GetMCPServer() mcp.Server {
-	return do.MustInvoke[mcp.Server](c.injector)
+func (c *Container) GetMCPServer() (mcp.Server, error) {
+	return do.Invoke[mcp.Server](c.injector)
 }

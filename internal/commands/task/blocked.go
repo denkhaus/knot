@@ -14,9 +14,8 @@ import (
 
 // BlockedAction shows tasks that are blocked by dependencies
 func BlockedAction() cli.ActionFunc {
-
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

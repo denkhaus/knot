@@ -14,9 +14,8 @@ import (
 
 // ReadyAction shows tasks that are ready to work on (no blockers)
 func ReadyAction() cli.ActionFunc {
-
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

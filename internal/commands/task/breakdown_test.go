@@ -62,7 +62,7 @@ func TestBreakdownAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDIBreakdown(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -79,7 +79,7 @@ func TestBreakdownAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDIBreakdown(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -105,7 +105,7 @@ func TestBreakdownAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDIBreakdown(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -130,7 +130,7 @@ func TestBreakdownAction(t *testing.T) {
 		cliCtx, app := setupCLIContextWithDIBreakdown(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -170,7 +170,7 @@ func TestBreakdownAction(t *testing.T) {
 		cliCtx, app := setupCLIContextWithDIBreakdown(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -208,7 +208,6 @@ func TestBreakdownAction(t *testing.T) {
 }
 
 func TestBreakdownActionErrorHandling(t *testing.T) {
-
 	t.Run("no project context", func(t *testing.T) {
 		// Set up DI container for this test
 		diContainer := di.NewContainer()
@@ -226,7 +225,14 @@ func TestBreakdownActionErrorHandling(t *testing.T) {
 		flagSet.Bool("auto-reduce-complexity", true, "")
 
 		ctx := cli.NewContext(app, flagSet, nil)
-		_ = diContainer.RegisterAllServices(ctx)
+		injector := diContainer.RegisterAllServices(ctx)
+
+		// Override repository with a clean in-memory repository
+		config := testutil.NewTestConfig(t)
+		repo := config.SetupTestRepository(t)
+		do.Override(injector, func(do.Injector) (types.Repository, error) {
+			return repo, nil
+		})
 
 		// Store container in CLI context metadata like BeforeCommand does
 		if app.Metadata == nil {

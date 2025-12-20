@@ -70,6 +70,8 @@ func isUserInputError(err error) bool {
 		"incorrect usage",
 		"flag needs an argument",
 		"No help topic for",
+		"Configuration error",
+		"Failed to initialize MCP server",
 	}
 
 	for _, pattern := range userErrorPatterns {

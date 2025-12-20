@@ -295,7 +295,7 @@ func showAction() cli.ActionFunc {
 // applyAction applies a template to create tasks
 func applyAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 
 		// Resolve project ID using DI-resolved ProjectManager

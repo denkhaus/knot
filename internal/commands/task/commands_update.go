@@ -20,7 +20,7 @@ import (
 // Reference: Brain Memory 3de5544c-1ac8-40f1-88ae-88a1ae1488a0
 func updateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -122,7 +122,7 @@ func updateAction() cli.ActionFunc {
 
 func updateStateSubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -201,7 +201,7 @@ func updateStateSubAction() cli.ActionFunc {
 func updateTitleSubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		loggerService := container.GetLogger()
 		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
@@ -250,7 +250,7 @@ func updateTitleSubAction() cli.ActionFunc {
 func updateDescriptionSubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		loggerService := container.GetLogger()
 		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
@@ -300,7 +300,7 @@ func updateDescriptionSubAction() cli.ActionFunc {
 func updatePrioritySubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		loggerService := container.GetLogger()
 		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")
@@ -352,7 +352,7 @@ func updatePrioritySubAction() cli.ActionFunc {
 func updateComplexitySubAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		loggerService := container.GetLogger()
 		projectManager := container.GetProjectManager()
 		taskIDStr := c.String("id")

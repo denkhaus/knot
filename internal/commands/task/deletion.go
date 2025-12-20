@@ -226,9 +226,8 @@ func DeletionCommands() []*cli.Command {
 
 // deleteAction handles task deletion with two-step confirmation
 func deleteAction() cli.ActionFunc {
-
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

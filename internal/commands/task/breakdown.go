@@ -13,7 +13,7 @@ import (
 // BreakdownAction finds tasks that need breakdown based on complexity threshold
 func BreakdownAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

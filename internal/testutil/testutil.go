@@ -170,6 +170,42 @@ func (tc *TestConfig) SetupTestInjector(t *testing.T) do.Injector {
 	return injector
 }
 
+// SetupDIContainer creates a complete DI container with test repository
+// This is useful for testing CLI commands that need a container in app metadata
+func (tc *TestConfig) SetupDIContainer(t *testing.T) *di.Container {
+	// Use in-memory repository by default to avoid interfering with production data
+	testConfig := &TestConfig{
+		UseInMemoryDB: true, // Force in-memory for all tests
+		Logger:        tc.Logger,
+		TempDir:       tc.TempDir,
+	}
+	repo := testConfig.SetupTestRepository(t)
+
+	// Initialize DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services
+	injector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory)
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
+	return diContainer
+}
+
 // CreateTestProject creates a test project for testing
 func CreateTestProject(t *testing.T, mgr manager.ProjectManager) *types.Project {
 	ctx := context.Background()

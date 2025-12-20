@@ -41,7 +41,8 @@
       "mcp__plugin_beads_beads__stats",
       "Bash(mcp__brain__create_project)",
       "Bash(mcp__brain__store_memory:*)",
-      "mcp__plugin_beads_beads__where_am_i"
+      "mcp__plugin_beads_beads__where_am_i",
+      "mcp__plugin_beads_beads__blocked"
     ],
     "deny": [],
     "ask": []

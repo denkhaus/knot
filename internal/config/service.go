@@ -2,8 +2,11 @@ package config
 
 import (
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
+	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -111,6 +114,12 @@ func (s *serviceImpl) SetLogLevel(level string) {
 func (s *serviceImpl) GetDatabasePath() string {
 	s.mu.RLock()
 	defer s.mu.RUnlock()
+
+	// In MCP mode, we don't use SQLite database, return empty string
+	if s.isMCPMode {
+		return ""
+	}
+
 	if s.dbPath != "" {
 		return s.dbPath
 	}
@@ -230,6 +239,13 @@ func (s *serviceImpl) InitializeFromCLIContext(c *cli.Context) error {
 	// Initialize MCP config from CLI flags if provided
 	s.initializeMCPConfig(c)
 
+	// Validate MCP configuration if in MCP mode
+	if s.isMCPMode {
+		if err := s.validateMCPConfig(); err != nil {
+			return fmt.Errorf("failed to validate MCP config: %v", err)
+		}
+	}
+
 	return nil
 }
 
@@ -240,9 +256,14 @@ func (s *serviceImpl) initializeMCPConfig(c *cli.Context) {
 		return
 	}
 
+	// Get transport mode from CLI flag
+	transportMode := TransportType(c.String("mcp-transport-mode"))
+	if !transportMode.IsValid() {
+		transportMode = TransportTypeStdio // fallback to stdio if invalid
+	}
+
 	s.mcpConfig = &MCPConfig{
-		Enabled: c.Bool("mcp-enabled"),
-		Address: c.String("mcp-address"),
+		Address: c.String("mcp-endpoint"),
 		Port:    c.Int("mcp-port"),
 		Database: DatabaseConfig{
 			Backend:  "postgres", // Default backend
@@ -253,10 +274,23 @@ func (s *serviceImpl) initializeMCPConfig(c *cli.Context) {
 			MaxSessions: c.Int("mcp-max-sessions"),
 		},
 		Hints: HintsConfig{
-			Enabled:  c.Bool("mcp-hints-enabled"),
+			Enabled:  true, // Hints are always enabled as core feature
 			MaxHints: c.Int("mcp-hints-max"),
 			// Use default categories if not provided
 			Categories: []string{"next_action", "recovery", "workflow"},
+		},
+		Transport: TransportConfig{
+			Mode:         transportMode,
+			StdioEnabled: transportMode == TransportTypeStdio,
+			HTTPEnabled:  transportMode == TransportTypeHTTP,
+			SSEEnabled:   transportMode == TransportTypeSSE,
+			HTTP: HTTPTransportConfig{
+				RequestTimeout: 30, // default 30 seconds
+			},
+			SSE: SSETransportConfig{
+				HeartbeatInterval: 30, // default 30 seconds
+				ClientTimeout:     120, // default 2 minutes
+			},
 		},
 	}
 }
@@ -264,7 +298,6 @@ func (s *serviceImpl) initializeMCPConfig(c *cli.Context) {
 // getDefaultMCPConfig returns the default MCP configuration
 func (s *serviceImpl) getDefaultMCPConfig() *MCPConfig {
 	return &MCPConfig{
-		Enabled: false,
 		Address: "localhost",
 		Port:    8080,
 		Timeout: 30 * time.Minute,
@@ -277,11 +310,110 @@ func (s *serviceImpl) getDefaultMCPConfig() *MCPConfig {
 			MaxSessions: 100,
 		},
 		Hints: HintsConfig{
-			Enabled:  true,
+			Enabled:  true, // Hints are always enabled as core feature
 			MaxHints: 5,
 			Categories: []string{"next_action", "recovery", "workflow"},
 		},
+		Transport: TransportConfig{
+			Mode:         TransportTypeStdio, // Default to stdio for backwards compatibility
+			StdioEnabled: true,               // Enable stdio by default
+			HTTPEnabled:  false,              // HTTP disabled by default
+			SSEEnabled:   false,              // SSE disabled by default
+			HTTP: HTTPTransportConfig{
+				RequestTimeout: 30, // default 30 seconds
+			},
+			SSE: SSETransportConfig{
+				HeartbeatInterval: 30, // default 30 seconds
+				ClientTimeout:     120, // default 2 minutes
+			},
+		},
 	}
+}
+
+// validateMCPConfig validates the MCP configuration
+func (s *serviceImpl) validateMCPConfig() error {
+	if s.mcpConfig == nil {
+		return fmt.Errorf("MCP config is not initialized")
+	}
+
+	// Validate PostgreSQL connection string if provided
+	if err := s.validatePostgresConnectionString(s.mcpConfig.Database.Endpoint); err != nil {
+		return fmt.Errorf("invalid postgres-endpoint: %w", err)
+	}
+
+	// Check if port is available
+	if err := s.checkPortAvailable(s.mcpConfig.Address, s.mcpConfig.Port); err != nil {
+		// Provide suggestions for alternative ports
+		alternatives := s.suggestAlternativePorts(s.mcpConfig.Port)
+		suggestion := ""
+		if len(alternatives) > 0 {
+			suggestion = fmt.Sprintf(" Suggested alternatives: %s", strings.Join(alternatives, ", "))
+		}
+		return fmt.Errorf("%s%s", err.Error(), suggestion)
+	}
+
+	return nil
+}
+
+// validatePostgresConnectionString validates the PostgreSQL connection string format
+func (s *serviceImpl) validatePostgresConnectionString(connStr string) error {
+	if connStr == "" {
+		return fmt.Errorf("postgres-endpoint is required. Use --postgres-endpoint flag or KNOT_POSTGRES_ENDPOINT environment variable")
+	}
+
+	// Basic validation for PostgreSQL connection string
+	if !strings.HasPrefix(connStr, "postgres://") && !strings.HasPrefix(connStr, "postgresql://") {
+		return fmt.Errorf("must start with 'postgres://' or 'postgresql://'")
+	}
+
+	// Check for common required parts
+	parts := strings.Split(connStr, "://")
+	if len(parts) != 2 {
+		return fmt.Errorf("malformed connection string format")
+	}
+
+	// Extract the part after protocol and check for dbname
+	remaining := parts[1]
+	if strings.Contains(remaining, "/") {
+		dbPart := strings.Split(remaining, "/")[1]
+		// Remove query parameters if present
+		if strings.Contains(dbPart, "?") {
+			dbPart = strings.Split(dbPart, "?")[0]
+		}
+		if dbPart == "" {
+			return fmt.Errorf("database name is required")
+		}
+	}
+
+	return nil
+}
+
+// checkPortAvailable checks if the port is available for binding
+func (s *serviceImpl) checkPortAvailable(address string, port int) error {
+	addr := fmt.Sprintf("%s:%d", address, port)
+	listener, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("port %d is already in use or cannot be bound", port)
+	}
+	listener.Close()
+	return nil
+}
+
+// suggestAlternativePorts suggests alternative ports if the requested port is unavailable
+func (s *serviceImpl) suggestAlternativePorts(port int) []string {
+	alternatives := make([]string, 0, 5)
+	for i := 1; i <= 5; i++ {
+		altPort := port + i
+		addr := fmt.Sprintf("localhost:%d", altPort)
+		if listener, err := net.Listen("tcp", addr); err == nil {
+			alternatives = append(alternatives, strconv.Itoa(altPort))
+			listener.Close()
+			if len(alternatives) >= 3 {
+				break
+			}
+		}
+	}
+	return alternatives
 }
 
 // DefaultConfig returns a sensible default configuration

@@ -10,7 +10,7 @@ import (
 // ShowProjectContext displays the current project context if one is selected
 // Returns true if context was shown, false if no project is selected
 func ShowProjectContext(c *cli.Context) bool {
-	container := GetContainerFromCLIContext(c)
+	container := GetContainerFromContext(c)
 	projectManager := container.GetProjectManager()
 
 	// Skip context display for JSON output or quiet mode

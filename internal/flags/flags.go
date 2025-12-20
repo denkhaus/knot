@@ -95,17 +95,11 @@ func NewManagerConfigFlags() []cli.Flag {
 // NewMCPConfigFlags creates flags for MCP configuration
 func NewMCPConfigFlags() []cli.Flag {
 	return []cli.Flag{
-		&cli.BoolFlag{
-			Name:    "mcp-enabled",
-			Usage:   "Enable MCP server",
-			Value:   false,
-			EnvVars: []string{"KNOT_MCP_ENABLED"},
-		},
 		&cli.StringFlag{
-			Name:    "mcp-address",
-			Usage:   "MCP server address",
+			Name:    "mcp-endpoint",
+			Usage:   "MCP server endpoint",
 			Value:   "localhost",
-			EnvVars: []string{"KNOT_MCP_ADDRESS"},
+			EnvVars: []string{"KNOT_MCP_ENDPOINT"},
 		},
 		&cli.IntFlag{
 			Name:    "mcp-port",
@@ -130,17 +124,18 @@ func NewMCPConfigFlags() []cli.Flag {
 			Value:   100,
 			EnvVars: []string{"KNOT_MCP_MAX_SESSIONS"},
 		},
-		&cli.BoolFlag{
-			Name:    "mcp-hints-enabled",
-			Usage:   "Enable MCP hints system",
-			Value:   true,
-			EnvVars: []string{"KNOT_MCP_HINTS_ENABLED"},
-		},
 		&cli.IntFlag{
 			Name:    "mcp-hints-max",
 			Usage:   "Maximum hints per session",
 			Value:   5,
 			EnvVars: []string{"KNOT_MCP_HINTS_MAX"},
+		},
+		// Transport configuration flag
+		&cli.StringFlag{
+			Name:    "mcp-transport-mode",
+			Usage:   "MCP transport mode (stdio, http, sse)",
+			Value:   "stdio",
+			EnvVars: []string{"KNOT_MCP_TRANSPORT_MODE"},
 		},
 	}
 }

@@ -5,6 +5,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -36,7 +37,7 @@ func TestBulkCommands(t *testing.T) {
 
 func TestListByStateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-testInjector := config.SetupTestInjector(t)
+	testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -44,6 +45,29 @@ testInjector := config.SetupTestInjector(t)
 	// Set project context
 	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
+
+	// Create DI container that shares the same repository as the testInjector
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services
+	injector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with the same repository used by testInjector
+	repo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
 
 	t.Run("list pending tasks", func(t *testing.T) {
 		// Create tasks with different states
@@ -55,15 +79,18 @@ testInjector := config.SetupTestInjector(t)
 		_, err = projectManager.UpdateTaskState(context.TODO(), inProgressTask.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Set up CLI context with DI container
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("state", "", "")
 		flagSet.Bool("json", false, "")
 		_ = flagSet.Set("state", "pending")
 
 		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
 
 		action := ListByStateAction()
 		err = action(ctx)
@@ -77,15 +104,18 @@ testInjector := config.SetupTestInjector(t)
 	})
 
 	t.Run("invalid state", func(t *testing.T) {
-		app := &cli.App{}
+		// Set up CLI context with DI container
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("state", "", "")
 		flagSet.Bool("json", false, "")
 		_ = flagSet.Set("state", "invalid-state")
 
 		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
 
 		action := ListByStateAction()
 		err := action(ctx)
@@ -94,15 +124,18 @@ testInjector := config.SetupTestInjector(t)
 	})
 
 	t.Run("missing state parameter", func(t *testing.T) {
-		app := &cli.App{}
+		// Set up CLI context with DI container
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("state", "", "")
 		flagSet.Bool("json", false, "")
 		// Don't set state
 
 		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
 
 		action := ListByStateAction()
 		err := action(ctx)
@@ -113,7 +146,7 @@ testInjector := config.SetupTestInjector(t)
 
 func TestDuplicateAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-testInjector := config.SetupTestInjector(t)
+	testInjector := config.SetupTestInjector(t)
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 	project := testutil.CreateTestProject(t, projectManager)
@@ -122,12 +155,40 @@ testInjector := config.SetupTestInjector(t)
 	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
+	// Create DI container that shares the same repository as the testInjector
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services
+	injector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with the same repository used by testInjector
+	repo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
 	t.Run("duplicate existing task", func(t *testing.T) {
 		// Create a task to duplicate
 		originalTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Original Task", "Original description", 4, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Set up CLI context with DI container
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("task-id", "", "")
 		flagSet.String("target-project-id", "", "")
@@ -137,8 +198,6 @@ testInjector := config.SetupTestInjector(t)
 		_ = flagSet.Set("actor", "test-duplicator")
 
 		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
 
 		action := DuplicateAction()
 		err = action(ctx)
@@ -150,7 +209,12 @@ testInjector := config.SetupTestInjector(t)
 	})
 
 	t.Run("missing task ID", func(t *testing.T) {
-		app := &cli.App{}
+		// Set up CLI context with DI container
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("task-id", "", "")
 		flagSet.String("actor", "", "")
@@ -158,8 +222,6 @@ testInjector := config.SetupTestInjector(t)
 		_ = flagSet.Set("actor", "test-duplicator")
 
 		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
 
 		action := DuplicateAction()
 		err := action(ctx)

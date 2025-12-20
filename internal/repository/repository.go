@@ -22,6 +22,11 @@ func NewSQLiteRepository(injector do.Injector) (types.Repository, error) {
 	// Get database path from config
 	dbPath := configService.GetDatabasePath()
 
+	// In MCP mode, we don't use SQLite - return error to indicate this
+	if dbPath == "" {
+		return nil, fmt.Errorf("SQLite repository not available in MCP mode - use PostgreSQL repository instead")
+	}
+
 	// Create SQLite repository for Local mode
 	sqliteProvider, _ := sqlite.NewProvider(nil)
 	repo, err := sqliteProvider.NewRepository(dbPath,
@@ -34,12 +39,6 @@ func NewSQLiteRepository(injector do.Injector) (types.Repository, error) {
 
 	loggerService.Info("SQLite Local Mode repository initialized successfully")
 	return repo, nil
-}
-
-// NewPostgreSQLRepository provides the PostgreSQL repository service for MCP mode.
-func NewPostgreSQLRepository(injector do.Injector) (types.Repository, error) {
-	// TODO: PostgreSQL provider is incomplete (knot-ec0)
-	return nil, fmt.Errorf("PostgreSQL provider is not yet implemented. See knot-ec0: Implement Complete PostgreSQL Provider")
 }
 
 // NewModeBasedRepositoryProvider creates a repository using DI and the factory

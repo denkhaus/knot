@@ -37,7 +37,7 @@ func showProjectContextWithDI(c *cli.Context) bool {
 		return false
 	}
 
-	container := shared.GetContainerFromCLIContext(c)
+	container := shared.GetContainerFromContext(c)
 	projectManager := container.GetProjectManager()
 
 	// Get selected project
@@ -208,7 +208,7 @@ Examples:
 
 func createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -306,9 +306,8 @@ func createAction() cli.ActionFunc {
 }
 
 func listAction() cli.ActionFunc {
-
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -389,7 +388,7 @@ func listAction() cli.ActionFunc {
 
 func getAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

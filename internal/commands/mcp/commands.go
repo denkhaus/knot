@@ -13,8 +13,27 @@ import (
 func Commands() []*cli.Command {
 	return []*cli.Command{
 		{
-			Name:   "server",
-			Usage:  "Start the MCP server",
+			Name:  "server",
+			Usage: "Start the MCP server",
+			Description: `Start the Model Context Protocol (MCP) server for multi-project task management.
+
+Examples:
+  knot --postgres-endpoint="postgres://user:pass@localhost:5432/knot?sslmode=prefer" mcp server
+  KNOT_POSTGRES_ENDPOINT="postgres://user:pass@localhost:5432/knot" knot mcp server
+  knot --mcp-endpoint 0.0.0.0 --mcp-port 9090 --postgres-endpoint="postgres://user:pass@host:5432/db?sslmode=disable" mcp server
+
+PostgreSQL Connection String Format:
+  postgres://[user[:password]@][netloc][:port][/dbname][?param1=value1&...]
+
+Common parameters:
+  - sslmode: disable, require, verify-ca, verify-full (default: prefer)
+  - connect_timeout: connection timeout in seconds (default: 5)
+  - statement_timeout: query timeout in seconds
+
+Example connection strings:
+  - postgres://user:password@localhost:5432/knot?sslmode=prefer
+  - postgres:///knot?host=/var/run/postgresql  (Unix socket)
+  - postgres://localhost:5432/knot?sslmode=disable (local development)`,
 			Action: serverAction(),
 		},
 	}
@@ -22,13 +41,18 @@ func Commands() []*cli.Command {
 
 // serverAction handles the MCP server startup using dependency injection
 func serverAction() cli.ActionFunc {
-	// Resolve dependencies from DI
-
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
-		configSvc := container.GetConfigService()
+		container := shared.GetContainerFromContext(c)
+		configSvc, err := container.GetConfigService()
+		if err != nil {
+			return fmt.Errorf("Configuration error: %w\n\nUsage examples:\n  knot --postgres-endpoint=\"postgres://user:pass@localhost:5432/knot?sslmode=prefer\" mcp server\n  KNOT_POSTGRES_ENDPOINT=\"postgres://user:pass@localhost:5432/knot\" knot mcp server", err)
+		}
+
 		loggerService := container.GetLogger()
-		mcpServer := container.GetMCPServer()
+		mcpServer, err := container.GetMCPServer()
+		if err != nil {
+			return fmt.Errorf("Failed to initialize MCP server: %w\n\nThis usually means the PostgreSQL connection is invalid.\nPlease check:\n1. PostgreSQL server is running\n2. Connection string is correct\n3. Database exists and is accessible", err)
+		}
 		mcpConfig := configSvc.GetMCPConfig()
 
 		loggerService.Info("Starting MCP server",
@@ -36,15 +60,6 @@ func serverAction() cli.ActionFunc {
 			logger.Int("port", mcpConfig.Port),
 			logger.String("database_backend", mcpConfig.Database.Backend),
 			logger.String("postgres_endpoint", mcpConfig.Database.Endpoint))
-
-		// Validate required parameters
-		if !mcpConfig.Enabled {
-			return fmt.Errorf("MCP server is disabled. Use --mcp-enabled flag or KNOT_MCP_ENABLED environment variable")
-		}
-
-		if mcpConfig.Database.Endpoint == "" {
-			return fmt.Errorf("postgres-endpoint is required. Use --postgres-endpoint flag or KNOT_POSTGRES_ENDPOINT environment variable")
-		}
 
 		// Start the MCP server
 		loggerService.Info("Initializing MCP server with DI dependencies")

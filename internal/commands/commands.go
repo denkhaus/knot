@@ -22,7 +22,7 @@ import (
 
 func NewAfterCommand() func(c *cli.Context) error {
 	return func(cliCtx *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(cliCtx)
+		container := shared.GetContainerFromContext(cliCtx)
 		logger := container.GetLogger()
 		logger.Sync() // Sync doesn't return an error for zap logger
 

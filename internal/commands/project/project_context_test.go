@@ -2,10 +2,13 @@ package project
 
 import (
 	"context"
+	"flag"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
 )
@@ -13,10 +16,35 @@ import (
 func TestProjectSelectCommand(t *testing.T) {
 	// Setup test environment with DI
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
+	diContainer := di.NewContainer()
+
+	// Create CLI context with proper flags for DI
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "Log level")
+	flagSet.Int("complexity-threshold", 5, "Complexity threshold")
+	flagSet.Int("max-depth", 10, "Max depth")
+	flagSet.Int("max-tasks-per-depth", 50, "Max tasks per depth")
+	flagSet.Int("max-description-length", 500, "Max description length")
+	flagSet.Bool("auto-reduce-complexity", true, "Auto reduce complexity")
+
+	cliCtx := cli.NewContext(app, flagSet, nil)
+	_ = diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with in-memory database for test isolation
+	injector := diContainer.GetInjector()
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return config.SetupTestRepository(t), nil
+	})
+
+	// Store container in CLI context metadata like BeforeCommand does
+	if app.Metadata == nil {
+		app.Metadata = make(map[string]interface{})
+	}
+	app.Metadata["container"] = diContainer
 
 	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	projectManager := do.MustInvoke[manager.ProjectManager](diContainer.GetInjector())
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -25,8 +53,11 @@ func TestProjectSelectCommand(t *testing.T) {
 	}
 
 	t.Run("Select existing project", func(t *testing.T) {
-		// Create CLI app with select command
-		app := &cli.App{
+		// Create CLI app with select command using the same container
+		selectApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
@@ -43,7 +74,7 @@ func TestProjectSelectCommand(t *testing.T) {
 
 		// Test selecting the project
 		args := []string{"test", "select", "--id", project.ID.String()}
-		err := app.Run(args)
+		err := selectApp.Run(args)
 		if err != nil {
 			t.Errorf("Failed to select project: %v", err)
 		}
@@ -59,8 +90,11 @@ func TestProjectSelectCommand(t *testing.T) {
 	})
 
 	t.Run("Select non-existent project", func(t *testing.T) {
-		// Create CLI app with select command
-		app := &cli.App{
+		// Create CLI app with select command using the same container
+		selectApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
@@ -77,15 +111,18 @@ func TestProjectSelectCommand(t *testing.T) {
 
 		// Test selecting non-existent project
 		args := []string{"test", "select", "--id", "550e8400-e29b-41d4-a716-446655440000"}
-		err := app.Run(args)
+		err := selectApp.Run(args)
 		if err == nil {
 			t.Errorf("Expected error when selecting non-existent project")
 		}
 	})
 
 	t.Run("Select with invalid UUID", func(t *testing.T) {
-		// Create CLI app with select command
-		app := &cli.App{
+		// Create CLI app with select command using the same container
+		selectApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "select",
@@ -102,7 +139,7 @@ func TestProjectSelectCommand(t *testing.T) {
 
 		// Test selecting with invalid UUID
 		args := []string{"test", "select", "--id", "invalid-uuid"}
-		err := app.Run(args)
+		err := selectApp.Run(args)
 		if err == nil {
 			t.Errorf("Expected error when selecting with invalid UUID")
 		}
@@ -110,12 +147,37 @@ func TestProjectSelectCommand(t *testing.T) {
 }
 
 func TestProjectGetSelectedCommand(t *testing.T) {
-	// Setup test environment with DI
+	// Setup test environment with DI - reuse container from previous test
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
+	diContainer := di.NewContainer()
+
+	// Create CLI context with proper flags for DI
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "Log level")
+	flagSet.Int("complexity-threshold", 5, "Complexity threshold")
+	flagSet.Int("max-depth", 10, "Max depth")
+	flagSet.Int("max-tasks-per-depth", 50, "Max tasks per depth")
+	flagSet.Int("max-description-length", 500, "Max description length")
+	flagSet.Bool("auto-reduce-complexity", true, "Auto reduce complexity")
+
+	cliCtx := cli.NewContext(app, flagSet, nil)
+	_ = diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with in-memory database for test isolation
+	injector := diContainer.GetInjector()
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return config.SetupTestRepository(t), nil
+	})
+
+	// Store container in CLI context metadata like BeforeCommand does
+	if app.Metadata == nil {
+		app.Metadata = make(map[string]interface{})
+	}
+	app.Metadata["container"] = diContainer
 
 	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	projectManager := do.MustInvoke[manager.ProjectManager](diContainer.GetInjector())
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -127,8 +189,11 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 		// Ensure no project is selected
 		_ = projectManager.ClearSelectedProject(context.Background())
 
-		// Create CLI app with get-selected command
-		app := &cli.App{
+		// Create CLI app with get-selected command using the same container
+		getApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "get-selected",
@@ -144,7 +209,7 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 
 		// Test getting selected project when none is selected
 		args := []string{"test", "get-selected"}
-		err := app.Run(args)
+		err := getApp.Run(args)
 		if err != nil {
 			t.Errorf("Unexpected error when no project selected: %v", err)
 		}
@@ -157,8 +222,11 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 			t.Fatalf("Failed to select project: %v", err)
 		}
 
-		// Create CLI app with get-selected command
-		app := &cli.App{
+		// Create CLI app with get-selected command using the same container
+		getApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "get-selected",
@@ -174,7 +242,7 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 
 		// Test getting selected project
 		args := []string{"test", "get-selected"}
-		err = app.Run(args)
+		err = getApp.Run(args)
 		if err != nil {
 			t.Errorf("Unexpected error when getting selected project: %v", err)
 		}
@@ -182,12 +250,37 @@ func TestProjectGetSelectedCommand(t *testing.T) {
 }
 
 func TestProjectClearSelectionCommand(t *testing.T) {
-	// Setup test environment with DI
+	// Setup test environment with DI - reuse container from previous test
 	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
+	diContainer := di.NewContainer()
+
+	// Create CLI context with proper flags for DI
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "Log level")
+	flagSet.Int("complexity-threshold", 5, "Complexity threshold")
+	flagSet.Int("max-depth", 10, "Max depth")
+	flagSet.Int("max-tasks-per-depth", 50, "Max tasks per depth")
+	flagSet.Int("max-description-length", 500, "Max description length")
+	flagSet.Bool("auto-reduce-complexity", true, "Auto reduce complexity")
+
+	cliCtx := cli.NewContext(app, flagSet, nil)
+	_ = diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with in-memory database for test isolation
+	injector := diContainer.GetInjector()
+	do.Override(injector, func(do.Injector) (types.Repository, error) {
+		return config.SetupTestRepository(t), nil
+	})
+
+	// Store container in CLI context metadata like BeforeCommand does
+	if app.Metadata == nil {
+		app.Metadata = make(map[string]interface{})
+	}
+	app.Metadata["container"] = diContainer
 
 	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	projectManager := do.MustInvoke[manager.ProjectManager](diContainer.GetInjector())
 
 	// Create a test project
 	project, err := projectManager.CreateProject(context.Background(), "Test Project", "Test Description", "test-actor")
@@ -202,8 +295,11 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 			t.Fatalf("Failed to select project: %v", err)
 		}
 
-		// Create CLI app with clear-selection command
-		app := &cli.App{
+		// Create CLI app with clear-selection command using the same container
+		clearApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "clear-selection",
@@ -214,7 +310,7 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 
 		// Test clearing selection
 		args := []string{"test", "clear-selection"}
-		err = app.Run(args)
+		err = clearApp.Run(args)
 		if err != nil {
 			t.Errorf("Unexpected error when clearing selection: %v", err)
 		}
@@ -233,8 +329,11 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 		// Ensure no project is selected
 		_ = projectManager.ClearSelectedProject(context.Background())
 
-		// Create CLI app with clear-selection command
-		app := &cli.App{
+		// Create CLI app with clear-selection command using the same container
+		clearApp := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
 			Commands: []*cli.Command{
 				{
 					Name:   "clear-selection",
@@ -245,7 +344,7 @@ func TestProjectClearSelectionCommand(t *testing.T) {
 
 		// Test clearing selection when none is selected
 		args := []string{"test", "clear-selection"}
-		err := app.Run(args)
+		err := clearApp.Run(args)
 		if err != nil {
 			t.Errorf("Unexpected error when clearing non-existent selection: %v", err)
 		}

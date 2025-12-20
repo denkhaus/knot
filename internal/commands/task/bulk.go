@@ -18,7 +18,7 @@ import (
 // DuplicateAction creates a copy of a task
 func DuplicateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -66,7 +66,7 @@ func DuplicateAction() cli.ActionFunc {
 // ListByStateAction lists tasks filtered by state
 func ListByStateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -122,7 +122,7 @@ func ListByStateAction() cli.ActionFunc {
 // BulkCreateAction creates multiple tasks from JSON input
 func BulkCreateAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -220,7 +220,7 @@ func BulkCreateAction() cli.ActionFunc {
 // BulkDeleteAction deletes multiple tasks with safety checks
 func BulkDeleteAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

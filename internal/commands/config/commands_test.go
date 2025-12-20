@@ -10,7 +10,6 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
-	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -92,9 +91,6 @@ func TestShowAction(t *testing.T) {
 }
 
 func TestSetAction(t *testing.T) {
-	// Set up DI for this test
-	_, _, testInjector := setupCLIContextWithDI(t)
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 	tests := []struct {
 		name        string
@@ -204,13 +200,16 @@ func TestSetAction(t *testing.T) {
 			_ = set.Set("value", tt.value)
 
 			ctx := cli.NewContext(app, set, nil)
-			_ = diContainer.RegisterAllServices(ctx)
+			testInjector := diContainer.RegisterAllServices(ctx)
 
 			// Store container in CLI context metadata like BeforeCommand does
 			if app.Metadata == nil {
 				app.Metadata = make(map[string]interface{})
 			}
 			app.Metadata["container"] = diContainer
+
+			// Get the project manager from THIS test's DI container
+			testProjectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 			actionFunc := SetAction()
 			err := actionFunc(ctx)
@@ -220,8 +219,8 @@ func TestSetAction(t *testing.T) {
 			} else {
 				assert.NoError(t, err)
 
-				// Verify the config was updated
-				updatedConfig := projectManager.GetConfig()
+				// Verify the config was updated in the correct project manager
+				updatedConfig := testProjectManager.GetConfig()
 				switch tt.key {
 				case "complexity-threshold":
 					expected, _ := parseInt64(tt.value)
@@ -358,14 +357,6 @@ func TestResetAction(t *testing.T) {
 }
 
 func TestSetActionIntegration(t *testing.T) {
-	// Set up DI for this test
-	_, _, testInjector := setupCLIContextWithDI(t)
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
-
-	// Initial values
-	initialConfig := projectManager.GetConfig()
-	initialThreshold := initialConfig.ComplexityThreshold
-
 	// Set up DI container for this test case
 	diContainer := di.NewContainer()
 
@@ -386,13 +377,20 @@ func TestSetActionIntegration(t *testing.T) {
 	_ = set.Set("value", "9")
 
 	ctx := cli.NewContext(app, set, nil)
-	_ = diContainer.RegisterAllServices(ctx)
+	testInjector := diContainer.RegisterAllServices(ctx)
 
 	// Store container in CLI context metadata like BeforeCommand does
 	if app.Metadata == nil {
 		app.Metadata = make(map[string]interface{})
 	}
 	app.Metadata["container"] = diContainer
+
+	// Get the project manager from THIS test's DI container
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Initial values
+	initialConfig := projectManager.GetConfig()
+	initialThreshold := initialConfig.ComplexityThreshold
 
 	actionFunc := SetAction()
 	err := actionFunc(ctx)
@@ -411,6 +409,8 @@ func TestSetActionFlagValidation(t *testing.T) {
 	// Test without required flags - should fail
 	app := &cli.App{}
 	set := flag.NewFlagSet("test", flag.ContinueOnError)
+	set.String("key", "", "config key")
+	set.String("value", "", "config value")
 	// Add DI flags
 	set.String("log-level", "info", "")
 	set.Int("complexity-threshold", 5, "")
@@ -505,11 +505,6 @@ func TestShowActionOutputFormat(t *testing.T) {
 }
 
 func TestSetActionWithDifferentValues(t *testing.T) {
-	// Create test injector with DI
-	testConfig := testutil.NewTestConfig(t)
-	testInjector := testConfig.SetupTestInjector(t)
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
-
 	// Test setting each config parameter to a different value
 	testParams := map[string]string{
 		"complexity-threshold":   "7",
@@ -521,15 +516,35 @@ func TestSetActionWithDifferentValues(t *testing.T) {
 
 	for key, value := range testParams {
 		t.Run(fmt.Sprintf("set %s", key), func(_ *testing.T) {
+			// Set up DI container for this test case
+			diContainer := di.NewContainer()
+
 			app := &cli.App{}
 			set := flag.NewFlagSet("test", flag.ContinueOnError)
 			set.String("key", "", "config key")
 			set.String("value", "", "config value")
+			// Add DI flags
+			set.String("log-level", "info", "")
+			set.Int("complexity-threshold", 5, "")
+			set.Int("max-depth", 10, "")
+			set.Int("max-tasks-per-depth", 50, "")
+			set.Int("max-description-length", 500, "")
+			set.Bool("auto-reduce-complexity", true, "")
 
 			_ = set.Set("key", key)
 			_ = set.Set("value", value)
 
 			ctx := cli.NewContext(app, set, nil)
+			testInjector := diContainer.RegisterAllServices(ctx)
+
+			// Store container in CLI context metadata like BeforeCommand does
+			if app.Metadata == nil {
+				app.Metadata = make(map[string]interface{})
+			}
+			app.Metadata["container"] = diContainer
+
+			// Get the project manager from THIS test's DI container
+			projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
 			actionFunc := SetAction()
 			err := actionFunc(ctx)
@@ -622,15 +637,32 @@ func TestSetActionErrorMessages(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(_ *testing.T) {
+			// Set up DI container for this test case
+			diContainer := di.NewContainer()
+
 			app := &cli.App{}
 			set := flag.NewFlagSet("test", flag.ContinueOnError)
 			set.String("key", "", "config key")
 			set.String("value", "", "config value")
+			// Add DI flags
+			set.String("log-level", "info", "")
+			set.Int("complexity-threshold", 5, "")
+			set.Int("max-depth", 10, "")
+			set.Int("max-tasks-per-depth", 50, "")
+			set.Int("max-description-length", 500, "")
+			set.Bool("auto-reduce-complexity", true, "")
 
 			_ = set.Set("key", tc.key)
 			_ = set.Set("value", tc.value)
 
 			ctx := cli.NewContext(app, set, nil)
+			_ = diContainer.RegisterAllServices(ctx)
+
+			// Store container in CLI context metadata like BeforeCommand does
+			if app.Metadata == nil {
+				app.Metadata = make(map[string]interface{})
+			}
+			app.Metadata["container"] = diContainer
 
 			actionFunc := SetAction()
 			err := actionFunc(ctx)
@@ -669,13 +701,30 @@ func TestCommandsStructure(t *testing.T) {
 
 func TestSetActionMissingRequiredFlags(t *testing.T) {
 	// Create test injector with DI
+	diContainer := di.NewContainer()
 
 	// Create context without required flags
 	app := &cli.App{}
 	set := flag.NewFlagSet("test", flag.ContinueOnError)
+	set.String("key", "", "config key")
+	set.String("value", "", "config value")
+	// Add DI flags
+	set.String("log-level", "info", "")
+	set.Int("complexity-threshold", 5, "")
+	set.Int("max-depth", 10, "")
+	set.Int("max-tasks-per-depth", 50, "")
+	set.Int("max-description-length", 500, "")
+	set.Bool("auto-reduce-complexity", true, "")
 	// Don't set any flags
 
 	ctx := cli.NewContext(app, set, nil)
+	_ = diContainer.RegisterAllServices(ctx)
+
+	// Store container in CLI context metadata like BeforeCommand does
+	if app.Metadata == nil {
+		app.Metadata = make(map[string]interface{})
+	}
+	app.Metadata["container"] = diContainer
 
 	actionFunc := SetAction()
 	_ = actionFunc(ctx)

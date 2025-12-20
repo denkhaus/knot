@@ -82,7 +82,7 @@ Examples:
 // createAction creates the action function for the command
 func (f *CommandFactory) createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		loggerService := container.GetLogger()
 		projectManager := container.GetProjectManager()
 

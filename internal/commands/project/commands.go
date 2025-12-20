@@ -120,7 +120,7 @@ func Commands() []*cli.Command {
 
 func createAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -163,7 +163,7 @@ func createAction() cli.ActionFunc {
 
 func listAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -207,7 +207,7 @@ func listAction() cli.ActionFunc {
 
 func getAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -241,7 +241,7 @@ func getAction() cli.ActionFunc {
 
 func deleteAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 
 		projectIDStr := c.String("id")
@@ -366,7 +366,7 @@ func deleteAction() cli.ActionFunc {
 // selectAction selects a project as the current context
 func selectAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 
 		projectIDStr := c.String("id")
@@ -396,7 +396,7 @@ func selectAction() cli.ActionFunc {
 // getSelectedAction shows the currently selected project
 func getSelectedAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		pm := container.GetProjectManager()
 
 		selectedProjectID, err := pm.GetSelectedProject(context.Background())
@@ -445,7 +445,7 @@ func clearSelectionAction() cli.ActionFunc {
 	// Resolve dependencies from DI
 
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		pm := container.GetProjectManager()
 
 		// Check if there's a selection to clear

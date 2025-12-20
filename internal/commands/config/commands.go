@@ -59,8 +59,11 @@ func Commands() []*cli.Command {
 func ShowAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
-		configService := container.GetConfigService()
+		container := shared.GetContainerFromContext(c)
+		configService, err := container.GetConfigService()
+		if err != nil {
+			return fmt.Errorf("Configuration error: %w", err)
+		}
 		cfg := configService.GetManagerConfig()
 
 		fmt.Println("Current Knot Configuration:")
@@ -88,8 +91,11 @@ func ShowAction() cli.ActionFunc {
 func SetAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
-		configService := container.GetConfigService()
+		container := shared.GetContainerFromContext(c)
+		configService, err := container.GetConfigService()
+		if err != nil {
+			return fmt.Errorf("Configuration error: %w", err)
+		}
 		projectManager := container.GetProjectManager()
 		key := c.String("key")
 		valueStr := c.String("value")
@@ -150,8 +156,11 @@ func SetAction() cli.ActionFunc {
 func ResetAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
 		// Get container from CLI context
-		container := shared.GetContainerFromCLIContext(c)
-		configService := container.GetConfigService()
+		container := shared.GetContainerFromContext(c)
+		configService, err := container.GetConfigService()
+		if err != nil {
+			return fmt.Errorf("Configuration error: %w", err)
+		}
 		// Reset to default config
 		defaultConfig := knotconfig.DefaultConfig()
 		configService.SetManagerConfig(defaultConfig)

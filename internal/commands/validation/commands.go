@@ -141,7 +141,7 @@ func statesAction() cli.ActionFunc {
 
 func transitionAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 
 		taskIDStr := c.String("task-id")
@@ -205,7 +205,7 @@ func transitionAction() cli.ActionFunc {
 
 func projectAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

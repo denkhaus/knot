@@ -9,6 +9,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/hints"
 	"github.com/denkhaus/knot/v2/internal/mcp/tools"
+	"github.com/denkhaus/knot/v2/internal/mcp/transports"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -23,6 +24,7 @@ type mcpServerImpl struct {
 	config          *config.MCPConfig
 	hintIntegration hints.Integration
 	running         bool
+	transport       transports.Transport
 }
 
 // ServerConfig holds configuration for creating an MCP server
@@ -52,6 +54,22 @@ func newServer(cfg ServerConfig) (Server, error) {
 	// Create mcp-go server
 	mcpServer := server.NewMCPServer("knot", "1.0.0")
 
+	// Create transport dependencies
+	transportDeps := transports.TransportDependencies{
+		MCPServer:      mcpServer,
+		ProjectManager: cfg.ProjectManager,
+		SessionManager: cfg.SessionManager,
+		Logger:         cfg.Logger,
+		HintIntegration: cfg.HintIntegration,
+		ServerConfig:   cfg.Config,
+	}
+
+	// Create transport based on configuration
+	transport, err := transports.CreateTransport(transportDeps, cfg.Config.Transport.Mode)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create transport: %w", err)
+	}
+
 	s := &mcpServerImpl{
 		MCPServer:      mcpServer,
 		projectManager: cfg.ProjectManager,
@@ -60,6 +78,7 @@ func newServer(cfg ServerConfig) (Server, error) {
 		config:         cfg.Config,
 		hintIntegration: cfg.HintIntegration,
 		running:        false,
+		transport:      transport,
 	}
 
 	// Register core tools
@@ -87,17 +106,22 @@ func (s *mcpServerImpl) registerTools() error {
 	return nil
 }
 
-// Start starts the MCP server with stdio transport
+// Start starts the MCP server with the configured transport
 func (s *mcpServerImpl) Start() error {
 	s.logger.Info("Starting MCP server",
+		logger.String("transport", s.config.Transport.Mode.String()),
 		logger.String("address", s.config.Address),
 		logger.Int("port", s.config.Port),
 		logger.String("database", s.config.Database.Endpoint),
 	)
 
 	s.running = true
-	s.logger.Info("MCP server started on stdio")
-	return server.ServeStdio(s.MCPServer)
+	s.logger.Info("MCP server started",
+		logger.String("transport", s.transport.GetType().String()),
+	)
+
+	// Start the configured transport
+	return s.transport.Start(context.Background())
 }
 
 // Stop gracefully stops the MCP server
@@ -105,9 +129,9 @@ func (s *mcpServerImpl) Stop(ctx context.Context) error {
 	s.logger.Info("Stopping MCP server")
 	s.running = false
 
-	// Close all sessions
-	if err := s.sessions.CloseAll(ctx); err != nil {
-		s.logger.Error("Error closing sessions", logger.Error(err))
+	// Stop the transport
+	if err := s.transport.Stop(ctx); err != nil {
+		s.logger.Error("Error stopping transport", logger.Error(err))
 		return err
 	}
 

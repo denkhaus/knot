@@ -16,7 +16,7 @@ import (
 // chainAction shows the dependency chain for a task
 func chainAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -131,7 +131,7 @@ func showDownstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID
 // cyclesAction detects circular dependencies in a project
 func cyclesAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 
@@ -324,9 +324,8 @@ func detectCycles(tasks []*types.Task) [][]uuid.UUID {
 
 // validateAction validates all dependencies in a project
 func validateAction() cli.ActionFunc {
-
 	return func(c *cli.Context) error {
-		container := shared.GetContainerFromCLIContext(c)
+		container := shared.GetContainerFromContext(c)
 		projectManager := container.GetProjectManager()
 		loggerService := container.GetLogger()
 

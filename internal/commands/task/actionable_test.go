@@ -62,7 +62,7 @@ func TestActionableAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDI(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -79,7 +79,7 @@ func TestActionableAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDI(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -105,7 +105,7 @@ func TestActionableAction(t *testing.T) {
 		cliCtx, app := setupCLIContextWithDI(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -153,7 +153,7 @@ func TestActionableAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDI(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
@@ -190,7 +190,7 @@ func TestActionableAction(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDI(t, "")
 
 		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromCLIContext(cliCtx)
+		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 

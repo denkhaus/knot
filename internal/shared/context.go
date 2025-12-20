@@ -19,7 +19,7 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
-func GetContainerFromCLIContext(cliCtx *cli.Context) *di.Container {
+func GetContainerFromContext(cliCtx *cli.Context) *di.Container {
 	if v, ok := cliCtx.App.Metadata["container"]; ok {
 		return v.(*di.Container)
 	}
