@@ -5,6 +5,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -20,6 +21,34 @@ func TestTaskCreateAction(t *testing.T) {
 
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
 
 	project := testutil.CreateTestProject(t, projectManager)
 
@@ -71,8 +100,12 @@ func TestTaskCreateAction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create CLI context
-			app := &cli.App{}
+			// Create CLI context with container metadata
+			app := &cli.App{
+				Metadata: map[string]interface{}{
+					"container": diContainer,
+				},
+			}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.String("title", "", "")
 			flagSet.String("description", "", "")
@@ -117,11 +150,43 @@ func TestTaskListAction(t *testing.T) {
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
 
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
+
 	project := testutil.CreateTestProject(t, projectManager)
 
 	t.Run("empty task list", func(t *testing.T) {
-		// Create CLI context
-		app := &cli.App{}
+		// Create CLI context with container metadata
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 
 		ctx := cli.NewContext(app, flagSet, nil)
@@ -143,8 +208,12 @@ func TestTaskListAction(t *testing.T) {
 		testutil.CreateTestTask(t, projectManager, project.ID)
 		testutil.CreateTestTask(t, projectManager, project.ID)
 
-		// Create CLI context
-		app := &cli.App{}
+		// Create CLI context with container metadata
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 
 		ctx := cli.NewContext(app, flagSet, nil)
@@ -168,6 +237,33 @@ func TestTaskUpdateStateAction(t *testing.T) {
 
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	// Create and configure DI container for test
+diContainer := di.NewContainer()
+
+// Create a minimal CLI context for testing
+app := &cli.App{}
+flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+flagSet.String("log-level", "info", "")
+flagSet.Int("complexity-threshold", 5, "")
+flagSet.Int("max-depth", 10, "")
+flagSet.Int("max-tasks-per-depth", 50, "")
+flagSet.Int("max-description-length", 500, "")
+flagSet.Bool("auto-reduce-complexity", true, "")
+cliCtx := cli.NewContext(app, flagSet, nil)
+
+// Register services in container
+containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+// Override repository with test repository (in-memory) from the testInjector
+testRepo := do.MustInvoke[types.Repository](testInjector)
+do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+	return testRepo, nil
+})
+
+// Override project manager with the one from testInjector
+do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+	return projectManager, nil
+})
 
 	project := testutil.CreateTestProject(t, projectManager)
 	task := testutil.CreateTestTask(t, projectManager, project.ID)
@@ -219,8 +315,12 @@ func TestTaskUpdateStateAction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create CLI context
-			app := &cli.App{}
+			// Create CLI context with container metadata
+			app := &cli.App{
+				Metadata: map[string]interface{}{
+					"container": diContainer,
+				},
+			}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.String("id", "", "")
 			flagSet.String("state", "", "")
@@ -255,6 +355,33 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	// Create and configure DI container for test
+diContainer := di.NewContainer()
+
+// Create a minimal CLI context for testing
+app := &cli.App{}
+flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+flagSet.String("log-level", "info", "")
+flagSet.Int("complexity-threshold", 5, "")
+flagSet.Int("max-depth", 10, "")
+flagSet.Int("max-tasks-per-depth", 50, "")
+flagSet.Int("max-description-length", 500, "")
+flagSet.Bool("auto-reduce-complexity", true, "")
+cliCtx := cli.NewContext(app, flagSet, nil)
+
+// Register services in container
+containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+// Override repository with test repository (in-memory) from the testInjector
+testRepo := do.MustInvoke[types.Repository](testInjector)
+do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+	return testRepo, nil
+})
+
+// Override project manager with the one from testInjector
+do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+	return projectManager, nil
+})
 
 	project := testutil.CreateTestProject(t, projectManager)
 	task := testutil.CreateTestTask(t, projectManager, project.ID)
@@ -294,8 +421,12 @@ func TestTaskUpdateTitleAction(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create CLI context
-			app := &cli.App{}
+			// Create CLI context with container metadata
+			app := &cli.App{
+				Metadata: map[string]interface{}{
+					"container": diContainer,
+				},
+			}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.String("id", "", "")
 			flagSet.String("title", "", "")
@@ -328,12 +459,43 @@ func TestTaskWorkflow(t *testing.T) {
 
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	// Create and configure DI container for test
+diContainer := di.NewContainer()
+
+// Create a minimal CLI context for testing
+app := &cli.App{}
+flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+flagSet.String("log-level", "info", "")
+flagSet.Int("complexity-threshold", 5, "")
+flagSet.Int("max-depth", 10, "")
+flagSet.Int("max-tasks-per-depth", 50, "")
+flagSet.Int("max-description-length", 500, "")
+flagSet.Bool("auto-reduce-complexity", true, "")
+cliCtx := cli.NewContext(app, flagSet, nil)
+
+// Register services in container
+containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+// Override repository with test repository (in-memory) from the testInjector
+testRepo := do.MustInvoke[types.Repository](testInjector)
+do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+	return testRepo, nil
+})
+
+// Override project manager with the one from testInjector
+do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+	return projectManager, nil
+})
 
 	project := testutil.CreateTestProject(t, projectManager)
 
 	t.Run("complete task workflow", func(t *testing.T) {
 		// 1. Create task
-		app := &cli.App{}
+		app := &cli.App{
+			Metadata: map[string]interface{}{
+				"container": diContainer,
+			},
+		}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("title", "", "")
 		flagSet.String("description", "", "")

@@ -19,9 +19,3 @@ type Server interface {
 	// Configuration access
 	GetConfig() interface{} // Return interface{} to avoid import cycle
 }
-
-// ServerFactory defines the factory interface for creating MCP servers
-// This allows for different server implementations or configurations
-type ServerFactory interface {
-	CreateServer(config interface{}) (Server, error)
-}

@@ -67,7 +67,7 @@ type ProjectDetails struct {
 }
 
 // RegisterNavigationTools registers all navigation tools with the MCP server
-func RegisterNavigationTools(server *server.MCPServer, projectManager manager.ProjectManager, sessionManager session.Manager) {
+func RegisterNavigationTools(server *server.MCPServer, projectManager manager.ProjectManager, sessionManager session.SessionManager) {
 	// Project selection tool
 	projectSelectTool := mcp.NewTool("project_select",
 		mcp.WithDescription("Select the active project for this session"),
@@ -80,13 +80,21 @@ func RegisterNavigationTools(server *server.MCPServer, projectManager manager.Pr
 			return ProjectSelectResponse{}, fmt.Errorf("invalid project_id format: %w", err)
 		}
 
-		sessionIDUUID, err := shared.GetSessionUUID(ctx)
+		sessionIDUUID, err := shared.GetSessionUUIDFromContext(ctx)
 		if err != nil {
 			return ProjectSelectResponse{}, fmt.Errorf("invalid session_id format: %w", err)
 		}
 
-		if err := sessionManager.SetProject(sessionIDUUID, projectID); err != nil {
-			return ProjectSelectResponse{}, fmt.Errorf("failed to set project: %w", err)
+		// Get session by client ID since that's what we have from MCP context
+		// The sessionIDUUID from GetSessionUUID is the client ID in our session management
+		session, err := sessionManager.GetSessionByClientID(sessionIDUUID.String())
+		if err != nil {
+			return ProjectSelectResponse{}, fmt.Errorf("failed to get session: %w", err)
+		}
+
+		// Use the internal session ID for project operations
+		if err := sessionManager.SetProject(session.SessionID, projectID); err != nil {
+			return ProjectSelectResponse{}, fmt.Errorf("failed to set session project: %w", err)
 		}
 
 		return ProjectSelectResponse{
@@ -176,4 +184,3 @@ func RegisterNavigationTools(server *server.MCPServer, projectManager manager.Pr
 		}, nil
 	}))
 }
-

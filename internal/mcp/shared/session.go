@@ -14,9 +14,9 @@ const (
 	ActorMCPUser   = "mcp-user"
 )
 
-// GetSessionUUID extracts and parses session ID as UUID from MCP context
+// GetSessionUUIDFromContext extracts and parses session ID as UUID from MCP context
 // Handles the MCP library's session ID format by removing the "mcp-session-" prefix
-func GetSessionUUID(ctx context.Context) (uuid.UUID, error) {
+func GetSessionUUIDFromContext(ctx context.Context) (uuid.UUID, error) {
 	session := server.ClientSessionFromContext(ctx)
 	if session == nil {
 		return uuid.Nil, fmt.Errorf("no session found in context")
@@ -32,7 +32,12 @@ func GetSessionUUID(ctx context.Context) (uuid.UUID, error) {
 		sessionID = sessionID[12:] // Remove prefix
 	}
 
-	return uuid.Parse(sessionID)
+	parsedUUID, err := uuid.Parse(sessionID)
+	if err != nil {
+		return uuid.Nil, fmt.Errorf("invalid session ID format: %w", err)
+	}
+
+	return parsedUUID, nil
 }
 
 // GetSessionActor extracts actor information from session context

@@ -8,7 +8,11 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
+	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/do/v2"
 )
 
 // SSETransport implements the Transport interface for Server-Sent Events
@@ -76,4 +80,26 @@ func (s *SSETransport) Stop(ctx context.Context) error {
 
 	s.setRunning(false)
 	return nil
+}
+
+// NewSSETransportProvider creates an SSE transport provider for DI
+func NewSSETransportProvider(injector do.Injector) (Transport, error) {
+	mcpServer := do.MustInvoke[*server.MCPServer](injector)
+	logger := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	sessionManager := do.MustInvoke[session.SessionManager](injector)
+	hintIntegration := do.MustInvoke[hints.Integration](injector)
+	configService := do.MustInvoke[config.Service](injector)
+
+	// Create transport dependencies
+	deps := TransportDependencies{
+		MCPServer:       mcpServer,
+		ProjectManager:  projectManager,
+		SessionManager:  sessionManager,
+		Logger:          logger,
+		HintIntegration: hintIntegration,
+		ServerConfig:    configService.GetMCPConfig(),
+	}
+
+	return NewSSETransport(deps), nil
 }

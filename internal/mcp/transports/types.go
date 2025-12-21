@@ -5,7 +5,6 @@ import (
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/hints"
-	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
 )
@@ -18,8 +17,7 @@ type TransportDependencies struct {
 
 	// Application services
 	ProjectManager  manager.ProjectManager
-	SessionManager  session.Manager
-	SessionRegistry *shared.SessionRegistry
+	SessionManager  session.SessionManager
 	Logger          logger.Logger
 	HintIntegration hints.Integration
 

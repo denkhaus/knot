@@ -7,9 +7,9 @@ import (
 	"github.com/google/uuid"
 )
 
-// Manager defines the session management interface for MCP services.
+// SessionManager defines the session management interface for MCP services.
 // This abstracts session management to enable dependency injection and testing.
-type Manager interface {
+type SessionManager interface {
 	// Session lifecycle management
 	CreateSession(clientID string) (*SessionContext, error)
 	CreateSessionWithID(sessionID uuid.UUID, clientID string) (*SessionContext, error)
@@ -40,15 +40,4 @@ type SessionContext struct {
 	CreatedAt    time.Time
 	LastActivity time.Time
 	Metadata     map[string]interface{} // Flexible metadata storage
-}
-
-// SessionInfo provides a summary of session information for logging and monitoring
-type SessionInfo struct {
-	SessionID     string
-	ProjectID     *string
-	ClientID      string
-	CreatedAt     time.Time
-	LastActivity  time.Time
-	IsExpired     bool
-	MetadataCount int
 }

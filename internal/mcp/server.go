@@ -13,28 +13,31 @@ import (
 	"github.com/denkhaus/knot/v2/internal/mcp/transports"
 	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/do/v2"
 )
 
 // mcpServerImpl is the private implementation of the Server interface
 type mcpServerImpl struct {
 	*server.MCPServer
-	projectManager   manager.ProjectManager
-	sessionManager   session.Manager
-	sessionRegistry  *shared.SessionRegistry
-	logger           logger.Logger
-	config           *config.MCPConfig
-	hintIntegration  hints.Integration
-	running          bool
-	transport        transports.Transport
+	projectManager  manager.ProjectManager
+	sessionManager  session.SessionManager
+	sessionRegistry shared.SessionRegistry
+	logger          logger.Logger
+	config          *config.MCPConfig
+	hintIntegration hints.Integration
+	running         bool
+	transport       transports.Transport
 }
 
 // ServerConfig holds configuration for creating an MCP server
 type ServerConfig struct {
 	ProjectManager  manager.ProjectManager
-	SessionManager  session.Manager
+	SessionManager  session.SessionManager
 	Logger          logger.Logger
 	Config          *config.MCPConfig
 	HintIntegration hints.Integration
+	MCPServer       *server.MCPServer
+	Injector        do.Injector // Added for DI access
 }
 
 // NewServer creates a new MCP server with multi-project support using dependency injection
@@ -52,27 +55,21 @@ func newServer(cfg ServerConfig) (Server, error) {
 		return nil, fmt.Errorf("config is required")
 	}
 
-	// Create mcp-go server
-	mcpServer := server.NewMCPServer("knot", "1.0.0")
-
-	// Create session registry for MCP integration
-	sessionRegistry := shared.NewSessionRegistry(cfg.SessionManager, mcpServer, cfg.Logger)
-
-	// Create transport dependencies
-	transportDeps := transports.TransportDependencies{
-		MCPServer:       mcpServer,
-		ProjectManager:  cfg.ProjectManager,
-		SessionManager:  cfg.SessionManager,
-		SessionRegistry: sessionRegistry,
-		Logger:          cfg.Logger,
-		HintIntegration: cfg.HintIntegration,
-		ServerConfig:    cfg.Config,
+	// Use the injected mcp-go server
+	mcpServer := cfg.MCPServer
+	if mcpServer == nil {
+		return nil, fmt.Errorf("MCPServer is required in ServerConfig")
 	}
 
-	// Create transport based on configuration
-	transport, err := transports.CreateTransport(transportDeps, cfg.Config.Transport.Mode)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create transport: %w", err)
+	// Session components will be created via DI container when needed
+
+	// Transport will be injected via DI
+	transport := do.MustInvoke[transports.Transport](cfg.Injector)
+
+	// SessionRegistry will be injected via DI if available
+	var sessionRegistry shared.SessionRegistry
+	if sessionReg, err := do.Invoke[shared.SessionRegistry](cfg.Injector); err == nil {
+		sessionRegistry = sessionReg
 	}
 
 	s := &mcpServerImpl{
@@ -104,10 +101,13 @@ func (s *mcpServerImpl) registerTools() error {
 	tools.RegisterProjectManagementTools(s.MCPServer, s.projectManager)
 
 	// Register task management tools (task_create, task_get, task_update, task_update_state, task_delete)
-	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessionManager)
+	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessionManager, s.sessionRegistry)
 
-	// Register status and query tools (status_ready, status_actionable, status_project)
+	// Register status and query tools (status_ready, status_actionable, status_project, status_blocked, status_tree)
 	tools.RegisterStatusTools(s.MCPServer, s.projectManager, s.sessionManager)
+
+	// Register dependency management tools (dependency_list, dependency_add, dependency_remove, dependency_check)
+	tools.RegisterDependencyTools(s.MCPServer, s.projectManager, s.sessionManager)
 
 	return nil
 }
@@ -162,12 +162,20 @@ func (s *mcpServerImpl) IsRunning() bool {
 
 // GetSessionCount returns the number of active sessions
 func (s *mcpServerImpl) GetSessionCount() int {
-	return s.sessionRegistry.GetSessionCount()
+	if s.sessionRegistry != nil {
+		return s.sessionRegistry.GetSessionCount()
+	}
+	// Fall back to session manager if session registry is not available
+	return s.sessionManager.GetSessionCount()
 }
 
 // CleanupExpiredSessions removes expired sessions using the configured timeout
 func (s *mcpServerImpl) CleanupExpiredSessions(ctx context.Context) error {
-	return s.sessionRegistry.CleanupExpiredSessions(ctx, s.config.Timeout)
+	if s.sessionRegistry != nil {
+		return s.sessionRegistry.CleanupExpiredSessions(ctx, s.config.Timeout)
+	}
+	// Fall back to session manager if session registry is not available
+	return s.sessionManager.CleanupExpiredSessions(ctx, s.config.Timeout)
 }
 
 // GetConfig returns the server configuration

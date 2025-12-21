@@ -5,8 +5,11 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
+	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/urfave/cli/v2"
@@ -14,19 +17,55 @@ import (
 
 func TestUpdateDescriptionAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{
+		Metadata: map[string]interface{}{
+			"container": diContainer,
+		},
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("successful description update", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Original description", 3, types.TaskPriorityMedium, "test-user")
+		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Original description", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.String("description", "", "")
@@ -44,13 +83,13 @@ func TestUpdateDescriptionAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify the update
-		updatedTask, err := mgr.GetTask(context.TODO(), task.ID)
+		updatedTask, err := projectManager.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, "Updated description", updatedTask.Description)
 	})
 
 	t.Run("invalid task ID", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.String("description", "", "")
@@ -72,19 +111,55 @@ func TestUpdateDescriptionAction(t *testing.T) {
 
 func TestUpdatePriorityAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{
+		Metadata: map[string]interface{}{
+			"container": diContainer,
+		},
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("successful priority update", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
+		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.String("priority", "", "")
@@ -103,7 +178,7 @@ func TestUpdatePriorityAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify the update
-		updatedTask, err := mgr.GetTask(context.TODO(), task.ID)
+		updatedTask, err := projectManager.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, types.TaskPriorityHigh, updatedTask.Priority)
 	})
@@ -111,19 +186,55 @@ func TestUpdatePriorityAction(t *testing.T) {
 
 func TestUpdateComplexityAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{
+		Metadata: map[string]interface{}{
+			"container": diContainer,
+		},
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("successful complexity update", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
+		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.String("complexity", "", "")
@@ -142,17 +253,17 @@ func TestUpdateComplexityAction(t *testing.T) {
 		assert.NoError(t, err)
 
 		// Verify the update
-		updatedTask, err := mgr.GetTask(context.TODO(), task.ID)
+		updatedTask, err := projectManager.GetTask(context.TODO(), task.ID)
 		require.NoError(t, err)
 		assert.Equal(t, 7, updatedTask.Complexity)
 	})
 
 	t.Run("invalid complexity value", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
+		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Description", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.String("complexity", "", "")
@@ -175,19 +286,55 @@ func TestUpdateComplexityAction(t *testing.T) {
 
 func TestGetAction(t *testing.T) {
 	config := testutil.NewTestConfig(t)
-	mgr := config.SetupTestManager(t)
-	project := testutil.CreateTestProject(t, mgr)
+	testInjector := config.SetupTestInjector(t)
+
+	// Get project manager from DI
+	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{
+		Metadata: map[string]interface{}{
+			"container": diContainer,
+		},
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
+
+	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set project context
-	err := mgr.SetSelectedProject(context.TODO(), project.ID, "test-user")
+	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 	require.NoError(t, err)
 
 	t.Run("get existing task", func(t *testing.T) {
 		// Create a task
-		task, err := mgr.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Test description", 5, types.TaskPriorityHigh, "test-user")
+		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Test Task", "Test description", 5, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.Bool("json", false, "")
@@ -205,7 +352,7 @@ func TestGetAction(t *testing.T) {
 	})
 
 	t.Run("invalid task ID", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.String("id", "", "")
 		flagSet.Bool("json", false, "")
@@ -287,11 +434,47 @@ func TestUpdateAction(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			config := testutil.NewTestConfig(t)
-			mgr := config.SetupTestManager(t)
-			projectID := testutil.CreateTestProject(t, mgr).ID
+			testInjector := config.SetupTestInjector(t)
+
+			// Get project manager from DI
+			projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+			// Create and configure DI container for test
+			diContainer := di.NewContainer()
+
+			// Create a minimal CLI context for testing
+			app := &cli.App{
+				Metadata: map[string]interface{}{
+					"container": diContainer,
+				},
+			}
+			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+			flagSet.String("log-level", "info", "")
+			flagSet.Int("complexity-threshold", 5, "")
+			flagSet.Int("max-depth", 10, "")
+			flagSet.Int("max-tasks-per-depth", 50, "")
+			flagSet.Int("max-description-length", 500, "")
+			flagSet.Bool("auto-reduce-complexity", true, "")
+			cliCtx := cli.NewContext(app, flagSet, nil)
+
+			// Register services in container
+			containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+			// Override repository with test repository (in-memory) from the testInjector
+			testRepo := do.MustInvoke[types.Repository](testInjector)
+			do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+				return testRepo, nil
+			})
+
+			// Override project manager with the one from testInjector
+			do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+				return projectManager, nil
+			})
+
+			projectID := testutil.CreateTestProject(t, projectManager).ID
 
 			// Create a test task to update
-			task := testutil.CreateTestTask(t, mgr, projectID)
+			task := testutil.CreateTestTask(t, projectManager, projectID)
 			// Create DI injector for this test
 			// Replace the placeholder UUID with the actual task ID
 			for i, arg := range tt.args {
@@ -302,13 +485,12 @@ func TestUpdateAction(t *testing.T) {
 			}
 
 			// Create CLI app with our update command
-			app := &cli.App{
-				Name: "test",
-				Commands: []*cli.Command{
-					{
-						Name:   "update",
-						Usage:  "Update task fields",
-						Action: updateAction(),
+			app.Name = "test"
+			app.Commands = []*cli.Command{
+				{
+					Name:   "update",
+					Usage:  "Update task fields",
+					Action: updateAction(),
 						Flags: []cli.Flag{
 							&cli.StringFlag{
 								Name:     "id",
@@ -342,11 +524,10 @@ func TestUpdateAction(t *testing.T) {
 							},
 						},
 					},
-				},
 			}
 
 			// Set project context
-			err := mgr.SetSelectedProject(context.Background(), projectID, "test-user")
+			err := projectManager.SetSelectedProject(context.Background(), projectID, "test-user")
 			require.NoError(t, err)
 
 			// Run the command
@@ -361,7 +542,7 @@ func TestUpdateAction(t *testing.T) {
 				assert.NoError(t, err)
 
 				// Verify the updates were actually applied
-				updatedTask, err := mgr.GetTask(context.Background(), task.ID)
+				updatedTask, err := projectManager.GetTask(context.Background(), task.ID)
 				require.NoError(t, err)
 
 				// Check specific fields based on what was updated

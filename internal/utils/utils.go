@@ -93,6 +93,68 @@ func ConvertUUIDsToStrings(uuids []uuid.UUID) []string {
 	return result
 }
 
+// GetParentIDAsString safely converts a parent UUID pointer to string
+func GetParentIDAsString(parentID *uuid.UUID) *string {
+	if parentID == nil {
+		return nil
+	}
+	str := parentID.String()
+	return &str
+}
+
+// BuildTaskTreeFromTasks builds a hierarchical tree structure from a flat list of tasks
+// This is a utility function that can be used across the application
+func BuildTaskTreeFromTasks(tasks []*types.Task) []TaskTreeNode {
+	// Create a map of tasks for quick lookup
+	taskMap := make(map[uuid.UUID]*types.Task)
+	for _, task := range tasks {
+		taskMap[task.ID] = task
+	}
+
+	// Find root tasks (no parent)
+	var rootTasks []*types.Task
+	for _, task := range tasks {
+		if task.ParentID == nil {
+			rootTasks = append(rootTasks, task)
+		}
+	}
+
+	// Build tree recursively
+	var tree []TaskTreeNode
+	for _, rootTask := range rootTasks {
+		node := buildTaskTreeNode(rootTask, taskMap, 0)
+		tree = append(tree, node)
+	}
+
+	return tree
+}
+
+// TaskTreeNode represents a task node in the tree structure
+// This is a generic structure that can be used across the application
+type TaskTreeNode struct {
+	Task     *types.Task     `json:"task"`
+	Children []TaskTreeNode  `json:"children,omitempty"`
+	Level    int             `json:"level"`
+}
+
+// buildTaskTreeNode recursively builds a tree node and its children
+func buildTaskTreeNode(task *types.Task, taskMap map[uuid.UUID]*types.Task, level int) TaskTreeNode {
+	node := TaskTreeNode{
+		Task:  task,
+		Level: level,
+	}
+
+	// Find children
+	for _, potentialChild := range taskMap {
+		if potentialChild.ParentID != nil && *potentialChild.ParentID == task.ID {
+			childNode := buildTaskTreeNode(potentialChild, taskMap, level+1)
+			node.Children = append(node.Children, childNode)
+		}
+	}
+
+	return node
+}
+
 // WrapText wraps text at the specified width and returns a slice of lines
 // It respects word boundaries to avoid breaking words mid-sentence
 func WrapText(text string, width int) []string {

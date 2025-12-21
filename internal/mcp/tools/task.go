@@ -104,14 +104,15 @@ type TaskDeleteResponse struct {
 }
 
 // RegisterTaskManagementTools registers all task management tools with the MCP server
-func RegisterTaskManagementTools(server *server.MCPServer, projectManager manager.ProjectManager, sessionManager session.Manager) {
+func RegisterTaskManagementTools(mcpServer *server.MCPServer, projectManager manager.ProjectManager, sessionManager session.SessionManager, sessionRegistry shared.SessionRegistry) {
 	// Task creation tool
 	taskCreateTool := mcp.NewTool("task_create",
 		mcp.WithDescription("Create a new task in the selected project"),
 		mcp.WithInputSchema[TaskCreateRequest](),
 		mcp.WithOutputSchema[TaskCreateResponse](),
 	)
-	server.AddTool(taskCreateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskCreateRequest) (TaskCreateResponse, error) {
+	mcpServer.AddTool(taskCreateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskCreateRequest) (TaskCreateResponse, error) {
+		fmt.Printf("DEBUG: task_create tool handler called!\n")
 		complexity := args.Complexity
 		if complexity == 0 {
 			// TODO(knot-dmd): make this configurable
@@ -122,17 +123,20 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		actor := shared.GetSessionActor(ctx)
 
 		// Get session context
-		sessionIDUUID, err := shared.GetSessionUUID(ctx)
+		sessionIDUUID, err := shared.GetSessionUUIDFromContext(ctx)
 		if err != nil {
 			return TaskCreateResponse{}, fmt.Errorf("invalid session_id format: %w", err)
 		}
 
-		session, err := sessionManager.GetSession(sessionIDUUID)
+		// Get session using session manager with client ID lookup (consistent with navigation tools)
+		session, err := sessionManager.GetSessionByClientID(sessionIDUUID.String())
 		if err != nil {
 			return TaskCreateResponse{}, fmt.Errorf("failed to get session: %w", err)
 		}
 
-		if session.ProjectID == nil {
+		// Get the project ID from the session
+		projectID := session.ProjectID
+		if projectID == nil {
 			return TaskCreateResponse{}, fmt.Errorf("no project selected for this session")
 		}
 
@@ -145,7 +149,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 			parentID = &parsedParentID
 		}
 
-		task, err := projectManager.CreateTask(ctx, *session.ProjectID, parentID, args.Title, args.Description, complexity, priority, actor)
+		task, err := projectManager.CreateTask(ctx, *projectID, parentID, args.Title, args.Description, complexity, priority, actor)
 		if err != nil {
 			return TaskCreateResponse{}, fmt.Errorf("failed to create task: %w", err)
 		}
@@ -153,7 +157,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		return TaskCreateResponse{
 			Message:   fmt.Sprintf("Created task %s (ID: %s)", task.Title, task.ID),
 			TaskID:    task.ID.String(),
-			ProjectID: session.ProjectID.String(),
+			ProjectID: projectID.String(),
 			Title:     task.Title,
 		}, nil
 	}))
@@ -164,7 +168,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		mcp.WithInputSchema[TaskGetRequest](),
 		mcp.WithOutputSchema[TaskGetResponse](),
 	)
-	server.AddTool(taskGetTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskGetRequest) (TaskGetResponse, error) {
+	mcpServer.AddTool(taskGetTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskGetRequest) (TaskGetResponse, error) {
 		taskID, err := uuid.Parse(args.TaskID)
 		if err != nil {
 			return TaskGetResponse{}, fmt.Errorf("invalid task_id format: %w", err)
@@ -220,7 +224,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		mcp.WithInputSchema[TaskUpdateRequest](),
 		mcp.WithOutputSchema[TaskUpdateResponse](),
 	)
-	server.AddTool(taskUpdateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskUpdateRequest) (TaskUpdateResponse, error) {
+	mcpServer.AddTool(taskUpdateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskUpdateRequest) (TaskUpdateResponse, error) {
 		taskID, err := uuid.Parse(args.TaskID)
 		if err != nil {
 			return TaskUpdateResponse{}, fmt.Errorf("invalid task_id format: %w", err)
@@ -271,7 +275,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		mcp.WithInputSchema[TaskUpdateStateRequest](),
 		mcp.WithOutputSchema[TaskUpdateStateResponse](),
 	)
-	server.AddTool(taskUpdateStateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskUpdateStateRequest) (TaskUpdateStateResponse, error) {
+	mcpServer.AddTool(taskUpdateStateTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskUpdateStateRequest) (TaskUpdateStateResponse, error) {
 		taskID, err := uuid.Parse(args.TaskID)
 		if err != nil {
 			return TaskUpdateStateResponse{}, fmt.Errorf("invalid task_id format: %w", err)
@@ -314,7 +318,7 @@ func RegisterTaskManagementTools(server *server.MCPServer, projectManager manage
 		mcp.WithInputSchema[TaskDeleteRequest](),
 		mcp.WithOutputSchema[TaskDeleteResponse](),
 	)
-	server.AddTool(taskDeleteTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskDeleteRequest) (TaskDeleteResponse, error) {
+	mcpServer.AddTool(taskDeleteTool, mcp.NewStructuredToolHandler(func(ctx context.Context, request mcp.CallToolRequest, args TaskDeleteRequest) (TaskDeleteResponse, error) {
 		taskID, err := uuid.Parse(args.TaskID)
 		if err != nil {
 			return TaskDeleteResponse{}, fmt.Errorf("invalid task_id format: %w", err)

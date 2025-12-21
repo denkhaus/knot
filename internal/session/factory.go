@@ -223,10 +223,15 @@ func (m *databaseSessionManagerImpl) ListSessions() []*SessionContext {
 func (m *databaseSessionManagerImpl) SetProject(sessionID, projectID uuid.UUID) error {
 	ctx := context.Background()
 
+	fmt.Printf("🔧 [SetProject] Setting project %s for session %s\n", projectID.String(), sessionID.String())
+
 	err := m.repo.SetSessionProject(ctx, sessionID, projectID)
 	if err != nil {
+		fmt.Printf("❌ [SetProject] Failed to set project: %v\n", err)
 		return fmt.Errorf("failed to set session project: %w", err)
 	}
+
+	fmt.Printf("✅ [SetProject] Successfully set project %s for session %s\n", projectID.String(), sessionID.String())
 
 	m.logger.Debug("Project set for session",
 		logger.String("session_id", sessionID.String()),

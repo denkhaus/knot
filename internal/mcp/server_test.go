@@ -7,17 +7,20 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/mcp/tools"
+	"github.com/denkhaus/knot/v2/internal/mcp/transports"
 	"github.com/denkhaus/knot/v2/internal/mocks"
 	"github.com/google/uuid"
+	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 )
 
+
 // createTestConfig creates a test configuration for use in tests
 func createTestConfig() *config.MCPConfig {
 	return &config.MCPConfig{
-		Enabled: true,
 		Address: "localhost",
 		Port:    8080,
 		Timeout: 30 * time.Second,
@@ -34,6 +37,16 @@ func createTestConfig() *config.MCPConfig {
 			MaxHints:   10,
 			Categories: []string{"general"},
 		},
+		Transport: config.TransportConfig{
+			Mode: config.TransportTypeStdio,
+			HTTP: config.HTTPTransportConfig{
+				RequestTimeout: 30,
+			},
+			SSE: config.SSETransportConfig{
+				HeartbeatInterval: 30,
+				ClientTimeout:     60,
+			},
+		},
 	}
 }
 
@@ -43,12 +56,26 @@ func createTestServerConfig(ctrl *gomock.Controller) ServerConfig {
 	mockConfig := createTestConfig()
 	mockManager := mocks.NewMockProjectManager(ctrl)
 	mockSessionManager := mocks.NewMockManager(ctrl)
+	mockTransport := mocks.NewMockTransport(ctrl)
+
+	// Create a real MCP server for testing
+	mcpServer := server.NewMCPServer("knot", "1.0.0")
+
+	// Create a mock injector and register the required services
+	injector := do.New()
+	do.ProvideValue[transports.Transport](injector, mockTransport)
+
+	// Don't register SessionRegistry - let the server handle the nil case
+	// This makes the server use SessionManager for session count
 
 	return ServerConfig{
-		ProjectManager: mockManager,
-		SessionManager: mockSessionManager,
-		Logger:         mockLogger,
-		Config:         mockConfig,
+		ProjectManager:  mockManager,
+		SessionManager:  mockSessionManager,
+		Logger:          mockLogger,
+		Config:          mockConfig,
+		HintIntegration: nil, // Not needed for basic tests
+		MCPServer:       mcpServer,
+		Injector:        injector,
 	}
 }
 
@@ -146,9 +173,15 @@ func TestMCPServer_Stop(t *testing.T) {
 	defer ctrl.Finish()
 
 	cfg := createTestServerConfig(ctrl)
+	mockTransport := do.MustInvoke[transports.Transport](cfg.Injector).(*mocks.MockTransport)
+
 	// Set up expectation for CloseAll call
 	cfg.SessionManager.(*mocks.MockManager).EXPECT().
 		CloseAll(gomock.Any()).
+		Return(nil)
+	// Set up expectation for transport.Stop call
+	mockTransport.EXPECT().
+		Stop(gomock.Any()).
 		Return(nil)
 	// Set up expectation for logger.Info call
 	cfg.Logger.(*mocks.MockLogger).EXPECT().

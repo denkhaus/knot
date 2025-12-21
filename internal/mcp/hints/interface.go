@@ -25,13 +25,13 @@ type Generator interface {
 // Integration defines the interface for integrating hints with MCP tools
 type Integration interface {
 	// GetSessionContext extracts session context information
-	GetSessionContext(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.Manager) (*SessionState, error)
+	GetSessionContext(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.SessionManager) (*SessionState, error)
 
 	// GenerateToolHints generates hints for specific tool execution
-	GenerateToolHints(ctx context.Context, toolName string, result interface{}, projectManager manager.ProjectManager, sessionManager session.Manager) []Hint
+	GenerateToolHints(ctx context.Context, toolName string, result interface{}, projectManager manager.ProjectManager, sessionManager session.SessionManager) []Hint
 
 	// GenerateContextualHints generates hints based on current session state
-	GenerateContextualHints(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.Manager) []Hint
+	GenerateContextualHints(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.SessionManager) []Hint
 
 	// WrapToolResponse wraps a tool response with generated hints
 	WrapToolResponse(response interface{}, hints []Hint) interface{}

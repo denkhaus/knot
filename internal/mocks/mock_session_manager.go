@@ -86,18 +86,33 @@ func (mr *MockManagerMockRecorder) CloseAll(ctx any) *gomock.Call {
 }
 
 // CreateSession mocks base method.
-func (m *MockManager) CreateSession(userID string) (*session.SessionContext, error) {
+func (m *MockManager) CreateSession(clientID string) (*session.SessionContext, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CreateSession", userID)
+	ret := m.ctrl.Call(m, "CreateSession", clientID)
 	ret0, _ := ret[0].(*session.SessionContext)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // CreateSession indicates an expected call of CreateSession.
-func (mr *MockManagerMockRecorder) CreateSession(userID any) *gomock.Call {
+func (mr *MockManagerMockRecorder) CreateSession(clientID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockManager)(nil).CreateSession), userID)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSession", reflect.TypeOf((*MockManager)(nil).CreateSession), clientID)
+}
+
+// CreateSessionWithID mocks base method.
+func (m *MockManager) CreateSessionWithID(sessionID uuid.UUID, clientID string) (*session.SessionContext, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "CreateSessionWithID", sessionID, clientID)
+	ret0, _ := ret[0].(*session.SessionContext)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// CreateSessionWithID indicates an expected call of CreateSessionWithID.
+func (mr *MockManagerMockRecorder) CreateSessionWithID(sessionID, clientID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CreateSessionWithID", reflect.TypeOf((*MockManager)(nil).CreateSessionWithID), sessionID, clientID)
 }
 
 // DeleteSession mocks base method.
@@ -142,6 +157,21 @@ func (m *MockManager) GetSession(sessionID uuid.UUID) (*session.SessionContext, 
 func (mr *MockManagerMockRecorder) GetSession(sessionID any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSession", reflect.TypeOf((*MockManager)(nil).GetSession), sessionID)
+}
+
+// GetSessionByClientID mocks base method.
+func (m *MockManager) GetSessionByClientID(clientID string) (*session.SessionContext, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSessionByClientID", clientID)
+	ret0, _ := ret[0].(*session.SessionContext)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// GetSessionByClientID indicates an expected call of GetSessionByClientID.
+func (mr *MockManagerMockRecorder) GetSessionByClientID(clientID any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSessionByClientID", reflect.TypeOf((*MockManager)(nil).GetSessionByClientID), clientID)
 }
 
 // GetSessionCount mocks base method.

@@ -12,7 +12,6 @@ import (
 	"github.com/samber/do/v2"
 )
 
-
 // Private implementation of the Generator interface
 type hintGenerator struct {
 	enabled    bool
@@ -145,9 +144,9 @@ func NewHintIntegrationImpl(generator Generator, logger logger.Logger) Integrati
 }
 
 // GetSessionContext extracts session context information
-func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.Manager) (*SessionState, error) {
+func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.SessionManager) (*SessionState, error) {
 	// Get session UUID from context
-	sessionID, err := shared.GetSessionUUID(ctx)
+	sessionID, err := shared.GetSessionUUIDFromContext(ctx)
 	if err != nil {
 		hi.logger.Warn("Invalid session ID format for hint generation",
 			logger.String("error", err.Error()))
@@ -200,7 +199,7 @@ func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager
 }
 
 // GenerateToolHints generates hints for specific tool execution
-func (hi *hintIntegration) GenerateToolHints(ctx context.Context, toolName string, result interface{}, projectManager manager.ProjectManager, sessionManager session.Manager) []Hint {
+func (hi *hintIntegration) GenerateToolHints(ctx context.Context, toolName string, result interface{}, projectManager manager.ProjectManager, sessionManager session.SessionManager) []Hint {
 	sessionState, err := hi.GetSessionContext(ctx, projectManager, sessionManager)
 	if err != nil {
 		hi.logger.Warn("Failed to get session context for hints",
@@ -219,7 +218,7 @@ func (hi *hintIntegration) GenerateToolHints(ctx context.Context, toolName strin
 }
 
 // GenerateContextualHints generates hints based on current session state
-func (hi *hintIntegration) GenerateContextualHints(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.Manager) []Hint {
+func (hi *hintIntegration) GenerateContextualHints(ctx context.Context, projectManager manager.ProjectManager, sessionManager session.SessionManager) []Hint {
 	sessionState, err := hi.GetSessionContext(ctx, projectManager, sessionManager)
 	if err != nil {
 		return hi.generator.GenerateGeneralHints()

@@ -56,7 +56,10 @@
       "mcp__knot-mcp__project_get",
       "Bash(docker compose:*)",
       "mcp__knot-mcp__project_create",
-      "mcp__knot-mcp__project_select"
+      "mcp__knot-mcp__project_select",
+      "mcp__knot-mcp__task_update_state",
+      "mcp__knot-mcp__task_get",
+      "Bash(mockgen:*)"
     ],
     "deny": [],
     "ask": []

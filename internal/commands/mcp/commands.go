@@ -73,20 +73,14 @@ func serverAction() cli.ActionFunc {
 			loggerService.Info("HTTP transport enabled",
 				logger.String("endpoint", endpoint),
 				logger.String("health_check", healthEndpoint))
-			loggerService.Info("Connection examples:",
-				logger.String("mcp", fmt.Sprintf("curl -X POST %s -d '{\"jsonrpc\":\"2.0\",...}'", endpoint)),
-				logger.String("health", fmt.Sprintf("curl %s", healthEndpoint)))
 		case "stdio":
 			loggerService.Info("STDIO transport enabled",
 				logger.String("communication", "stdin/stdout"))
-			loggerService.Info("Connection example:",
-				logger.String("stdio", "echo '{\"jsonrpc\":\"2.0\",...}' | knot mcp server"))
+
 		case "sse":
 			endpoint := fmt.Sprintf("http://%s:%d/sse", mcpConfig.Address, mcpConfig.Port)
 			loggerService.Info("SSE transport enabled",
 				logger.String("endpoint", endpoint))
-			loggerService.Info("Connection example:",
-				logger.String("sse", fmt.Sprintf("curl -N %s", endpoint)))
 		}
 
 		// Start the MCP server

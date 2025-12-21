@@ -242,6 +242,12 @@ func (r *postgresRepository) ListSessions(ctx context.Context, clientID string) 
 		query = query.Where(session.ClientID(clientID))
 	}
 
+	// Order by last activity descending to get most recent session first
+	query = query.Order(ent.Desc(session.FieldLastActivity))
+
+	// Include project data in the query to ensure project is loaded
+	query = query.WithProject()
+
 	sessionEnts, err := query.All(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list sessions: %w", err)
@@ -273,14 +279,15 @@ func (r *postgresRepository) UpdateSessionActivity(ctx context.Context, sessionI
 // SetSessionProject associates a project with a session
 func (r *postgresRepository) SetSessionProject(ctx context.Context, sessionID, projectID uuid.UUID) error {
 	// First get the project to ensure it exists
-	project, err := r.client.Project.Get(ctx, projectID)
+	_, err := r.client.Project.Get(ctx, projectID)
 	if err != nil {
 		return fmt.Errorf("project not found: %w", err)
 	}
 
-	_, err = r.client.Session.UpdateOneID(sessionID).
-		SetProject(project).
-		Save(ctx)
+	// Update the session to associate it with the project
+	err = r.client.Session.UpdateOneID(sessionID).
+		SetProjectID(projectID).
+		Exec(ctx)
 	if err != nil {
 		if ent.IsNotFound(err) {
 			return fmt.Errorf("session not found")

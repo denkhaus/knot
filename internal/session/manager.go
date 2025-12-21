@@ -15,7 +15,7 @@ type managerImpl struct {
 }
 
 // newManager creates a new session manager with proper configuration
-func newManager() Manager {
+func newManager() SessionManager {
 	return &managerImpl{
 		sessions: sync.Map{},
 	}

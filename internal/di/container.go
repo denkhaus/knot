@@ -20,6 +20,8 @@ import (
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp"
 	"github.com/denkhaus/knot/v2/internal/mcp/hints"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
+	"github.com/denkhaus/knot/v2/internal/mcp/transports"
 	"github.com/denkhaus/knot/v2/internal/repository"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/denkhaus/knot/v2/internal/repository/postgres"
@@ -77,25 +79,28 @@ func (c *Container) RegisterAllServices(cliCtx *cli.Context) do.Injector {
 	// Register project manager (depends on repository and config)
 	do.Provide(c.injector, manager.NewService)
 
-	// Register session storage factory for MCP services
-	do.Provide(c.injector, session.NewSessionStorageFactoryProvider)
-
 	// Register session repository provider (only available in MCP mode)
 	do.Provide(c.injector, session.NewSessionRepositoryProvider)
 
-	// Register session managers with named providers
-	do.ProvideNamed(c.injector, session.MemorySessionProvider.String(), session.NewMemorySessionManagerProvider)
-	do.ProvideNamed(c.injector, session.DatabaseSessionProvider.String(), session.NewDatabaseSessionManagerProvider)
-
-	// Register session manager provider that uses factory to select appropriate implementation
+	// Register session manager provider that selects appropriate implementation based on mode
+	// This eliminates the need for StorageFactory abstraction
 	do.Provide(c.injector, session.NewSessionManager)
+
+	do.Provide(c.injector, transports.NewSessionWrapper)
 
 	// Register hint system services
 	do.Provide(c.injector, hints.NewHintGeneratorProvider)
 	do.Provide(c.injector, hints.NewHintIntegrationProvider)
 
 	// Register MCP server
+	do.Provide(c.injector, mcp.NewMCPServer)
 	do.Provide(c.injector, mcp.NewServer)
+
+	// Register MCP shared components
+	do.Provide[shared.SessionRegistry](c.injector, shared.NewSessionRegistry)
+
+	// Register transport - this will select the appropriate transport based on config
+	do.Provide(c.injector, transports.NewTransportProvider)
 
 	return c.injector
 }

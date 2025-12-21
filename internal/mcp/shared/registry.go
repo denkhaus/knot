@@ -24,7 +24,7 @@ type SessionRegistry interface {
 
 // SessionRegistry manages the integration between our session manager and mcp-go sessions
 type sessionRegistryImpl struct {
-	sessionManager session.Manager
+	sessionManager session.SessionManager
 	mcpServer      *server.MCPServer
 	logger         logger.Logger
 
@@ -34,7 +34,7 @@ type sessionRegistryImpl struct {
 
 // NewSessionRegistry creates a new session registry
 func NewSessionRegistry(injector do.Injector) (SessionRegistry, error) {
-	sessionManager := do.MustInvoke[session.Manager](injector)
+	sessionManager := do.MustInvoke[session.SessionManager](injector)
 	loggerService := do.MustInvoke[logger.Logger](injector)
 	mcpServer := do.MustInvoke[*server.MCPServer](injector)
 
@@ -53,13 +53,31 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 		logger.String("session_id", sessionID.String()),
 		logger.String("actor", actor))
 
-	// First check if we have an internal session by ID
+	// Check if we already have an MCP session cached for this ID
+	if mcpSession, ok := r.mcpSessions.Load(sessionID.String()); ok {
+		if session, ok := mcpSession.(*MCPClientSession); ok {
+			// Update last active time and return cached session
+			session.updateLastActive()
+			fmt.Printf("✅ Using cached MCP session for ID: %s\n", sessionID.String())
+			r.logger.Debug("Using cached MCP session",
+				logger.String("session_id", sessionID.String()))
+			return session, nil
+		}
+	}
+
+	// Check if we have an internal session by ID (perfect match)
 	internalSession, err := r.sessionManager.GetSession(sessionID)
-	if err != nil {
+	if err == nil {
+		// Found exact match by session ID - this is ideal
+		fmt.Printf("✅ Found exact internal session match: %s\n", internalSession.SessionID.String())
+		r.logger.Info("Found exact internal session by ID",
+			logger.String("session_id", sessionID.String()),
+			logger.String("internal_id", internalSession.SessionID.String()))
+	} else {
+		// No exact match, try to find by client ID (for MCP sessions)
 		r.logger.Info("Session not found by ID, trying client ID lookup",
 			logger.String("session_id", sessionID.String()))
 
-		// If session doesn't exist by ID, try to find by client ID (for MCP sessions)
 		internalSession, err = r.sessionManager.GetSessionByClientID(sessionID.String())
 		if err != nil {
 			r.logger.Info("Session not found by client ID either, creating new session",
@@ -70,22 +88,12 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 			if err != nil {
 				return nil, fmt.Errorf("failed to create internal session: %w", err)
 			}
+			fmt.Printf("🆕 Created new internal session: %s\n", internalSession.SessionID.String())
 		} else {
+			fmt.Printf("✅ Found internal session by client ID: %s\n", internalSession.SessionID.String())
 			r.logger.Info("Found existing session by client ID",
 				logger.String("client_id", sessionID.String()),
 				logger.String("found_session_id", internalSession.SessionID.String()))
-		}
-	} else {
-		r.logger.Info("Found existing session by ID",
-			logger.String("session_id", sessionID.String()))
-	}
-
-	// Check if we already have an MCP session for this ID
-	if mcpSession, ok := r.mcpSessions.Load(sessionID.String()); ok {
-		if session, ok := mcpSession.(*MCPClientSession); ok {
-			// Update last active time
-			session.updateLastActive()
-			return session, nil
 		}
 	}
 
@@ -95,6 +103,7 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 	// Copy project data from internal session if it exists
 	if internalSession.ProjectID != nil {
 		mcpSession.SetProjectID(internalSession.ProjectID)
+		fmt.Printf("✅ Copied project ID to MCP session: %s\n", internalSession.ProjectID.String())
 	}
 
 	// Register with mcp-go
@@ -115,11 +124,12 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 		}
 	}
 
-	// Cache the MCP session
+	// Cache the MCP session - this is critical for persistence!
 	r.mcpSessions.Store(sessionID.String(), mcpSession)
 
 	r.logger.Info("Session registered with MCP server",
 		logger.String("session_id", sessionID.String()),
+		logger.String("internal_id", internalSession.SessionID.String()),
 		logger.String("actor", actor))
 
 	return mcpSession, nil

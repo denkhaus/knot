@@ -9,6 +9,12 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
+	"github.com/denkhaus/knot/v2/internal/session"
+	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/do/v2"
 )
 
 // HTTPTransport implements the Transport interface for HTTP communication
@@ -16,6 +22,7 @@ type HTTPTransport struct {
 	*BaseTransport
 	httpServer       *SessionWrapper // Session wrapper for MCP server
 	customHTTPServer *http.Server
+	sessionRegistry  shared.SessionRegistry // Injected session registry
 }
 
 // NewHTTPTransport creates a new HTTP transport
@@ -25,21 +32,55 @@ func NewHTTPTransport(deps TransportDependencies) *HTTPTransport {
 	}
 }
 
+// NewHTTPTransportWithDI creates a new HTTP transport with dependency injection
+func NewHTTPTransportWithDI(deps TransportDependencies, sessionWrapper *SessionWrapper) *HTTPTransport {
+	return &HTTPTransport{
+		BaseTransport: NewBaseTransport(config.TransportTypeHTTP, deps),
+		httpServer:    sessionWrapper,
+	}
+}
+
+// NewHTTPTransportProvider creates an HTTP transport provider for DI
+func NewHTTPTransportProvider(injector do.Injector) (Transport, error) {
+	mcpServer := do.MustInvoke[*server.MCPServer](injector)
+	logger := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	sessionManager := do.MustInvoke[session.SessionManager](injector)
+	hintIntegration := do.MustInvoke[hints.Integration](injector)
+	configService := do.MustInvoke[config.Service](injector)
+	sessionWrapper := do.MustInvoke[*SessionWrapper](injector)
+
+	// Create transport dependencies
+	deps := TransportDependencies{
+		MCPServer:       mcpServer,
+		ProjectManager:  projectManager,
+		SessionManager:  sessionManager,
+		Logger:          logger,
+		HintIntegration: hintIntegration,
+		ServerConfig:    configService.GetMCPConfig(),
+	}
+
+	return NewHTTPTransportWithDI(deps, sessionWrapper), nil
+}
+
+// InitializeSessionComponents initializes session-related components
+func (h *HTTPTransport) InitializeSessionComponents(sessionRegistry shared.SessionRegistry) {
+	// This method can be called after creation to inject session components
+	// The session registry will be used when the transport starts
+	h.sessionRegistry = sessionRegistry
+}
+
 // Start starts the HTTP transport server with custom handler
 func (h *HTTPTransport) Start(ctx context.Context) error {
+	if h.httpServer == nil {
+		return fmt.Errorf("session wrapper not initialized - use NewHTTPTransportWithDI or call InitializeSessionComponents first")
+	}
+
 	deps := h.Dependencies()
 	addr := fmt.Sprintf("%s:%d", deps.ServerConfig.Address, deps.ServerConfig.Port)
 
 	// Create custom HTTP handler that combines MCP and health endpoints
 	handler := http.NewServeMux()
-
-	// Add MCP endpoint handler with session wrapper
-	sessionWrapper := NewSessionWrapper(
-		deps.MCPServer,
-		deps.SessionRegistry,
-		deps.Logger,
-	)
-	h.httpServer = sessionWrapper
 
 	// Register the MCP server handler
 	handler.Handle("/mcp", h.httpServer)
@@ -82,13 +123,13 @@ func (h *HTTPTransport) healthHandler(w http.ResponseWriter, r *http.Request) {
 	deps := h.Dependencies()
 
 	healthStatus := map[string]interface{}{
-		"status": "healthy",
+		"status":    "healthy",
 		"timestamp": time.Now().Format(time.RFC3339),
-		"server": "knot MCP server",
-		"version": "dev",
-	"transport": "http",
-	"address": deps.ServerConfig.Address,
-	"port": deps.ServerConfig.Port,
+		"server":    "knot MCP server",
+		"version":   "dev",
+		"transport": "http",
+		"address":   deps.ServerConfig.Address,
+		"port":      deps.ServerConfig.Port,
 	}
 
 	w.WriteHeader(http.StatusOK)

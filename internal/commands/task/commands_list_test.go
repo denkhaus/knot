@@ -5,6 +5,7 @@ import (
 	"flag"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -22,6 +23,39 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 
 	// Get project manager from DI
 	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+
+	// Create and configure DI container for test
+	diContainer := di.NewContainer()
+
+	// Create a minimal CLI context for testing
+	app := &cli.App{
+		Metadata: map[string]interface{}{
+			"container": diContainer,
+		},
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	// Register services in container
+	containerInjector := diContainer.RegisterAllServices(cliCtx)
+
+	// Override repository with test repository (in-memory) from the testInjector
+	testRepo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(containerInjector, func(do.Injector) (types.Repository, error) {
+		return testRepo, nil
+	})
+
+	// Override project manager with the one from testInjector
+	do.Override(containerInjector, func(do.Injector) (manager.ProjectManager, error) {
+		return projectManager, nil
+	})
+
 	project := testutil.CreateTestProject(t, projectManager)
 
 	// Set selected project context
@@ -42,7 +76,6 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 	}
 
 	t.Run("default limit is 20", func(t *testing.T) {
-		app := &cli.App{}
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("quiet", false, "")
@@ -60,7 +93,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 	})
 
 	t.Run("complexity filter as minimum", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("quiet", false, "")
@@ -78,7 +111,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 	})
 
 	t.Run("state filter", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("quiet", false, "")
@@ -96,7 +129,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 	})
 
 	t.Run("priority filter", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("quiet", false, "")
@@ -114,7 +147,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 	})
 
 	t.Run("search filter", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("quiet", false, "")
@@ -132,7 +165,7 @@ func TestSimplifiedTaskListFlags(t *testing.T) {
 	})
 
 	t.Run("custom limit", func(t *testing.T) {
-		app := &cli.App{}
+		// Use app from outer scope with DI container metadata
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("quiet", false, "")

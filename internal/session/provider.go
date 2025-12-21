@@ -1,44 +1,28 @@
 package session
 
 import (
-	"context"
-
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/samber/do/v2"
 )
 
-// NewSessionStorageFactoryProvider creates a session storage factory with DI dependencies
-func NewSessionStorageFactoryProvider(injector do.Injector) (StorageFactory, error) {
+// NewSessionManager creates a session manager based on the application mode
+// This eliminates the need for StorageFactory abstraction
+func NewSessionManager(injector do.Injector) (SessionManager, error) {
 	configService := do.MustInvoke[config.Service](injector)
-	loggerService := do.MustInvoke[logger.Logger](injector)
 
-	return NewSessionStorageFactory(configService, loggerService), nil
-}
+	if configService.IsMCPMode() {
+		// MCP mode uses database-backed sessions
+		repo := do.MustInvoke[types.SessionRepository](injector)
+		loggerService := do.MustInvoke[logger.Logger](injector)
 
-// NewMemorySessionManagerProvider creates a memory-based session manager
-func NewMemorySessionManagerProvider(injector do.Injector) (Manager, error) {
-	return newManager(), nil // Memory manager doesn't need logger currently
-}
-
-// NewDatabaseSessionManagerProvider creates a database-backed session manager with DI dependencies
-func NewDatabaseSessionManagerProvider(injector do.Injector) (Manager, error) {
-	repo := do.MustInvoke[types.SessionRepository](injector)
-	loggerService := do.MustInvoke[logger.Logger](injector)
-
-	return NewDatabaseSessionManager(repo, loggerService), nil
-}
-
-// NewSessionManager creates a provider function for the SessionManager
-// This follows the dependency injection pattern used throughout the application
-func NewSessionManager(injector do.Injector) (Manager, error) {
-	// Get the session storage factory
-	factory := do.MustInvoke[StorageFactory](injector)
-
-	// Get repository for database session creation
-	repo := do.MustInvoke[types.Repository](injector)
-
-	// Create session manager using factory
-	return factory.CreateSessionManager(context.Background(), repo)
+		return &databaseSessionManagerImpl{
+			repo:   repo,
+			logger: loggerService,
+		}, nil
+	} else {
+		// Local mode uses in-memory sessions
+		return newManager(), nil
+	}
 }
