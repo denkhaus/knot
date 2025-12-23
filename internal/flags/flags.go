@@ -137,5 +137,88 @@ func NewMCPConfigFlags() []cli.Flag {
 			Value:   "stdio",
 			EnvVars: []string{"KNOT_MCP_TRANSPORT_MODE"},
 		},
+		&cli.IntFlag{
+			Name:    "default-task-complexity",
+			Usage:   "Default task complexity when not specified (1-10)",
+			Value:   5,
+			EnvVars: []string{"KNOT_DEFAULT_TASK_COMPLEXITY"},
+		},
+	}
+}
+
+// NewSyncConfigFlags creates flags for sync configuration
+func NewSyncConfigFlags() []cli.Flag {
+	return []cli.Flag{
+		&cli.StringFlag{
+			Name:    "server-url",
+			Usage:   "Sync server URL for sync operations (e.g., http://localhost:9094)",
+			Value:   "http://localhost:9094",
+			EnvVars: []string{"KNOT_SYNC_SERVER_URL"},
+		},
+		&cli.StringFlag{
+			Name:    "sync-auth-token",
+			Usage:   "Bearer token for sync server authentication",
+			EnvVars: []string{"KNOT_SYNC_AUTH_TOKEN"},
+		},
+		&cli.StringFlag{
+			Name:    "sync-format",
+			Usage:   "Preferred sync data format (json or msgpack)",
+			Value:   "json",
+			EnvVars: []string{"KNOT_SYNC_FORMAT"},
+		},
+		&cli.IntFlag{
+			Name:    "sync-timeout",
+			Usage:   "HTTP request timeout in seconds",
+			Value:   30,
+			EnvVars: []string{"KNOT_SYNC_TIMEOUT"},
+		},
+		&cli.IntFlag{
+			Name:    "retry-attempts",
+			Usage:   "Number of retry attempts for failed HTTP requests",
+			Value:   3,
+			EnvVars: []string{"KNOT_RETRY_ATTEMPTS"},
+		},
+		&cli.IntFlag{
+			Name:    "retry-delay",
+			Usage:   "Base delay between retry attempts in seconds",
+			Value:   1,
+			EnvVars: []string{"KNOT_RETRY_DELAY"},
+		},
+		&cli.IntFlag{
+			Name:    "max-retry-delay",
+			Usage:   "Maximum retry delay with exponential backoff in seconds",
+			Value:   30,
+			EnvVars: []string{"KNOT_MAX_RETRY_DELAY"},
+		},
+		&cli.IntFlag{
+			Name:    "max-idle-conns",
+			Usage:   "Maximum number of idle HTTP connections",
+			Value:   10,
+			EnvVars: []string{"KNOT_MAX_IDLE_CONNS"},
+		},
+		&cli.IntFlag{
+			Name:    "idle-conn-timeout",
+			Usage:   "Idle connection timeout in seconds",
+			Value:   90,
+			EnvVars: []string{"KNOT_IDLE_CONN_TIMEOUT"},
+		},
+		&cli.StringFlag{
+			Name:    "conflict-strategy",
+			Usage:   "Sync conflict resolution strategy (last-writer-wins, prefer-local, prefer-remote, manual)",
+			Value:   "last-writer-wins",
+			EnvVars: []string{"KNOT_CONFLICT_STRATEGY"},
+		},
+		&cli.IntFlag{
+			Name:    "batch-size",
+			Usage:   "Number of operations to process in a batch",
+			Value:   100,
+			EnvVars: []string{"KNOT_BATCH_SIZE"},
+		},
+		&cli.StringFlag{
+			Name:    "sync-user-agent",
+			Usage:   "User agent string for HTTP requests",
+			Value:   "knot/2.0",
+			EnvVars: []string{"KNOT_SYNC_USER_AGENT"},
+		},
 	}
 }

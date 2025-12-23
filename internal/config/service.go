@@ -65,6 +65,9 @@ type Service interface {
 	GetManagerConfig() *ManagerConfig
 	SetManagerConfig(config *ManagerConfig)
 
+	// Sync configuration
+	GetSyncConfig() *SyncConfig
+
 	// CLI context initialization
 	InitializeFromCLIContext(c *cli.Context) error
 	GetConfigPath() (string, error)
@@ -78,6 +81,7 @@ type serviceImpl struct {
 	isMCPMode     bool
 	managerConfig *ManagerConfig // Cache the manager config
 	mcpConfig     *MCPConfig     // Cache the MCP config
+	syncConfig    *SyncConfig    // Cache the sync config
 }
 
 // NewService creates a new configuration service instance.
@@ -196,6 +200,19 @@ func (s *serviceImpl) SetManagerConfig(config *ManagerConfig) {
 	s.managerConfig = config
 }
 
+// GetSyncConfig returns the sync configuration
+func (s *serviceImpl) GetSyncConfig() *SyncConfig {
+	s.mu.RLock()
+	defer s.mu.RUnlock()
+
+	if s.syncConfig != nil {
+		return s.syncConfig
+	}
+
+	// Return default config if not set
+	return s.getDefaultSyncConfig()
+}
+
 // GetConfigPath returns the path to the knot configuration file
 func (s *serviceImpl) GetConfigPath() (string, error) {
 	cwd, err := os.Getwd()
@@ -238,6 +255,9 @@ func (s *serviceImpl) InitializeFromCLIContext(c *cli.Context) error {
 
 	// Initialize MCP config from CLI flags if provided
 	s.initializeMCPConfig(c)
+
+	// Initialize sync config from CLI flags if provided
+	s.initializeSyncConfig(c)
 
 	// Validate MCP configuration if in MCP mode
 	if s.isMCPMode {
@@ -289,6 +309,9 @@ func (s *serviceImpl) initializeMCPConfig(c *cli.Context) {
 				ClientTimeout:     120, // default 2 minutes
 			},
 		},
+		Tasks: TasksConfig{
+			DefaultComplexity: c.Int("default-task-complexity"),
+		},
 	}
 }
 
@@ -321,6 +344,9 @@ func (s *serviceImpl) getDefaultMCPConfig() *MCPConfig {
 				ClientTimeout:     120, // default 2 minutes
 			},
 		},
+		Tasks: TasksConfig{
+			DefaultComplexity: 5, // default complexity
+		},
 	}
 }
 
@@ -328,6 +354,15 @@ func (s *serviceImpl) getDefaultMCPConfig() *MCPConfig {
 func (s *serviceImpl) validateMCPConfig() error {
 	if s.mcpConfig == nil {
 		return fmt.Errorf("MCP config is not initialized")
+	}
+
+	// Validate Tasks configuration (only validate if explicitly set)
+	if s.mcpConfig.Tasks.DefaultComplexity < 0 || s.mcpConfig.Tasks.DefaultComplexity > 10 {
+		return fmt.Errorf("default_task_complexity must be between 0 and 10, got %d", s.mcpConfig.Tasks.DefaultComplexity)
+	}
+	// If 0, it means use the default, which is already set to 5 in getDefaultMCPConfig
+	if s.mcpConfig.Tasks.DefaultComplexity == 0 {
+		s.mcpConfig.Tasks.DefaultComplexity = 5
 	}
 
 	// Validate PostgreSQL connection string if provided
@@ -408,6 +443,46 @@ func (s *serviceImpl) suggestAlternativePorts(port int) []string {
 		}
 	}
 	return alternatives
+}
+
+// initializeSyncConfig initializes sync configuration from CLI flags
+func (s *serviceImpl) initializeSyncConfig(c *cli.Context) {
+	if c == nil {
+		s.syncConfig = s.getDefaultSyncConfig()
+		return
+	}
+
+	s.syncConfig = &SyncConfig{
+		ServerURL:       c.String("server-url"),
+		AuthToken:       c.String("sync-auth-token"),
+		PreferredFormat: c.String("sync-format"),
+		Timeout:         time.Duration(c.Int("sync-timeout")) * time.Second,
+		RetryAttempts:   c.Int("retry-attempts"),
+		RetryDelay:      time.Duration(c.Int("retry-delay")) * time.Second,
+		MaxRetryDelay:   time.Duration(c.Int("max-retry-delay")) * time.Second,
+		MaxIdleConns:    c.Int("max-idle-conns"),
+		IdleConnTimeout: time.Duration(c.Int("idle-conn-timeout")) * time.Second,
+		ConflictStrategy: c.String("conflict-strategy"),
+		BatchSize:       c.Int("batch-size"),
+		UserAgent:       c.String("sync-user-agent"),
+	}
+}
+
+// getDefaultSyncConfig returns the default sync configuration
+func (s *serviceImpl) getDefaultSyncConfig() *SyncConfig {
+	return &SyncConfig{
+		ServerURL:        "http://localhost:9094",
+		PreferredFormat:  "json",
+		Timeout:          30 * time.Second,
+		RetryAttempts:    3,
+		RetryDelay:       1 * time.Second,
+		MaxRetryDelay:    30 * time.Second,
+		MaxIdleConns:     10,
+		IdleConnTimeout:  90 * time.Second,
+		ConflictStrategy: "last-writer-wins",
+		BatchSize:        100,
+		UserAgent:        "knot/2.0",
+	}
 }
 
 // DefaultConfig returns a sensible default configuration

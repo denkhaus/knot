@@ -47,6 +47,9 @@ func createTestConfig() *config.MCPConfig {
 				ClientTimeout:     60,
 			},
 		},
+		Tasks: config.TasksConfig{
+			DefaultComplexity: 5,
+		},
 	}
 }
 
@@ -57,6 +60,7 @@ func createTestServerConfig(ctrl *gomock.Controller) ServerConfig {
 	mockManager := mocks.NewMockProjectManager(ctrl)
 	mockSessionManager := mocks.NewMockManager(ctrl)
 	mockTransport := mocks.NewMockTransport(ctrl)
+	mockConfigService := mocks.NewMockService(ctrl)
 
 	// Create a real MCP server for testing
 	mcpServer := server.NewMCPServer("knot", "1.0.0")
@@ -64,6 +68,10 @@ func createTestServerConfig(ctrl *gomock.Controller) ServerConfig {
 	// Create a mock injector and register the required services
 	injector := do.New()
 	do.ProvideValue[transports.Transport](injector, mockTransport)
+	do.ProvideValue[config.Service](injector, mockConfigService)
+
+	// Set up mock config service to return the test config
+	mockConfigService.EXPECT().GetMCPConfig().Return(mockConfig).AnyTimes()
 
 	// Don't register SessionRegistry - let the server handle the nil case
 	// This makes the server use SessionManager for session count

@@ -126,6 +126,20 @@ func (mr *MockServiceMockRecorder) GetPostgresEndpoint(c any) *gomock.Call {
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetPostgresEndpoint", reflect.TypeOf((*MockService)(nil).GetPostgresEndpoint), c)
 }
 
+// GetSyncConfig mocks base method.
+func (m *MockService) GetSyncConfig() *config.SyncConfig {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "GetSyncConfig")
+	ret0, _ := ret[0].(*config.SyncConfig)
+	return ret0
+}
+
+// GetSyncConfig indicates an expected call of GetSyncConfig.
+func (mr *MockServiceMockRecorder) GetSyncConfig() *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetSyncConfig", reflect.TypeOf((*MockService)(nil).GetSyncConfig))
+}
+
 // GetTemplatesPath mocks base method.
 func (m *MockService) GetTemplatesPath() string {
 	m.ctrl.T.Helper()

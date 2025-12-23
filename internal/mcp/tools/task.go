@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/session"
@@ -104,7 +105,13 @@ type TaskDeleteResponse struct {
 }
 
 // RegisterTaskManagementTools registers all task management tools with the MCP server
-func RegisterTaskManagementTools(mcpServer *server.MCPServer, projectManager manager.ProjectManager, sessionManager session.SessionManager, sessionRegistry shared.SessionRegistry) {
+func RegisterTaskManagementTools(
+	mcpServer *server.MCPServer,
+	projectManager manager.ProjectManager,
+	sessionManager session.SessionManager,
+	sessionRegistry shared.SessionRegistry,
+	configService config.Service,
+) {
 	// Task creation tool
 	taskCreateTool := mcp.NewTool("task_create",
 		mcp.WithDescription("Create a new task in the selected project"),
@@ -115,8 +122,8 @@ func RegisterTaskManagementTools(mcpServer *server.MCPServer, projectManager man
 		fmt.Printf("DEBUG: task_create tool handler called!\n")
 		complexity := args.Complexity
 		if complexity == 0 {
-			// TODO(knot-dmd): make this configurable
-			complexity = 5 // Default complexity
+			// Use configured default complexity
+			complexity = configService.GetMCPConfig().Tasks.DefaultComplexity
 		}
 
 		priority := parsePriority(args.Priority)

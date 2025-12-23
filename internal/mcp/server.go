@@ -24,6 +24,7 @@ type mcpServerImpl struct {
 	sessionRegistry shared.SessionRegistry
 	logger          logger.Logger
 	config          *config.MCPConfig
+	configService   config.Service
 	hintIntegration hints.Integration
 	running         bool
 	transport       transports.Transport
@@ -61,6 +62,9 @@ func newServer(cfg ServerConfig) (Server, error) {
 		return nil, fmt.Errorf("MCPServer is required in ServerConfig")
 	}
 
+	// Get config service from DI
+	configService := do.MustInvoke[config.Service](cfg.Injector)
+
 	// Session components will be created via DI container when needed
 
 	// Transport will be injected via DI
@@ -79,6 +83,7 @@ func newServer(cfg ServerConfig) (Server, error) {
 		sessionRegistry: sessionRegistry,
 		logger:          cfg.Logger,
 		config:          cfg.Config,
+		configService:   configService,
 		hintIntegration: cfg.HintIntegration,
 		running:         false,
 		transport:       transport,
@@ -101,7 +106,7 @@ func (s *mcpServerImpl) registerTools() error {
 	tools.RegisterProjectManagementTools(s.MCPServer, s.projectManager)
 
 	// Register task management tools (task_create, task_get, task_update, task_update_state, task_delete)
-	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessionManager, s.sessionRegistry)
+	tools.RegisterTaskManagementTools(s.MCPServer, s.projectManager, s.sessionManager, s.sessionRegistry, s.configService)
 
 	// Register status and query tools (status_ready, status_actionable, status_project, status_blocked, status_tree)
 	tools.RegisterStatusTools(s.MCPServer, s.projectManager, s.sessionManager)
