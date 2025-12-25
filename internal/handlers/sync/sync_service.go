@@ -212,12 +212,17 @@ func (s *syncServiceImpl) PerformPullSync(ctx context.Context, request shared.Sy
 		},
 	}
 
-	// Fetch project data
+	// Fetch project data (may not exist for first-time sync)
 	project, err := s.projectManager.GetProject(ctx, request.ProjectID)
 	if err != nil {
-		response.Success = false
-		response.Errors = []string{fmt.Sprintf("failed to get project: %v", err)}
-		return response, fmt.Errorf("failed to get project: %w", err)
+		// Project doesn't exist on remote - this is expected for first-time push sync
+		// Return empty data set to indicate remote has no data yet
+		s.logger.Info("Project not found on remote, treating as first-time sync",
+			zap.String("project_id", request.ProjectID.String()),
+			zap.String("request_id", request.RequestID.String()))
+
+		// Return success with empty data - client can proceed with push
+		return response, nil
 	}
 
 	response.RemoteChanges.Projects[project.ID] = project
