@@ -17,7 +17,6 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-
 // createTestConfig creates a test configuration for use in tests
 func createTestConfig() *config.MCPConfig {
 	return &config.MCPConfig{
@@ -58,7 +57,7 @@ func createTestServerConfig(ctrl *gomock.Controller) ServerConfig {
 	mockLogger := mocks.NewMockLogger(ctrl)
 	mockConfig := createTestConfig()
 	mockManager := mocks.NewMockProjectManager(ctrl)
-	mockSessionManager := mocks.NewMockManager(ctrl)
+	mockSessionManager := mocks.NewMockSessionManager(ctrl)
 	mockTransport := mocks.NewMockTransport(ctrl)
 	mockConfigService := mocks.NewMockService(ctrl)
 
@@ -166,7 +165,7 @@ func TestMCPServer_Interface(t *testing.T) {
 
 	t.Run("GetSessionCount", func(t *testing.T) {
 		// Set up expectation for GetSessionCount call
-		cfg.SessionManager.(*mocks.MockManager).EXPECT().
+		cfg.SessionManager.(*mocks.MockSessionManager).EXPECT().
 			GetSessionCount().
 			Return(5)
 
@@ -184,7 +183,7 @@ func TestMCPServer_Stop(t *testing.T) {
 	mockTransport := do.MustInvoke[transports.Transport](cfg.Injector).(*mocks.MockTransport)
 
 	// Set up expectation for CloseAll call
-	cfg.SessionManager.(*mocks.MockManager).EXPECT().
+	cfg.SessionManager.(*mocks.MockSessionManager).EXPECT().
 		CloseAll(gomock.Any()).
 		Return(nil)
 	// Set up expectation for transport.Stop call
@@ -213,7 +212,7 @@ func TestMCPServer_CleanupExpiredSessions(t *testing.T) {
 	cfg := createTestServerConfig(ctrl)
 	// Set up expectation for CleanupExpiredSessions call
 	// Note: The server uses config.Timeout, not config.Session.Timeout
-	cfg.SessionManager.(*mocks.MockManager).EXPECT().
+	cfg.SessionManager.(*mocks.MockSessionManager).EXPECT().
 		CleanupExpiredSessions(gomock.Any(), cfg.Config.Timeout).
 		Return(nil)
 
