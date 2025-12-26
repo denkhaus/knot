@@ -225,15 +225,9 @@ The dependency-aware strategy:
 
 Examples:
   knot status actionable              # Find next task to work on
-  knot status actionable -v           # Show detailed reasoning
   knot status actionable --json       # JSON output for tooling`,
 				Action: task.ActionableAction(),
 				Flags: []cli.Flag{
-					&cli.BoolFlag{
-						Name:    "verbose",
-						Aliases: []string{"v"},
-						Usage:   "Show detailed selection reasoning and alternatives",
-					},
 					&cli.BoolFlag{
 						Name:  "json",
 						Usage: "Output result as JSON",

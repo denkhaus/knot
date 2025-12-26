@@ -88,7 +88,7 @@ func ActionableAction() cli.ActionFunc {
 				"execution_time":  result.ExecutionTime.String(),
 			}
 
-			if c.Bool("verbose") && len(result.Alternatives) > 0 {
+			if len(result.Alternatives) > 0 {
 				output["alternatives"] = result.Alternatives[:min(5, len(result.Alternatives))]
 			}
 
@@ -137,14 +137,6 @@ func ActionableAction() cli.ActionFunc {
 
 		if result.Score.DependentCount > 0 {
 			fmt.Printf("Dependent tasks: %d\n", result.Score.DependentCount)
-		}
-
-		// Show alternatives if verbose mode and available
-		if c.Bool("verbose") && len(result.Alternatives) > 0 {
-			fmt.Printf("\nAlternatives considered:\n")
-			for i, alt := range result.Alternatives[:min(3, len(result.Alternatives))] {
-				fmt.Printf("  %d. %s (score: %.2f)\n", i+1, alt.Task.Title, alt.Score)
-			}
 		}
 
 		fmt.Printf("\nExecution time: %v\n", result.ExecutionTime)

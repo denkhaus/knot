@@ -125,33 +125,6 @@ func TestActionableAction(t *testing.T) {
 		assert.NoError(t, err)
 	})
 
-	t.Run("actionable with verbose output", func(t *testing.T) {
-		cliCtx, _ := setupCLIContextWithDI(t, "")
-
-		// Create a project in the test's DI container
-		diContainer := shared.GetContainerFromContext(cliCtx)
-		injector := diContainer.GetInjector()
-		projectManager := do.MustInvoke[manager.ProjectManager](injector)
-
-		project = testutil.CreateTestProject(t, projectManager)
-		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
-		require.NoError(t, err)
-
-		_, app = setupCLIContextWithDI(t, project.ID.String())
-
-		// Create a new flag set with verbose flag
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Bool("json", false, "")
-		flagSet.Bool("verbose", true, "")
-		_ = flagSet.Set("verbose", "true")
-
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		action := ActionableAction()
-		err = action(ctx)
-		assert.NoError(t, err)
-	})
-
 	t.Run("actionable with JSON output", func(t *testing.T) {
 		cliCtx, _ := setupCLIContextWithDI(t, "")
 
@@ -169,7 +142,6 @@ func TestActionableAction(t *testing.T) {
 		// Create a new flag set with JSON flag
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", true, "")
-		flagSet.Bool("verbose", false, "")
 		_ = flagSet.Set("json", "true")
 
 		ctx := cli.NewContext(app, flagSet, nil)
