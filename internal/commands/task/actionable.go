@@ -1,7 +1,6 @@
 package task
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -29,45 +28,18 @@ func ActionableAction() cli.ActionFunc {
 			zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		allTasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		allTasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
-		// Parse strategy from CLI flag or auto-recommend if not provided
-		var strategy selection.Strategy
-		var strategyReason string
+		// Always use dependency-aware strategy
+		strategy := selection.StrategyDependencyAware
+		strategyReason := "dependency-aware"
 
-		if c.IsSet("strategy") {
-			// User explicitly provided a strategy
-			strategyStr := c.String("strategy")
-			strategy = selection.ParseStrategy(strategyStr)
-			strategyReason = fmt.Sprintf("User-selected %s strategy", strategy.String())
-		} else {
-			// Auto-recommend strategy based on project analysis
-			recommendedStrategy, reason, err := selection.AnalyzeProjectAndRecommendStrategy(allTasks)
-			if err != nil {
-				loggerService.Warn("Failed to analyze project for strategy recommendation, using dependency-aware", zap.Error(err))
-				strategy = selection.StrategyDependencyAware
-				strategyReason = "Using default dependency-aware strategy (analysis failed)"
-			} else {
-				strategy = recommendedStrategy
-				strategyReason = reason
-			}
-		}
-
-		// Get configuration
+		// Get default configuration (already has dependency-aware defaults)
 		config := selection.DefaultConfig()
-		config.Strategy = strategy
-
-		// Apply configuration overrides from CLI flags
-		if c.Bool("allow-parent-with-subtasks") {
-			config.Behavior.AllowParentWithSubtasks = true
-		}
-		if c.Bool("prefer-pending") {
-			config.Behavior.PreferInProgress = false
-		}
 
 		// Create selector
 		selector, err := selection.NewTaskSelector(strategy, config)

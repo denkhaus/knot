@@ -101,51 +101,27 @@ func TestActionableAction(t *testing.T) {
 		assert.Equal(t, task.Title, retrievedTask.Title)
 	})
 
-	t.Run("actionable with specific strategy", func(t *testing.T) {
-		cliCtx, app := setupCLIContextWithDI(t, "")
+	t.Run("actionable with multiple tasks", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
 
 		// Create a project in the test's DI container
 		diContainer := shared.GetContainerFromContext(cliCtx)
 		injector := diContainer.GetInjector()
 		projectManager := do.MustInvoke[manager.ProjectManager](injector)
 
-		project = testutil.CreateTestProject(t, projectManager)
+		project := testutil.CreateTestProject(t, projectManager)
 		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
 		require.NoError(t, err)
 
 		// Create multiple tasks
-		task1, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "High Priority Task", "Important task", 2, types.TaskPriorityHigh, "test-user")
+		_, err = projectManager.CreateTask(context.TODO(), project.ID, nil, "High Priority Task", "Important task", 2, types.TaskPriorityHigh, "test-user")
 		require.NoError(t, err)
 
-		task2, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Low Priority Task", "Less important task", 1, types.TaskPriorityLow, "test-user")
+		_, err = projectManager.CreateTask(context.TODO(), project.ID, nil, "Low Priority Task", "Less important task", 1, types.TaskPriorityLow, "test-user")
 		require.NoError(t, err)
-
-		// Set the strategy flag
-		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
-		flagSet.Bool("json", false, "")
-		flagSet.Bool("verbose", false, "")
-		flagSet.String("strategy", "", "")
-		flagSet.Bool("allow-parent-with-subtasks", false, "")
-		flagSet.Bool("prefer-pending", false, "")
-		// Add DI flags
-		flagSet.String("log-level", "info", "Log level")
-		flagSet.Int("complexity-threshold", 5, "Complexity threshold")
-		flagSet.Int("max-depth", 10, "Max depth")
-		flagSet.Int("max-tasks-per-depth", 50, "Max tasks per depth")
-		flagSet.Int("max-description-length", 500, "Max description length")
-		flagSet.Bool("auto-reduce-complexity", true, "Auto reduce complexity")
-		_ = flagSet.Set("strategy", "priority")
-
-		ctx := cli.NewContext(app, flagSet, nil)
 
 		action := ActionableAction()
-		err = action(ctx)
-		assert.NoError(t, err)
-
-		// Verify tasks still exist
-		_, err = projectManager.GetTask(context.TODO(), task1.ID)
-		assert.NoError(t, err)
-		_, err = projectManager.GetTask(context.TODO(), task2.ID)
+		err = action(cliCtx)
 		assert.NoError(t, err)
 	})
 
@@ -167,16 +143,6 @@ func TestActionableAction(t *testing.T) {
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Bool("verbose", true, "")
-		flagSet.String("strategy", "", "")
-		flagSet.Bool("allow-parent-with-subtasks", false, "")
-		flagSet.Bool("prefer-pending", false, "")
-		// Add DI flags
-		flagSet.String("log-level", "info", "Log level")
-		flagSet.Int("complexity-threshold", 5, "Complexity threshold")
-		flagSet.Int("max-depth", 10, "Max depth")
-		flagSet.Int("max-tasks-per-depth", 50, "Max tasks per depth")
-		flagSet.Int("max-description-length", 500, "Max description length")
-		flagSet.Bool("auto-reduce-complexity", true, "Auto reduce complexity")
 		_ = flagSet.Set("verbose", "true")
 
 		ctx := cli.NewContext(app, flagSet, nil)
@@ -204,16 +170,6 @@ func TestActionableAction(t *testing.T) {
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", true, "")
 		flagSet.Bool("verbose", false, "")
-		flagSet.String("strategy", "", "")
-		flagSet.Bool("allow-parent-with-subtasks", false, "")
-		flagSet.Bool("prefer-pending", false, "")
-		// Add DI flags
-		flagSet.String("log-level", "info", "Log level")
-		flagSet.Int("complexity-threshold", 5, "Complexity threshold")
-		flagSet.Int("max-depth", 10, "Max depth")
-		flagSet.Int("max-tasks-per-depth", 50, "Max tasks per depth")
-		flagSet.Int("max-description-length", 500, "Max description length")
-		flagSet.Bool("auto-reduce-complexity", true, "Auto reduce complexity")
 		_ = flagSet.Set("json", "true")
 
 		ctx := cli.NewContext(app, flagSet, nil)

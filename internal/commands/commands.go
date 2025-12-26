@@ -1,12 +1,15 @@
 package commands
 
 import (
+	"fmt"
+
 	"github.com/denkhaus/knot/v2/internal/commands/completion"
 	"github.com/denkhaus/knot/v2/internal/commands/config"
 	"github.com/denkhaus/knot/v2/internal/commands/dependency"
 	"github.com/denkhaus/knot/v2/internal/commands/health"
 	cmdmcp "github.com/denkhaus/knot/v2/internal/commands/mcp"
 	"github.com/denkhaus/knot/v2/internal/commands/project"
+	cmdsync "github.com/denkhaus/knot/v2/internal/commands/sync"
 	"github.com/denkhaus/knot/v2/internal/commands/task"
 	"github.com/denkhaus/knot/v2/internal/commands/template"
 	"github.com/denkhaus/knot/v2/internal/commands/validation"
@@ -170,6 +173,24 @@ func NewProjectCommand() *cli.Command {
 	}
 }
 
+func NewSyncCommand() *cli.Command {
+	syncCommands := cmdsync.Commands()
+
+	// Return the first (and only) sync command
+	if len(syncCommands) > 0 {
+		return syncCommands[0]
+	}
+
+	// Fallback if sync command not found
+	return &cli.Command{
+		Name:  "sync",
+		Usage: "Bidirectional synchronization with MCP server",
+		Action: func(c *cli.Context) error {
+			return fmt.Errorf("sync command not properly configured")
+		},
+	}
+}
+
 // NewStatusCommand creates a status command with subcommands for different status views
 func NewStatusCommand() *cli.Command {
 	return &cli.Command{
@@ -193,36 +214,21 @@ Examples:
 			{
 				Name:    "actionable",
 				Aliases: []string{"next", "act"},
-				Usage:   "Find the next actionable task using intelligent selection",
-				Description: `Find the next actionable task using dependency-aware selection strategies.
+				Usage:   "Find the next actionable task using dependency-aware selection",
+				Description: `Find the next actionable task using dependency-aware selection.
 
-Available strategies:
-  - dependency-aware: Prioritizes tasks that unblock others (default)
-  - depth-first: Complete subtasks before moving to other branches
-  - priority: Focus on high-priority tasks first
-  - creation-order: Original knot behavior (oldest first)
-  - critical-path: Focus on tasks affecting project timeline
+The dependency-aware strategy:
+  - Prioritizes tasks that unblock other tasks
+  - Respects task dependencies (only shows tasks whose dependencies are met)
+  - Completes subtasks before parent tasks
+  - Prefers in-progress tasks over new tasks
 
 Examples:
-  knot status actionable                           # Use default dependency-aware strategy
-  knot status actionable --strategy=depth-first   # Prioritize completing branches
-  knot status actionable --strategy=priority      # Focus on high-priority tasks
-  knot status actionable --verbose --json         # Detailed JSON output`,
+  knot status actionable              # Find next task to work on
+  knot status actionable -v           # Show detailed reasoning
+  knot status actionable --json       # JSON output for tooling`,
 				Action: task.ActionableAction(),
 				Flags: []cli.Flag{
-					&cli.StringFlag{
-						Name:    "strategy",
-						Aliases: []string{"s"},
-						Usage:   "Selection strategy: dependency-aware, depth-first, priority, creation-order, critical-path (auto-recommended if not specified)",
-					},
-					&cli.BoolFlag{
-						Name:  "allow-parent-with-subtasks",
-						Usage: "Allow selection of parent tasks even when subtasks exist",
-					},
-					&cli.BoolFlag{
-						Name:  "prefer-pending",
-						Usage: "Prefer pending tasks over in-progress tasks",
-					},
 					&cli.BoolFlag{
 						Name:    "verbose",
 						Aliases: []string{"v"},
