@@ -208,3 +208,259 @@ func createLargeTaskSet(count int) []*types.Task {
 
 	return tasks
 }
+
+func TestEndToEndUserScenario(t *testing.T) {
+	// This test specifically addresses the user's reported issue:
+	// "actionable task is not the first subtask of the first root task but the second root task"
+
+	tasks := createUserScenarioTasksIntegration()
+
+	config := DefaultConfig()
+	selector, err := NewTaskSelector(config)
+	require.NoError(t, err)
+
+	selectedTask, err := selector.SelectNextActionableTask(tasks)
+	require.NoError(t, err)
+
+	t.Logf("Dependency-aware selected: %s", selectedTask.Title)
+
+	// The improved logic should NOT select "Second Root Task"
+	assert.NotEqual(t, "Second Root Task", selectedTask.Title,
+		"Dependency-aware strategy should not select second root task before first root's subtasks")
+}
+
+func TestDependencyWithBlockedParent(t *testing.T) {
+	// Test the bug scenario:
+	// - Task A has subtasks A1, A2 (pending)
+	// - Task B depends on Task A
+	// - Expected: Task B should NOT be actionable because Task A is blocked by its subtasks
+
+	now := time.Now()
+
+	taskA := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     0,
+		CreatedAt: now,
+	}
+
+	taskA1 := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A1",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     1,
+		ParentID:  &taskA.ID,
+		CreatedAt: now.Add(time.Millisecond),
+	}
+
+	taskA2 := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A2",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     1,
+		ParentID:  &taskA.ID,
+		CreatedAt: now.Add(2 * time.Millisecond),
+	}
+
+	taskB := &types.Task{
+		ID:           uuid.New(),
+		Title:        "Task B",
+		State:        types.TaskStatePending,
+		Priority:     2,
+		Depth:        0,
+		Dependencies: []uuid.UUID{taskA.ID},
+		CreatedAt:    now.Add(3 * time.Millisecond),
+	}
+
+	tasks := []*types.Task{taskA, taskA1, taskA2, taskB}
+
+	config := DefaultConfig()
+	selector, err := NewTaskSelector(config)
+	require.NoError(t, err)
+
+	selectedTask, err := selector.SelectNextActionableTask(tasks)
+	require.NoError(t, err)
+
+	t.Logf("Selected task: %s", selectedTask.Title)
+
+	// Should select one of Task A's subtasks, NOT Task B
+	assert.Contains(t, []string{"Task A1", "Task A2"}, selectedTask.Title,
+		"Should select a subtask of Task A, not Task B which depends on blocked Task A")
+
+	// Verify Task B is not in the actionable list
+	filter := NewTaskFilter(selector.analyzer, config)
+	actionableTasks, err := filter.FilterActionableTasks(tasks)
+	require.NoError(t, err)
+
+	actionableTitles := make([]string, len(actionableTasks))
+	for i, task := range actionableTasks {
+		actionableTitles[i] = task.Title
+	}
+
+	t.Logf("Actionable tasks: %v", actionableTitles)
+
+	assert.NotContains(t, actionableTitles, "Task B",
+		"Task B should not be actionable because its dependency (Task A) is blocked by subtasks")
+}
+
+func TestDependencyWithInProgressParent(t *testing.T) {
+	// Test scenario:
+	// - Task A is IN_PROGRESS with subtasks A1, A2 (pending)
+	// - Task B depends on Task A
+	// - Expected: Task B should NOT be actionable because Task A is blocked by its subtasks
+
+	now := time.Now()
+
+	taskA := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A",
+		State:     types.TaskStateInProgress, // IN_PROGRESS!
+		Priority:  2,
+		Depth:     0,
+		CreatedAt: now,
+	}
+
+	taskA1 := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A1",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     1,
+		ParentID:  &taskA.ID,
+		CreatedAt: now.Add(time.Millisecond),
+	}
+
+	taskA2 := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A2",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     1,
+		ParentID:  &taskA.ID,
+		CreatedAt: now.Add(2 * time.Millisecond),
+	}
+
+	taskB := &types.Task{
+		ID:           uuid.New(),
+		Title:        "Task B",
+		State:        types.TaskStatePending,
+		Priority:     2,
+		Depth:        0,
+		Dependencies: []uuid.UUID{taskA.ID},
+		CreatedAt:    now.Add(3 * time.Millisecond),
+	}
+
+	tasks := []*types.Task{taskA, taskA1, taskA2, taskB}
+
+	config := DefaultConfig()
+	selector, err := NewTaskSelector(config)
+	require.NoError(t, err)
+
+	selectedTask, err := selector.SelectNextActionableTask(tasks)
+	require.NoError(t, err)
+
+	t.Logf("Selected task: %s", selectedTask.Title)
+
+	// Should select one of Task A's subtasks, NOT Task B
+	assert.Contains(t, []string{"Task A1", "Task A2"}, selectedTask.Title,
+		"Should select a subtask of Task A, not Task B")
+
+	// Verify Task B is not in the actionable list
+	filter := NewTaskFilter(selector.analyzer, config)
+	actionableTasks, err := filter.FilterActionableTasks(tasks)
+	require.NoError(t, err)
+
+	actionableTitles := make([]string, len(actionableTasks))
+	for i, task := range actionableTasks {
+		actionableTitles[i] = task.Title
+	}
+
+	t.Logf("Actionable tasks: %v", actionableTitles)
+
+	assert.NotContains(t, actionableTitles, "Task B",
+		"Task B should not be actionable even though Task A is in_progress")
+}
+
+func TestDependencyWithBlockedParentAllPending(t *testing.T) {
+	// BUG SCENARIO - All tasks are PENDING:
+	// - Task A (pending) with subtasks A1, A2 (all pending)
+	// - Task B (pending) depends on Task A
+	// - Expected: Task B should NOT be actionable because Task A is not completed
+	// - Bug: Task B is incorrectly shown as actionable
+
+	now := time.Now()
+
+	taskA := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     0,
+		CreatedAt: now,
+	}
+
+	taskA1 := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A1",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     1,
+		ParentID:  &taskA.ID,
+		CreatedAt: now.Add(time.Millisecond),
+	}
+
+	taskA2 := &types.Task{
+		ID:        uuid.New(),
+		Title:     "Task A2",
+		State:     types.TaskStatePending,
+		Priority:  2,
+		Depth:     1,
+		ParentID:  &taskA.ID,
+		CreatedAt: now.Add(2 * time.Millisecond),
+	}
+
+	taskB := &types.Task{
+		ID:           uuid.New(),
+		Title:        "Task B",
+		State:        types.TaskStatePending,
+		Priority:     2,
+		Depth:        0,
+		Dependencies: []uuid.UUID{taskA.ID},
+		CreatedAt:    now.Add(3 * time.Millisecond),
+	}
+
+	tasks := []*types.Task{taskA, taskA1, taskA2, taskB}
+
+	config := DefaultConfig()
+	selector, err := NewTaskSelector(config)
+	require.NoError(t, err)
+
+	selectedTask, err := selector.SelectNextActionableTask(tasks)
+	require.NoError(t, err)
+
+	t.Logf("Selected task: %s", selectedTask.Title)
+
+	// Should select one of Task A's subtasks, NOT Task B
+	assert.Contains(t, []string{"Task A1", "Task A2"}, selectedTask.Title,
+		"Should select a subtask of Task A, not Task B")
+
+	// Verify Task B is not in the actionable list
+	filter := NewTaskFilter(selector.analyzer, config)
+	actionableTasks, err := filter.FilterActionableTasks(tasks)
+	require.NoError(t, err)
+
+	actionableTitles := make([]string, len(actionableTasks))
+	for i, task := range actionableTasks {
+		actionableTitles[i] = task.Title
+	}
+
+	t.Logf("Actionable tasks: %v", actionableTitles)
+
+	// This is the critical assertion - Task B should NOT be actionable
+	assert.NotContains(t, actionableTitles, "Task B",
+		"Task B should not be actionable because Task A is not completed (Task A is blocked by its subtasks)")
+}
