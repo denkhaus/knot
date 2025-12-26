@@ -21,7 +21,7 @@ func (u *TaskSelectionUtils) FormatSelectionResult(result *SelectionResult, verb
 
 	// Basic info
 	output.WriteString(fmt.Sprintf("Selected: %s\n", result.SelectedTask.Title))
-	output.WriteString(fmt.Sprintf("Strategy: %s\n", result.Strategy.String()))
+	output.WriteString(fmt.Sprintf("Strategy: dependency-aware\n"))
 	output.WriteString(fmt.Sprintf("Reason: %s\n", result.Reason))
 
 	if verbose {
@@ -153,7 +153,7 @@ func (u *TaskSelectionUtils) GenerateSelectionSummary(tasks []*types.Task, graph
 // ProjectAnalyzer analyzes project characteristics
 type ProjectAnalyzer struct{}
 
-// AnalyzeProject analyzes project characteristics to recommend optimal configuration
+// AnalyzeProject analyzes project characteristics
 func (pa *ProjectAnalyzer) AnalyzeProject(tasks []*types.Task) *ProjectCharacteristics {
 	characteristics := &ProjectCharacteristics{
 		TaskCount:  len(tasks),
@@ -199,7 +199,7 @@ func (pa *ProjectAnalyzer) AnalyzeProject(tasks []*types.Task) *ProjectCharacter
 
 		// Priority
 		prioritySum += int(task.Priority)
-		if priorityToScore(task.Priority) >= 2 {
+		if pa.priorityToScore(task.Priority) >= 2 {
 			highPriorityCount++
 		}
 	}
@@ -220,6 +220,11 @@ func (pa *ProjectAnalyzer) AnalyzeProject(tasks []*types.Task) *ProjectCharacter
 	characteristics.Complexity = pa.determineComplexity(characteristics)
 
 	return characteristics
+}
+
+// priorityToScore converts priority to scoring value
+func (pa *ProjectAnalyzer) priorityToScore(priority types.TaskPriority) float64 {
+	return float64(4 - priority) // 1->3, 2->2, 3->1
 }
 
 // calculateTaskHierarchyDepth calculates the hierarchy depth for a single task
@@ -257,27 +262,6 @@ func (pa *ProjectAnalyzer) determineComplexity(char *ProjectCharacteristics) Pro
 	}
 
 	return ComplexityMedium
-}
-
-// RecommendStrategy recommends the best selection strategy based on project characteristics
-func (pa *ProjectAnalyzer) RecommendStrategy(char *ProjectCharacteristics) (Strategy, string) {
-	if char.TaskCount < 5 {
-		return StrategyCreationOrder, "Simple project - creation order is sufficient"
-	}
-
-	if char.DependencyRatio > 0.7 || char.AverageDependencies > 2.0 {
-		return StrategyDependencyAware, "High dependency complexity - focus on unblocking tasks"
-	}
-
-	if char.HasHierarchy && char.HierarchyRatio > 0.5 {
-		return StrategyDepthFirst, "Hierarchical structure - complete branches systematically"
-	}
-
-	if char.HighPriorityRatio > 0.3 {
-		return StrategyPriority, "Many high-priority tasks - focus on urgent work"
-	}
-
-	return StrategyDependencyAware, "Balanced approach for general project management"
 }
 
 // ProjectCharacteristics holds analyzed project characteristics
@@ -349,11 +333,10 @@ type PerformanceMonitor struct {
 	selections []Metrics
 }
 
-// Metrics holds metrics for a single selection operation (renamed from SelectionMetrics to avoid stuttering)
+// Metrics holds metrics for a single selection operation
 type Metrics struct {
 	TaskCount       int           `json:"task_count"`
 	ActionableCount int           `json:"actionable_count"`
-	Strategy        Strategy      `json:"strategy"`
 	ExecutionTime   time.Duration `json:"execution_time"`
 	MemoryUsage     int64         `json:"memory_usage"`
 	Timestamp       time.Time     `json:"timestamp"`
@@ -371,7 +354,6 @@ func (pm *PerformanceMonitor) RecordSelection(result *SelectionResult, taskCount
 	metrics := Metrics{
 		TaskCount:       taskCount,
 		ActionableCount: actionableCount,
-		Strategy:        result.Strategy,
 		ExecutionTime:   result.ExecutionTime,
 		MemoryUsage:     memoryUsage,
 		Timestamp:       result.SelectedAt,
@@ -383,25 +365,6 @@ func (pm *PerformanceMonitor) RecordSelection(result *SelectionResult, taskCount
 	if len(pm.selections) > 100 {
 		pm.selections = pm.selections[1:]
 	}
-}
-
-// GetAverageExecutionTime returns average execution time for a strategy
-func (pm *PerformanceMonitor) GetAverageExecutionTime(strategy Strategy) time.Duration {
-	var total time.Duration
-	count := 0
-
-	for _, selection := range pm.selections {
-		if selection.Strategy == strategy {
-			total += selection.ExecutionTime
-			count++
-		}
-	}
-
-	if count == 0 {
-		return 0
-	}
-
-	return total / time.Duration(count)
 }
 
 // GetMetrics returns all recorded metrics

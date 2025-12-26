@@ -44,7 +44,7 @@ func (mc *MetricsCalculator) calculateDependencyDepth(graph *DependencyGraph, ta
 		return 0 // Circular dependency protection
 	}
 
-	if mc.config.Advanced.MaxDependencyDepth > 0 && len(visited) >= mc.config.Advanced.MaxDependencyDepth {
+	if mc.config.MaxDependencyDepth > 0 && len(visited) >= mc.config.MaxDependencyDepth {
 		return len(visited) // Max depth reached
 	}
 
@@ -135,13 +135,11 @@ func (mc *MetricsCalculator) wouldBecomeActionable(node *DependencyNode, graph *
 		}
 	}
 
-	// Check subtasks constraint
-	if !mc.config.Behavior.AllowParentWithSubtasks {
-		for _, childID := range node.Children {
-			if childNode, exists := graph.Nodes[childID]; exists {
-				if childNode.Task.State == types.TaskStatePending || childNode.Task.State == types.TaskStateInProgress {
-					return false // Has active subtasks
-				}
+	// Check subtasks constraint (always: subtasks first)
+	for _, childID := range node.Children {
+		if childNode, exists := graph.Nodes[childID]; exists {
+			if childNode.Task.State == types.TaskStatePending || childNode.Task.State == types.TaskStateInProgress {
+				return false // Has active subtasks
 			}
 		}
 	}

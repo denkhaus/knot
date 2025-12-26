@@ -34,15 +34,11 @@ func ActionableAction() cli.ActionFunc {
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
-		// Always use dependency-aware strategy
-		strategy := selection.StrategyDependencyAware
-		strategyReason := "dependency-aware"
-
-		// Get default configuration (already has dependency-aware defaults)
+		// Get default configuration
 		config := selection.DefaultConfig()
 
 		// Create selector
-		selector, err := selection.NewTaskSelector(strategy, config)
+		selector, err := selection.NewTaskSelector(config)
 		if err != nil {
 			loggerService.Error("Failed to create task selector", zap.Error(err))
 			return fmt.Errorf("failed to create task selector: %w", err)
@@ -80,12 +76,11 @@ func ActionableAction() cli.ActionFunc {
 		// Output JSON if requested
 		if c.Bool("json") {
 			output := map[string]any{
-				"task":            selectedTask,
-				"strategy":        strategy.String(),
-				"strategy_reason": strategyReason,
-				"reason":          result.Reason,
-				"score":           result.Score.Score,
-				"execution_time":  result.ExecutionTime.String(),
+				"task":           selectedTask,
+				"strategy":       "dependency-aware",
+				"reason":         result.Reason,
+				"score":          result.Score.Score,
+				"execution_time": result.ExecutionTime.String(),
 			}
 
 			if len(result.Alternatives) > 0 {
@@ -104,7 +99,7 @@ func ActionableAction() cli.ActionFunc {
 		shared.ShowProjectContextWithSeparator(c)
 
 		// Output formatted text
-		fmt.Printf("Next actionable task (strategy: %s):\n\n", strategy.String())
+		fmt.Printf("Next actionable task (strategy: dependency-aware):\n\n")
 		fmt.Printf("* %s (ID: %s)\n", selectedTask.Title, selectedTask.ID)
 
 		if selectedTask.Description != "" {
@@ -127,9 +122,8 @@ func ActionableAction() cli.ActionFunc {
 			fmt.Println()
 		}
 
-		// Show strategy reasoning and selection reasoning
-		fmt.Printf("\nStrategy: %s\n", strategyReason)
-		fmt.Printf("Selection reason: %s\n", result.Reason)
+		// Show selection reasoning
+		fmt.Printf("\nSelection reason: %s\n", result.Reason)
 
 		if result.Score.UnblockedTaskCount > 0 {
 			fmt.Printf("Will unblock: %d task(s)\n", result.Score.UnblockedTaskCount)

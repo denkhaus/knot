@@ -64,7 +64,7 @@ func TestBasicDependencyAnalyzer(t *testing.T) {
 }
 
 func TestTaskSelectorBasic(t *testing.T) {
-	selector, err := NewTaskSelector(StrategyDependencyAware, DefaultConfig())
+	selector, err := NewTaskSelector(DefaultConfig())
 	if err != nil {
 		t.Fatalf("Failed to create selector: %v", err)
 	}

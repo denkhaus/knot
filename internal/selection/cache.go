@@ -11,7 +11,6 @@ import (
 type CacheKey struct {
 	ProjectID  uuid.UUID
 	TaskHash   string // Hash of task data for change detection
-	Strategy   Strategy
 	ConfigHash string // Hash of configuration
 }
 
@@ -40,7 +39,7 @@ func NewCache(config *Config) *Cache {
 
 // Get retrieves a cached dependency graph if available and not expired
 func (c *Cache) Get(key CacheKey) (*DependencyGraph, bool) {
-	if !c.config.Advanced.CacheGraphs {
+	if !c.config.CacheGraphs {
 		return nil, false
 	}
 
@@ -62,7 +61,7 @@ func (c *Cache) Get(key CacheKey) (*DependencyGraph, bool) {
 
 // Put stores a dependency graph in the cache
 func (c *Cache) Put(key CacheKey, graph *DependencyGraph) {
-	if !c.config.Advanced.CacheGraphs {
+	if !c.config.CacheGraphs {
 		return
 	}
 
@@ -72,7 +71,7 @@ func (c *Cache) Put(key CacheKey, graph *DependencyGraph) {
 	entry := &CacheEntry{
 		Graph:      graph,
 		ComputedAt: time.Now(),
-		ExpiresAt:  time.Now().Add(c.config.Advanced.CacheDuration),
+		ExpiresAt:  time.Now().Add(c.config.CacheDuration),
 	}
 
 	c.entries[key] = entry

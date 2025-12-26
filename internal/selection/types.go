@@ -7,87 +7,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// Strategy represents different task selection strategies
-type Strategy int
-
-const (
-	// StrategyCreationOrder represents selection by creation order (FIFO)
-	StrategyCreationOrder Strategy = iota
-	StrategyDependencyAware
-	StrategyDepthFirst
-	StrategyPriority
-	StrategyCriticalPath
-)
-
-// String returns the string representation of a strategy
-func (s Strategy) String() string {
-	switch s {
-	case StrategyCreationOrder:
-		return "creation-order"
-	case StrategyDependencyAware:
-		return "dependency-aware"
-	case StrategyDepthFirst:
-		return "depth-first"
-	case StrategyPriority:
-		return "priority"
-	case StrategyCriticalPath:
-		return "critical-path"
-	default:
-		return "unknown"
-	}
-}
-
-// ParseStrategy parses a string into a Strategy
-func ParseStrategy(s string) Strategy {
-	switch s {
-	case "creation-order":
-		return StrategyCreationOrder
-	case "dependency-aware":
-		return StrategyDependencyAware
-	case "depth-first":
-		return StrategyDepthFirst
-	case "priority":
-		return StrategyPriority
-	case "critical-path":
-		return StrategyCriticalPath
-	default:
-		return StrategyDependencyAware // default
-	}
-}
-
-// Config holds configuration for task selection
+// Config holds configuration for task selection (dependency-aware only)
 type Config struct {
-	// Selection strategy
-	Strategy Strategy `json:"strategy"`
-
-	// Weight factors for scoring (should sum to 1.0)
-	Weights Weights `json:"weights"`
+	// Weight factors for scoring (should sum to approximately 1.0)
+	DependentCountWeight float64 `json:"dependent_count_weight"` // How much to weight tasks that unblock others
+	PriorityWeight       float64 `json:"priority_weight"`        // How much to weight explicit priority
+	DepthFirstWeight     float64 `json:"depth_first_weight"`     // How much to prefer completing subtasks first
+	CriticalPathWeight   float64 `json:"critical_path_weight"`   // How much to weight critical path position
 
 	// Behavioral flags
-	Behavior BehaviorConfig `json:"behavior"`
+	PreferInProgress bool `json:"prefer_in_progress"` // Whether to prioritize in-progress tasks
 
 	// Advanced options
-	Advanced AdvancedConfig `json:"advanced"`
-}
-
-// Weights defines scoring weight factors
-type Weights struct {
-	DependentCount float64 `json:"dependent_count"` // How much to weight tasks that unblock others
-	Priority       float64 `json:"priority"`        // How much to weight explicit priority
-	DepthFirst     float64 `json:"depth_first"`     // How much to prefer completing subtasks first
-	CriticalPath   float64 `json:"critical_path"`   // How much to weight critical path position
-}
-
-// BehaviorConfig defines behavioral options
-type BehaviorConfig struct {
-	AllowParentWithSubtasks bool `json:"allow_parent_with_subtasks"` // Whether to allow parent tasks when subtasks exist
-	PreferInProgress        bool `json:"prefer_in_progress"`         // Whether to prioritize in-progress tasks
-	BreakTiesByCreation     bool `json:"break_ties_by_creation"`     // Use creation time as final tiebreaker
-	StrictDependencies      bool `json:"strict_dependencies"`        // Whether to strictly enforce dependency order
-}
-
-// AdvancedConfig defines advanced configuration options
-type AdvancedConfig struct {
 	MaxDependencyDepth int           `json:"max_dependency_depth"` // Maximum depth to analyze in dependency chains
 	ScoreThreshold     float64       `json:"score_threshold"`      // Minimum score threshold for task selection
 	CacheGraphs        bool          `json:"cache_graphs"`         // Whether to cache dependency graphs
@@ -97,25 +28,15 @@ type AdvancedConfig struct {
 // DefaultConfig returns a balanced default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Strategy: StrategyDependencyAware,
-		Weights: Weights{
-			DependentCount: 0.4,
-			Priority:       0.3,
-			DepthFirst:     0.2,
-			CriticalPath:   0.1,
-		},
-		Behavior: BehaviorConfig{
-			AllowParentWithSubtasks: false,
-			PreferInProgress:        true,
-			BreakTiesByCreation:     true,
-			StrictDependencies:      true,
-		},
-		Advanced: AdvancedConfig{
-			MaxDependencyDepth: 10,
-			ScoreThreshold:     0.0,
-			CacheGraphs:        true,
-			CacheDuration:      5 * time.Minute,
-		},
+		DependentCountWeight: 0.4,
+		PriorityWeight:       0.3,
+		DepthFirstWeight:     0.2,
+		CriticalPathWeight:   0.1,
+		PreferInProgress:     true,
+		MaxDependencyDepth:   10,
+		ScoreThreshold:       0.0,
+		CacheGraphs:          true,
+		CacheDuration:        5 * time.Minute,
 	}
 }
 
@@ -165,12 +86,11 @@ type DependencyGraph struct {
 
 // SelectionResult contains the result of task selection
 type SelectionResult struct {
-	SelectedTask  *types.Task   `json:"selected_task"`
-	Score         *TaskScore    `json:"score"`
-	Strategy      Strategy      `json:"strategy"`
-	Reason        string        `json:"reason"`
-	Alternatives  []*TaskScore  `json:"alternatives"` // Other tasks that could be selected
-	SelectedAt    time.Time     `json:"selected_at"`
+	SelectedTask  *types.Task  `json:"selected_task"`
+	Score         *TaskScore   `json:"score"`
+	Reason        string       `json:"reason"`
+	Alternatives  []*TaskScore `json:"alternatives"` // Other tasks that could be selected
+	SelectedAt    time.Time    `json:"selected_at"`
 	ExecutionTime time.Duration `json:"execution_time"` // How long selection took
 }
 

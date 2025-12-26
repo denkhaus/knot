@@ -30,8 +30,8 @@ func (av *ActionabilityValidator) ValidateActionability(task *types.Task, allTas
 		return false
 	}
 
-	// Check subtasks (if configured to disallow parent with subtasks)
-	if !av.config.Behavior.AllowParentWithSubtasks && av.hasActiveSubtasks(task, allTasks) {
+	// Always disallow parent with active subtasks (subtasks first = logical)
+	if av.hasActiveSubtasks(task, allTasks) {
 		return false
 	}
 
@@ -59,14 +59,12 @@ func (av *ActionabilityValidator) ValidateAndExplain(task *types.Task, taskMap *
 		}
 	}
 
-	// Check subtasks constraint
-	if !av.config.Behavior.AllowParentWithSubtasks {
-		for _, t := range taskMap.GetAll() {
-			if t.ParentID != nil && *t.ParentID == task.ID {
-				if t.State == types.TaskStatePending || t.State == types.TaskStateInProgress {
-					reasons = append(reasons, "has active subtasks")
-					break
-				}
+	// Check subtasks constraint (always: subtasks first)
+	for _, t := range taskMap.GetAll() {
+		if t.ParentID != nil && *t.ParentID == task.ID {
+			if t.State == types.TaskStatePending || t.State == types.TaskStateInProgress {
+				reasons = append(reasons, "has active subtasks")
+				break
 			}
 		}
 	}
@@ -81,10 +79,8 @@ func (av *ActionabilityValidator) areDependenciesMet(task *types.Task, allTasks 
 	for _, depID := range task.Dependencies {
 		depTask, exists := taskMap.Get(depID)
 		if !exists {
-			if av.config.Behavior.StrictDependencies {
-				return false // Missing dependency
-			}
-			continue // Ignore missing dependencies in non-strict mode
+			// Always use strict dependencies - missing dependency = not actionable
+			return false
 		}
 
 		if depTask.State != types.TaskStateCompleted {

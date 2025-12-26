@@ -34,7 +34,6 @@ func (da *DefaultDependencyAnalyzer) BuildDependencyGraph(tasks []*types.Task) (
 	// Try to get from cache first
 	cacheKey := CacheKey{
 		TaskHash:   da.computeTaskHash(tasks),
-		Strategy:   da.config.Strategy,
 		ConfigHash: da.computeConfigHash(),
 	}
 
@@ -81,7 +80,11 @@ func (da *DefaultDependencyAnalyzer) computeTaskHash(tasks []*types.Task) string
 
 // computeConfigHash creates a hash for configuration change detection
 func (da *DefaultDependencyAnalyzer) computeConfigHash() string {
-	return fmt.Sprintf("strategy-%d", da.config.Strategy)
+	return fmt.Sprintf("config-%.2f-%.2f-%.2f-%.2f",
+		da.config.DependentCountWeight,
+		da.config.PriorityWeight,
+		da.config.DepthFirstWeight,
+		da.config.CriticalPathWeight)
 }
 
 // CalculateTaskScore computes a detailed score for a task using the metrics calculator

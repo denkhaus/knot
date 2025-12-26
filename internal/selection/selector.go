@@ -13,13 +13,12 @@ import (
 type DefaultTaskSelector struct {
 	analyzer   DependencyAnalyzer
 	filter     TaskFilter
-	strategy   ScoringStrategy
 	config     *Config
 	lastResult *SelectionResult
 }
 
-// NewTaskSelector creates a new task selector with the specified strategy
-func NewTaskSelector(strategy Strategy, config *Config) (*DefaultTaskSelector, error) {
+// NewTaskSelector creates a new task selector with dependency-aware strategy
+func NewTaskSelector(config *Config) (*DefaultTaskSelector, error) {
 	if config == nil {
 		config = DefaultConfig()
 	}
@@ -33,17 +32,9 @@ func NewTaskSelector(strategy Strategy, config *Config) (*DefaultTaskSelector, e
 	analyzer := NewDependencyAnalyzer(config)
 	filter := NewTaskFilter(analyzer, config)
 
-	// Create scoring strategy
-	factory := &StrategyFactory{}
-	scoringStrategy, err := factory.NewStrategy(strategy)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create strategy: %w", err)
-	}
-
 	return &DefaultTaskSelector{
 		analyzer: analyzer,
 		filter:   filter,
-		strategy: scoringStrategy,
 		config:   config,
 	}, nil
 }
@@ -120,7 +111,6 @@ func (ts *DefaultTaskSelector) SelectNextActionableTask(tasks []*types.Task) (*t
 	ts.lastResult = &SelectionResult{
 		SelectedTask:  selectedScore.Task,
 		Score:         selectedScore,
-		Strategy:      ts.config.Strategy,
 		Reason:        reason,
 		Alternatives:  alternatives,
 		SelectedAt:    time.Now(),
@@ -140,11 +130,11 @@ func (ts *DefaultTaskSelector) scoreActionableTasks(actionableTasks []*types.Tas
 			return nil, fmt.Errorf("failed to calculate score for task %s: %w", task.ID, err)
 		}
 
-		// Calculate final score using strategy
-		score.Score = ts.strategy.CalculateScore(score, ts.config)
+		// Calculate final score using dependency-aware logic
+		score.Score = ts.calculateScore(score)
 
 		// Apply score threshold if configured
-		if ts.config.Advanced.ScoreThreshold > 0 && score.Score < ts.config.Advanced.ScoreThreshold {
+		if ts.config.ScoreThreshold > 0 && score.Score < ts.config.ScoreThreshold {
 			continue // Skip tasks below threshold
 		}
 
@@ -152,6 +142,30 @@ func (ts *DefaultTaskSelector) scoreActionableTasks(actionableTasks []*types.Tas
 	}
 
 	return scores, nil
+}
+
+// calculateScore implements dependency-aware scoring logic
+func (ts *DefaultTaskSelector) calculateScore(score *TaskScore) float64 {
+	// Weighted combination of factors
+	dependentScore := float64(score.UnblockedTaskCount) * ts.config.DependentCountWeight
+	priorityScore := ts.priorityToScore(score.Priority) * ts.config.PriorityWeight
+	depthScore := float64(score.HierarchyDepth+1) * ts.config.DepthFirstWeight // Prefer deeper tasks for completing branches
+	criticalScore := float64(score.CriticalPathLength) * ts.config.CriticalPathWeight
+
+	totalScore := dependentScore + priorityScore + depthScore + criticalScore
+
+	// Apply bonus for in-progress tasks
+	if ts.config.PreferInProgress && score.Task.State == types.TaskStateInProgress {
+		totalScore *= 1.2 // 20% bonus
+	}
+
+	return totalScore
+}
+
+// priorityToScore converts priority to scoring value
+// Lower priority number = higher score (1=high priority gets high score)
+func (ts *DefaultTaskSelector) priorityToScore(priority types.TaskPriority) float64 {
+	return float64(4 - priority) // 1->3, 2->2, 3->1
 }
 
 // selectBestTask chooses the highest-scored task with proper tie-breaking
@@ -177,7 +191,7 @@ func (ts *DefaultTaskSelector) selectBestTask(scores []*TaskScore) (*TaskScore, 
 	var alternatives []*TaskScore
 
 	switch {
-	case ts.config.Behavior.PreferInProgress && len(inProgressScores) > 0:
+	case ts.config.PreferInProgress && len(inProgressScores) > 0:
 		candidateScores = inProgressScores
 		alternatives = pendingScores
 	case len(pendingScores) > 0:
@@ -217,14 +231,8 @@ func (ts *DefaultTaskSelector) sortTaskScores(scores []*TaskScore) {
 			return scoreI > scoreJ
 		}
 
-		// Tie-breaking
-		if ts.config.Behavior.BreakTiesByCreation {
-			// Secondary sort by creation time (ascending - older first)
-			return scores[i].Task.CreatedAt.Before(scores[j].Task.CreatedAt)
-		}
-
-		// Final tie-breaker by task ID for consistency
-		return scores[i].Task.ID.String() < scores[j].Task.ID.String()
+		// Tie-breaking by creation time (ascending - older first)
+		return scores[i].Task.CreatedAt.Before(scores[j].Task.CreatedAt)
 	})
 }
 
@@ -233,8 +241,7 @@ func (ts *DefaultTaskSelector) generateSelectionReason(score *TaskScore, graph *
 	reasons := make([]string, 0)
 
 	// Strategy-specific reasons
-	strategyName := ts.strategy.GetStrategyName()
-	reasons = append(reasons, fmt.Sprintf("selected using %s strategy", strategyName))
+	reasons = append(reasons, "selected using dependency-aware strategy")
 
 	// Specific factors
 	if score.UnblockedTaskCount > 0 {
@@ -284,53 +291,33 @@ func (ts *DefaultTaskSelector) GetLastResult() *SelectionResult {
 	return ts.lastResult
 }
 
-// UpdateConfig updates the selector's configuration
-func (ts *DefaultTaskSelector) UpdateConfig(config *Config) error {
-	if err := ValidateConfig(config); err != nil {
-		return fmt.Errorf("invalid configuration: %w", err)
-	}
-
-	ts.config = config
-
-	// Update strategy if it changed
-	if ts.config.Strategy.String() != ts.strategy.GetStrategyName() {
-		factory := &StrategyFactory{}
-		newStrategy, err := factory.NewStrategy(ts.config.Strategy)
-		if err != nil {
-			return fmt.Errorf("failed to update strategy: %w", err)
-		}
-		ts.strategy = newStrategy
-	}
-
-	// Update analyzer and filter with new config
-	ts.analyzer = NewDependencyAnalyzer(config)
-	ts.filter = NewTaskFilter(ts.analyzer, config)
-
-	return nil
-}
-
 // ValidateConfig validates a configuration
 func ValidateConfig(config *Config) error {
 	if config == nil {
 		return fmt.Errorf("config cannot be nil")
 	}
 
-	// Validate weights for strategies that use them
-	factory := &StrategyFactory{}
-	if err := factory.ValidateWeights(config.Strategy, config.Weights); err != nil {
-		return fmt.Errorf("invalid weights: %w", err)
+	// Validate weights sum to approximately 1.0
+	total := config.DependentCountWeight + config.PriorityWeight + config.DepthFirstWeight + config.CriticalPathWeight
+	if total < 0.9 || total > 1.1 { // Allow 10% tolerance
+		return fmt.Errorf("weights should sum to approximately 1.0, got %.2f", total)
+	}
+
+	// Ensure all weights are non-negative
+	if config.DependentCountWeight < 0 || config.PriorityWeight < 0 || config.DepthFirstWeight < 0 || config.CriticalPathWeight < 0 {
+		return fmt.Errorf("all weights must be non-negative")
 	}
 
 	// Validate advanced settings
-	if config.Advanced.MaxDependencyDepth < 0 {
+	if config.MaxDependencyDepth < 0 {
 		return fmt.Errorf("max dependency depth cannot be negative")
 	}
 
-	if config.Advanced.ScoreThreshold < 0 {
+	if config.ScoreThreshold < 0 {
 		return fmt.Errorf("score threshold cannot be negative")
 	}
 
-	if config.Advanced.CacheDuration < 0 {
+	if config.CacheDuration < 0 {
 		return fmt.Errorf("cache duration cannot be negative")
 	}
 
