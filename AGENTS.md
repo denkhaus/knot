@@ -62,17 +62,58 @@ bd close bd-42 --reason "Completed" --json
 5. **Complete**: `bd close <id> --reason "Done"`
 6. **Commit together**: Always commit the `.beads/issues.jsonl` file together with the code changes so issue state stays in sync with code state
 
+
+### When finding a bug while working
+
+```bash
+# 1. Stop working when bug is discovered
+# 2. Create bug issue
+bd create \
+  --title "[SYNC BUG] <short-description>" \
+  --type bug \
+  --priority <0-4> \
+  --description "
+## Problem Description
+<What went wrong>
+
+## Reproduction Steps
+1. <Step 1>
+2. <Step 2>
+3. <Step 3>
+
+## Expected Behavior
+<What should have happened>
+
+## Actual Behavior
+<What actually happened>
+
+## Environment
+- Test Phase: <Push/Pull/Bidirectional/Dependencies/State>
+- Sync Mode: <push/pull/bi>
+- Container Rebuilt: <yes/no>
+
+## Test Data
+Project ID: <ID>
+Task IDs: <IDs>
+Command: <exact command used>
+
+## Error Messages
+<Any errors or logs>
+"
+
+# 3. Add comprehensive  acceptance criteria with the `--acceptance` flag
+
+# 4. Verify issue was created
+bd show <issue-id>
+```
+
+
 ### Auto-Sync
 
 bd automatically syncs with git:
 - Exports to `.beads/issues.jsonl` after changes (5s debounce)
 - Imports from JSONL when newer (e.g., after `git pull`)
 - No manual export/import needed!
-
-### GitHub Copilot Integration
-
-If using GitHub Copilot, also create `.github/copilot-instructions.md` for automatic instruction loading.
-Run `bd onboard` to get the content, or see step 2 of the onboard instructions.
 
 ### MCP Server (Recommended)
 
@@ -140,4 +181,4 @@ For example: `bd create --help` shows `--parent`, `--deps`, `--assignee`, etc.
 - ❌ Do NOT duplicate tracking systems
 - ❌ Do NOT clutter repo root with planning documents
 
-For more details, see README.md and QUICKSTART.md.
+For more details, see README.md
