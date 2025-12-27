@@ -120,8 +120,11 @@ knot task create --parent-id <parent-task-id> --title "<subtask-title>"
 # Find tasks needing breakdown
 knot status breakdown
 
-# List tasks with hierarchical view
-knot task list --depth-max 3
+# List tasks in the selected project
+knot task list
+
+# List tasks with filtering options
+knot task list --state pending --complexity 5 --limit 20
 ```
 
 ### Templates for Common Patterns
@@ -186,10 +189,66 @@ knot task update --id <setup-task-id> --state completed
 knot status actionable  # Will show "Implement user model" as it's now ready
 ```
 
+### Sync with MCP Server
+
+Knot supports intelligent bidirectional synchronization with an MCP (Model Context Protocol) server that uses PostgreSQL for persistent storage.
+
+**Purpose: Multi-Agent Collaboration**
+
+The sync command is especially useful when multiple agents work on projects and tasks simultaneously—for example, when working in separate Git worktrees.
+
+When working simultaneously in Git worktrees, the MCP server serves as the **single source of truth**. Each agent using local mode would only see their own changes to projects and tasks. Therefore, when collaborating on projects across Git worktrees, all agents should access data from the MCP server.
+
+This ensures every agent working on a project has current information about the state of projects, tasks, and subtasks.
+
+```
+# Push local changes to MCP server
+knot sync --project-id <project-id> --direction push
+
+# Pull changes from MCP server to local
+knot sync --project-id <project-id> --direction pull
+
+# Bidirectional sync (merge changes from both sides)
+knot sync --project-id <project-id> --direction bi
+
+# Default: bidirectional sync
+knot sync --project-id <project-id>
+```
+
+**Sync Modes:**
+- `push` - Upload local projects, tasks, and dependencies to MCP server
+- `pull` - Download projects, tasks, and dependencies from MCP server
+- `bi` - Merge changes from both local and MCP (default)
+
+**What Gets Synced:**
+- Projects with all metadata
+- Tasks with title, description, complexity, priority, state
+- Dependencies between tasks
+- Parent-child relationships (subtasks)
+- All timestamps and IDs preserved
+
+**Common Sync Workflow:**
+```
+# 1. Create project locally
+knot project create --title "Remote Project" --description "Synced with MCP"
+
+# 2. Work on project locally (create tasks, dependencies, etc.)
+knot project select --id <project-id>
+knot task create --title "Task 1" --complexity 5
+
+# 3. Push to MCP server
+knot sync --project-id <project-id> --direction push
+
+# 4. Continue working on either local or MCP side
+# 5. Sync bidirectionally to merge changes
+knot sync --project-id <project-id> --direction bi
+```
+
 ### Important Notes
 
 - **Always select a project first** using `knot project select --id <project-id>` before working with tasks
 - Use `knot project get-selected` to check which project is currently active
 - All task operations work on the currently selected project
+- Sync requires MCP server to be running and accessible
 
 For detailed help on any command, use `knot <command> --help`

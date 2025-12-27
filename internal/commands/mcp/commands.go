@@ -1,7 +1,6 @@
 package mcp
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/logger"
@@ -93,7 +92,7 @@ func serverAction() cli.ActionFunc {
 		loggerService.Info("MCP server started successfully")
 
 		// Setup graceful shutdown
-		ctx := context.Background()
+		ctx := c.Context
 		defer func() {
 			if err := mcpServer.Stop(ctx); err != nil {
 				loggerService.Error("Error stopping MCP server", logger.Error(err))

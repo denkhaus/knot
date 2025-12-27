@@ -1,7 +1,6 @@
 package task
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/shared"
@@ -27,7 +26,7 @@ func ReadyAction() cli.ActionFunc {
 		loggerService.Info("Finding ready tasks", zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		allTasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		allTasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)

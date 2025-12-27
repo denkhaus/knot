@@ -5,7 +5,9 @@ import (
 	"strconv"
 	"testing"
 
+	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
@@ -13,15 +15,33 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+// setupCLIContextForValidation creates a CLI context with proper DI container setup for validation tests
+func setupCLIContextForValidation(t *testing.T) (*cli.Context, *cli.App, *di.Container) {
+	diContainer := di.NewContainer()
+
+	// Create CLI context with proper flags for DI
+	app := &cli.App{}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+
+	cliCtx := cli.NewContext(app, flagSet, nil)
+	_ = diContainer.RegisterAllServices(cliCtx)
+
+	// Store container in CLI context metadata like BeforeCommand does
+	if app.Metadata == nil {
+		app.Metadata = make(map[string]interface{})
+	}
+	app.Metadata["container"] = diContainer
+
+	return cliCtx, app, diContainer
+}
+
 func TestCreateActionValidation(t *testing.T) {
-	// Setup test environment
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
-	project := testutil.CreateTestProject(t, projectManager)
-
 	tests := []struct {
 		name        string
 		title       string
@@ -81,8 +101,19 @@ func TestCreateActionValidation(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Create CLI context (no longer needs project-id flag)
-			app := &cli.App{}
+			cliCtx, app, _ := setupCLIContextForValidation(t)
+
+			// Get project manager from DI container
+			diContainer := shared.GetContainerFromContext(cliCtx)
+			injector := diContainer.GetInjector()
+			projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+			// Create a test project and set it as selected
+			project := testutil.CreateTestProject(t, projectManager)
+			err := projectManager.SetSelectedProject(cliCtx.Context, project.ID, "test-user")
+			require.NoError(t, err)
+
+			// Set up flags for task creation
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 			flagSet.String("title", "", "")
 			flagSet.String("description", "", "")
@@ -96,19 +127,15 @@ func TestCreateActionValidation(t *testing.T) {
 			_ = flagSet.Set("priority", "medium")
 			_ = flagSet.Set("actor", "test-user")
 
-			ctx := cli.NewContext(app, flagSet, nil)
-
-			// Create the action and set project context
-			// Use testInjector instead of AppContext
-
-			// Set project context for the test
-			err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
-			require.NoError(t, err)
+			// Update context with new flagSet
+			cliCtx = cli.NewContext(app, flagSet, nil)
+			// Preserve the container metadata
+			cliCtx.App.Metadata["container"] = diContainer
 
 			action := createAction()
 
 			// Execute the action
-			err = action(ctx)
+			err = action(cliCtx)
 
 			if tt.expectError {
 				require.Error(t, err)
@@ -123,15 +150,19 @@ func TestCreateActionValidation(t *testing.T) {
 func TestInputValidationIntegration(t *testing.T) {
 	// This test ensures that our input validation is properly integrated
 	// into the CLI command handlers
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
+	cliCtx, app, _ := setupCLIContextForValidation(t)
 
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
+	// Get project manager from DI container
+	diContainer := shared.GetContainerFromContext(cliCtx)
+	injector := diContainer.GetInjector()
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+	// Create a test project and set it as selected
 	project := testutil.CreateTestProject(t, projectManager)
+	err := projectManager.SetSelectedProject(cliCtx.Context, project.ID, "test-user")
+	require.NoError(t, err)
 
-	// Test that validation errors are properly wrapped as EnhancedErrors
-	app := &cli.App{}
+	// Set up flags for task creation
 	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 	flagSet.String("title", "", "")
 	flagSet.String("description", "", "")
@@ -145,15 +176,14 @@ func TestInputValidationIntegration(t *testing.T) {
 	_ = flagSet.Set("priority", "medium")
 	_ = flagSet.Set("actor", "test-user")
 
-	ctx := cli.NewContext(app, flagSet, nil)
-
-	// Set project context for the test
-	err := projectManager.SetSelectedProject(ctx.Context, project.ID, "test-user")
-	require.NoError(t, err)
+	// Update context with new flagSet
+	cliCtx = cli.NewContext(app, flagSet, nil)
+	// Preserve the container metadata
+	cliCtx.App.Metadata["container"] = diContainer
 
 	action := createAction()
 
-	err = action(ctx)
+	err = action(cliCtx)
 	require.Error(t, err)
 
 	// Check that it's wrapped as a validation error

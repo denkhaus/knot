@@ -53,7 +53,7 @@ func TreeAction() cli.ActionFunc {
 			}
 
 			// Use batch loading for consistency with other optimizations
-			tasks, err := projectManager.GetTasksWithDependencies(context.Background(), []uuid.UUID{rootTaskID})
+			tasks, err := projectManager.GetTasksWithDependencies(c.Context, []uuid.UUID{rootTaskID})
 			if err != nil {
 				return fmt.Errorf("failed to get root task: %w", err)
 			}
@@ -64,7 +64,7 @@ func TreeAction() cli.ActionFunc {
 			fmt.Printf("Task tree starting from '%s':\n\n", tasks[0].Title)
 		} else {
 			// Start from project roots
-			roots, err := projectManager.GetRootTasks(context.Background(), projectID)
+			roots, err := projectManager.GetRootTasks(c.Context, projectID)
 			if err != nil {
 				return fmt.Errorf("failed to get root tasks: %w", err)
 			}
@@ -110,7 +110,7 @@ func TreeAction() cli.ActionFunc {
 		}
 
 		for _, task := range startingTasks {
-			if err := printTaskTree(projectManager, task, 0, maxDepth, ""); err != nil {
+			if err := printTaskTree(c.Context, projectManager, task, 0, maxDepth, ""); err != nil {
 				return fmt.Errorf("failed to print task tree: %w", err)
 			}
 		}
@@ -155,7 +155,7 @@ func buildTreeJSON(projectManager manager.ProjectManager, task *types.Task, curr
 }
 
 // getAllDescendants recursively gets all descendants of a task
-func getAllDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) {
+func getAllDescendants(ctx context.Context, projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) {
 	var result []*types.Task
 	visited := make(map[uuid.UUID]bool)
 
@@ -166,7 +166,7 @@ func getAllDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) 
 		}
 		visited[id] = true
 
-		children, err := projectManager.GetChildTasks(context.Background(), id)
+		children, err := projectManager.GetChildTasks(ctx, id)
 		if err != nil {
 			return err
 		}
@@ -190,7 +190,7 @@ func getAllDescendants(projectManager manager.ProjectManager, taskID uuid.UUID) 
 
 // printTaskTree recursively prints a task and its children as a tree using unified formatting
 // Task Reference: 4eaf63a8-5a5c-4572-ad63-0c039f2943ac | Brain Reference: e4bea247-7f1f-4712-8188-b9b0b4ecb3ea
-func printTaskTree(projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int, prefix string) error {
+func printTaskTree(ctx context.Context, projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int, prefix string) error {
 	// Check depth limit
 	if maxDepth > 0 && currentDepth >= maxDepth {
 		return nil
@@ -204,7 +204,7 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 	})
 
 	// Get children first to determine if this is a leaf or parent node
-	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
+	children, err := projectManager.GetChildTasks(ctx, task.ID)
 	if err != nil {
 		return err
 	}
@@ -262,7 +262,7 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 		}
 
 		// Check if this child has its own children
-		grandchildren, err := projectManager.GetChildTasks(context.Background(), child.ID)
+		grandchildren, err := projectManager.GetChildTasks(ctx, child.ID)
 		if err == nil && len(grandchildren) > 0 {
 			// Parent task with children - use special formatting
 			fmt.Printf("%s┬─ %s\n", strings.TrimSuffix(childPrefix, " "), formatter.FormatTaskLine(child))
@@ -270,12 +270,12 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 			fmt.Printf("%s│\n", structuralPrefix)
 
 			// Print grandchildren with enhanced structure
-			if err := printTaskTreeWithStructure(projectManager, child, currentDepth+1, maxDepth, structuralPrefix); err != nil {
+			if err := printTaskTreeWithStructure(ctx, projectManager, child, currentDepth+1, maxDepth, structuralPrefix); err != nil {
 				return err
 			}
 		} else {
 			// Leaf task
-			if err := printTaskTreeWithPrefix(projectManager, child, currentDepth+1, maxDepth, childPrefix, structuralPrefix); err != nil {
+			if err := printTaskTreeWithPrefix(ctx, projectManager, child, currentDepth+1, maxDepth, childPrefix, structuralPrefix); err != nil {
 				return err
 			}
 		}
@@ -290,7 +290,7 @@ func printTaskTree(projectManager manager.ProjectManager, task *types.Task, curr
 }
 
 // printTaskTreeWithPrefix is a helper that prints tasks with explicit tree prefixes
-func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int, treePrefix, continuationPrefix string) error {
+func printTaskTreeWithPrefix(ctx context.Context, projectManager manager.ProjectManager, task *types.Task, currentDepth, maxDepth int, treePrefix, continuationPrefix string) error {
 	// Check depth limit
 	if maxDepth > 0 && currentDepth >= maxDepth {
 		return nil
@@ -308,7 +308,7 @@ func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.
 	fmt.Printf("%s%s\n", treePrefix, taskLine)
 
 	// Get children
-	children, err := projectManager.GetChildTasks(context.Background(), task.ID)
+	children, err := projectManager.GetChildTasks(ctx, task.ID)
 	if err != nil {
 		return err
 	}
@@ -333,7 +333,7 @@ func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.
 			childContinuationPrefix = continuationPrefix + "│   "
 		}
 
-		if err := printTaskTreeWithPrefix(projectManager, child, currentDepth+1, maxDepth, childTreePrefix, childContinuationPrefix); err != nil {
+		if err := printTaskTreeWithPrefix(ctx, projectManager, child, currentDepth+1, maxDepth, childTreePrefix, childContinuationPrefix); err != nil {
 			return err
 		}
 	}
@@ -342,7 +342,7 @@ func printTaskTreeWithPrefix(projectManager manager.ProjectManager, task *types.
 }
 
 // printTaskTreeWithStructure prints a task tree with enhanced structural lines
-func printTaskTreeWithStructure(projectManager manager.ProjectManager, parentTask *types.Task, currentDepth, maxDepth int, prefix string) error {
+func printTaskTreeWithStructure(ctx context.Context, projectManager manager.ProjectManager, parentTask *types.Task, currentDepth, maxDepth int, prefix string) error {
 	// Create tree formatter
 	formatter := treeformatter.NewFormatter(&treeformatter.Config{
 		ShowEmojis:  true,
@@ -351,7 +351,7 @@ func printTaskTreeWithStructure(projectManager manager.ProjectManager, parentTas
 	})
 
 	// Get children of the parent task
-	children, err := projectManager.GetChildTasks(context.Background(), parentTask.ID)
+	children, err := projectManager.GetChildTasks(ctx, parentTask.ID)
 	if err != nil {
 		return err
 	}
@@ -377,7 +377,7 @@ func printTaskTreeWithStructure(projectManager manager.ProjectManager, parentTas
 		}
 
 		// Check if this child has its own children
-		grandchildren, err := projectManager.GetChildTasks(context.Background(), child.ID)
+		grandchildren, err := projectManager.GetChildTasks(ctx, child.ID)
 		if err == nil && len(grandchildren) > 0 {
 			// Parent task with children - use special formatting
 			fmt.Printf("%s┬─ %s\n", strings.TrimSuffix(childPrefix, " "), formatter.FormatTaskLine(child))
@@ -385,7 +385,7 @@ func printTaskTreeWithStructure(projectManager manager.ProjectManager, parentTas
 			fmt.Printf("%s│\n", structuralPrefix)
 
 			// Recursively print grandchildren
-			if err := printTaskTreeWithStructure(projectManager, child, currentDepth+1, maxDepth, structuralPrefix); err != nil {
+			if err := printTaskTreeWithStructure(ctx, projectManager, child, currentDepth+1, maxDepth, structuralPrefix); err != nil {
 				return err
 			}
 		} else {

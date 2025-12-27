@@ -102,9 +102,9 @@ func dependentsAction() cli.ActionFunc {
 
 		var dependents []*types.Task
 		if recursive {
-			dependents, err = getAllTransitiveDependents(projectManager, taskID)
+			dependents, err = getAllTransitiveDependents(c.Context, projectManager, taskID)
 		} else {
-			dependents, err = projectManager.GetDependentTasks(context.Background(), taskID)
+			dependents, err = projectManager.GetDependentTasks(c.Context, taskID)
 		}
 
 		if err != nil {
@@ -113,7 +113,7 @@ func dependentsAction() cli.ActionFunc {
 		}
 
 		// Get the original task for context
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return fmt.Errorf("failed to get task: %w", err)
@@ -161,7 +161,7 @@ func dependentsAction() cli.ActionFunc {
 }
 
 // getAllTransitiveDependents recursively gets all tasks that depend on the given task
-func getAllTransitiveDependents(projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) {
+func getAllTransitiveDependents(ctx context.Context, projectManager manager.ProjectManager, taskID uuid.UUID) ([]*types.Task, error) {
 	visited := make(map[uuid.UUID]bool)
 	var result []*types.Task
 
@@ -172,7 +172,7 @@ func getAllTransitiveDependents(projectManager manager.ProjectManager, taskID uu
 		}
 		visited[id] = true
 
-		dependents, err := projectManager.GetDependentTasks(context.Background(), id)
+		dependents, err := projectManager.GetDependentTasks(ctx, id)
 		if err != nil {
 			return err
 		}

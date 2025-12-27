@@ -14,7 +14,6 @@
 package project
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 
@@ -145,7 +144,7 @@ func createAction() cli.ActionFunc {
 
 		loggerService.Info("Creating project", zap.String("title", title), zap.String("description", description), zap.String("actor", actor))
 
-		project, err := projectManager.CreateProject(context.Background(), title, description, actor)
+		project, err := projectManager.CreateProject(c.Context, title, description, actor)
 		if err != nil {
 			loggerService.Error("Failed to create project", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "creating project")
@@ -169,7 +168,7 @@ func listAction() cli.ActionFunc {
 
 		loggerService.Info("Listing projects")
 
-		projects, err := projectManager.ListProjects(context.Background())
+		projects, err := projectManager.ListProjects(c.Context)
 		if err != nil {
 			loggerService.Error("Failed to list projects", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "listing projects")
@@ -219,7 +218,7 @@ func getAction() cli.ActionFunc {
 
 		loggerService.Info("Getting project", zap.String("projectID", projectID.String()))
 
-		project, err := projectManager.GetProject(context.Background(), projectID)
+		project, err := projectManager.GetProject(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to get project", zap.Error(err))
 			return fmt.Errorf("failed to get project: %w", err)
@@ -260,7 +259,7 @@ func deleteAction() cli.ActionFunc {
 		dryRun := c.Bool("dry-run")
 
 		// Get project details
-		project, err := projectManager.GetProject(context.Background(), projectID)
+		project, err := projectManager.GetProject(c.Context, projectID)
 		if err != nil {
 			return &errors.EnhancedError{
 				Operation:   "retrieving project",
@@ -272,7 +271,7 @@ func deleteAction() cli.ActionFunc {
 		}
 
 		// Check if project has tasks
-		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			return &errors.EnhancedError{
 				Operation:   "checking project tasks",
@@ -301,7 +300,7 @@ func deleteAction() cli.ActionFunc {
 			}
 
 			// Perform deletion
-			err = projectManager.DeleteProject(context.Background(), projectID)
+			err = projectManager.DeleteProject(c.Context, projectID)
 			if err != nil {
 				return &errors.EnhancedError{
 					Operation:   "deleting project",
@@ -343,7 +342,7 @@ func deleteAction() cli.ActionFunc {
 			}
 
 			// Mark project for deletion
-			_, err = projectManager.UpdateProjectState(context.Background(), projectID, types.ProjectStateDeletionPending, actor)
+			_, err = projectManager.UpdateProjectState(c.Context, projectID, types.ProjectStateDeletionPending, actor)
 			if err != nil {
 				return &errors.EnhancedError{
 					Operation:   "marking project for deletion",
@@ -376,14 +375,14 @@ func selectAction() cli.ActionFunc {
 		}
 
 		// Verify project exists
-		project, err := projectManager.GetProject(context.Background(), projectID)
+		project, err := projectManager.GetProject(c.Context, projectID)
 		if err != nil {
 			return fmt.Errorf("project not found: %w", err)
 		}
 
 		// Set as selected project
 		actor := shared.ResolveActor(c.String("actor"))
-		err = projectManager.SetSelectedProject(context.Background(), projectID, actor)
+		err = projectManager.SetSelectedProject(c.Context, projectID, actor)
 		if err != nil {
 			return fmt.Errorf("failed to select project: %w", err)
 		}
@@ -399,7 +398,7 @@ func getSelectedAction() cli.ActionFunc {
 		container := shared.GetContainerFromContext(c)
 		pm := container.GetProjectManager()
 
-		selectedProjectID, err := pm.GetSelectedProject(context.Background())
+		selectedProjectID, err := pm.GetSelectedProject(c.Context)
 		if err != nil {
 			return fmt.Errorf("failed to get selected project: %w", err)
 		}
@@ -415,7 +414,7 @@ func getSelectedAction() cli.ActionFunc {
 		}
 
 		// Get project details
-		project, err := pm.GetProject(context.Background(), *selectedProjectID)
+		project, err := pm.GetProject(c.Context, *selectedProjectID)
 		if err != nil {
 			return fmt.Errorf("selected project not found: %w", err)
 		}
@@ -449,7 +448,7 @@ func clearSelectionAction() cli.ActionFunc {
 		pm := container.GetProjectManager()
 
 		// Check if there's a selection to clear
-		hasSelected, err := pm.HasSelectedProject(context.Background())
+		hasSelected, err := pm.HasSelectedProject(c.Context)
 		if err != nil {
 			return fmt.Errorf("failed to check selected project: %w", err)
 		}
@@ -460,7 +459,7 @@ func clearSelectionAction() cli.ActionFunc {
 		}
 
 		// Clear the selection
-		err = pm.ClearSelectedProject(context.Background())
+		err = pm.ClearSelectedProject(c.Context)
 		if err != nil {
 			return fmt.Errorf("failed to clear selected project: %w", err)
 		}

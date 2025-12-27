@@ -14,7 +14,6 @@
 package task
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -47,7 +46,7 @@ func showProjectContextWithDI(c *cli.Context) bool {
 	}
 
 	// Get project details
-	project, err := projectManager.GetProject(context.Background(), *selectedProjectID)
+	project, err := projectManager.GetProject(c.Context, *selectedProjectID)
 	if err != nil {
 		return false
 	}
@@ -268,7 +267,7 @@ func createAction() cli.ActionFunc {
 			zap.String("priority", priority),
 			zap.String("actor", actor))
 
-		task, err := projectManager.CreateTask(context.Background(), projectID, parentID, title, description, complexity, utils.ParsePriority(priority), actor)
+		task, err := projectManager.CreateTask(c.Context, projectID, parentID, title, description, complexity, utils.ParsePriority(priority), actor)
 		if err != nil {
 			loggerService.Error("Failed to create task", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "creating task")
@@ -318,7 +317,7 @@ func listAction() cli.ActionFunc {
 
 		loggerService.Info("Listing tasks", zap.String("projectID", projectID.String()))
 
-		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to list tasks", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "listing tasks")
@@ -401,7 +400,7 @@ func getAction() cli.ActionFunc {
 		loggerService.Info("Getting task", zap.String("taskID", taskID.String()))
 
 		// Get the task
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)

@@ -40,7 +40,7 @@ func chainAction() cli.ActionFunc {
 			zap.Bool("downstream", downstream))
 
 		// Get the original task
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return fmt.Errorf("failed to get task: %w", err)
@@ -49,16 +49,16 @@ func chainAction() cli.ActionFunc {
 		fmt.Printf("Dependency chain for '%s' (ID: %s):\n\n", task.Title, taskID)
 
 		if upstream {
-			fmt.Println("📈 UPSTREAM DEPENDENCIES (what this task depends on):")
-			if err := showUpstreamChain(projectManager, taskID, 0); err != nil {
+			fmt.Println("UPSTREAM DEPENDENCIES (what this task depends on):")
+			if err := showUpstreamChain(c.Context, projectManager, taskID, 0); err != nil {
 				return fmt.Errorf("failed to show upstream chain: %w", err)
 			}
 			fmt.Println()
 		}
 
 		if downstream {
-			fmt.Println("📉 DOWNSTREAM DEPENDENCIES (what depends on this task):")
-			if err := showDownstreamChain(projectManager, taskID, 0); err != nil {
+			fmt.Println("DOWNSTREAM DEPENDENCIES (what depends on this task):")
+			if err := showDownstreamChain(c.Context, projectManager, taskID, 0); err != nil {
 				return fmt.Errorf("failed to show downstream chain: %w", err)
 			}
 			fmt.Println()
@@ -69,8 +69,8 @@ func chainAction() cli.ActionFunc {
 }
 
 // showUpstreamChain recursively shows what a task depends on
-func showUpstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID, depth int) error {
-	dependencies, err := projectManager.GetTaskDependencies(context.Background(), taskID)
+func showUpstreamChain(ctx context.Context, projectManager manager.ProjectManager, taskID uuid.UUID, depth int) error {
+	dependencies, err := projectManager.GetTaskDependencies(ctx, taskID)
 	if err != nil {
 		return err
 	}
@@ -90,7 +90,7 @@ func showUpstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID, 
 		fmt.Printf("%s  ├─ %s (ID: %s) - %s\n", indent, dep.Title, dep.ID, dep.State)
 
 		// Recursively show dependencies of this dependency
-		if err := showUpstreamChain(projectManager, dep.ID, depth+1); err != nil {
+		if err := showUpstreamChain(ctx, projectManager, dep.ID, depth+1); err != nil {
 			return err
 		}
 	}
@@ -99,8 +99,8 @@ func showUpstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID, 
 }
 
 // showDownstreamChain recursively shows what depends on a task
-func showDownstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID, depth int) error {
-	dependents, err := projectManager.GetDependentTasks(context.Background(), taskID)
+func showDownstreamChain(ctx context.Context, projectManager manager.ProjectManager, taskID uuid.UUID, depth int) error {
+	dependents, err := projectManager.GetDependentTasks(ctx, taskID)
 	if err != nil {
 		return err
 	}
@@ -120,7 +120,7 @@ func showDownstreamChain(projectManager manager.ProjectManager, taskID uuid.UUID
 		fmt.Printf("%s  ├─ %s (ID: %s) - %s\n", indent, dep.Title, dep.ID, dep.State)
 
 		// Recursively show dependents of this dependent
-		if err := showDownstreamChain(projectManager, dep.ID, depth+1); err != nil {
+		if err := showDownstreamChain(ctx, projectManager, dep.ID, depth+1); err != nil {
 			return err
 		}
 	}
@@ -149,7 +149,7 @@ func cyclesAction() cli.ActionFunc {
 			zap.Bool("autoFix", autoFix))
 
 		// Get all tasks in the project
-		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)
@@ -338,7 +338,7 @@ func validateAction() cli.ActionFunc {
 		loggerService.Info("Validating dependencies", zap.String("projectID", projectID.String()))
 
 		// Get all tasks in the project
-		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to get project tasks", zap.Error(err))
 			return fmt.Errorf("failed to get project tasks: %w", err)

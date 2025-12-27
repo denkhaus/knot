@@ -11,7 +11,6 @@ package sync
 
 import (
 	"fmt"
-	"os"
 
 	knotshared "github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/sync"
@@ -23,42 +22,34 @@ import (
 // syncAction handles intelligent bidirectional synchronization
 func syncAction() cli.ActionFunc {
 	return func(c *cli.Context) error {
-		fmt.Fprintf(os.Stderr, "DEBUG: syncAction called\n")
-
 		// Get services from DI container
 		container := knotshared.GetContainerFromContext(c)
 		syncManager, err := container.GetSyncManager()
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "DEBUG: Error getting sync manager: %v\n", err)
 			return fmt.Errorf("failed to get sync manager: %w", err)
 		}
 		loggerService := container.GetLogger()
 
 		// Parse and validate project ID
 		projectIDStr := c.String("project-id")
-		fmt.Fprintf(os.Stderr, "DEBUG: projectIDStr = %s\n", projectIDStr)
-
 		projectID, err := uuid.Parse(projectIDStr)
 		if err != nil {
-			fmt.Fprintf(os.Stderr, "DEBUG: Error parsing UUID: %v\n", err)
+			loggerService.Debug("Failed to parse project ID", zap.Error(err))
 			return fmt.Errorf("invalid project ID: %w", err)
 		}
 
 		// Determine sync direction
 		direction := c.String("direction")
-		fmt.Fprintf(os.Stderr, "DEBUG: direction = %s\n", direction)
 
-		loggerService.Info("Starting intelligent sync",
+		loggerService.Info("Starting sync",
 			zap.String("project_id", projectID.String()),
 			zap.String("direction", direction))
 
 		var result *sync.SyncResult
 
-		fmt.Fprintf(os.Stderr, "DEBUG: About to switch on direction\n")
-
 		switch direction {
-		case "push-only", "push":
-			fmt.Fprintf(os.Stderr, "DEBUG: Push sync\n")
+		case "push":
+			loggerService.Debug("Starting push sync")
 			// Extract local data and push to remote
 			dataExtractor, err := container.GetDataExtractor()
 			if err != nil {
@@ -72,7 +63,7 @@ func syncAction() cli.ActionFunc {
 				return fmt.Errorf("failed to get project: %w", err)
 			}
 
-			localData, err := dataExtractor.ExtractLocalData(c.Context, projectManager, projectID)
+			localData, err := dataExtractor.ExtractLocalData(c.Context, projectID)
 			if err != nil {
 				return fmt.Errorf("failed to extract local data: %w", err)
 			}
@@ -85,7 +76,8 @@ func syncAction() cli.ActionFunc {
 				return fmt.Errorf("push sync failed: %w", err)
 			}
 
-		case "pull-only", "pull":
+		case "pull":
+			loggerService.Debug("Starting pull sync")
 			// Pull from remote and apply locally
 			result, err = syncManager.SyncPullFromRemote(c.Context, projectID)
 			if err != nil {
@@ -93,8 +85,8 @@ func syncAction() cli.ActionFunc {
 				return fmt.Errorf("pull sync failed: %w", err)
 			}
 
-		case "bidirectional", "bi":
-			fmt.Fprintf(os.Stderr, "DEBUG: Bidirectional sync\n")
+		case "bi":
+			loggerService.Debug("Starting bidirectional sync")
 			// Extract local data and perform bidirectional sync
 			dataExtractor, err := container.GetDataExtractor()
 			if err != nil {
@@ -108,36 +100,30 @@ func syncAction() cli.ActionFunc {
 				return fmt.Errorf("failed to get project: %w", err)
 			}
 
-			localData, err := dataExtractor.ExtractLocalData(c.Context, projectManager, projectID)
+			localData, err := dataExtractor.ExtractLocalData(c.Context, projectID)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "DEBUG: Error extracting local data: %v\n", err)
+				loggerService.Error("Failed to extract local data", zap.Error(err))
 				return fmt.Errorf("failed to extract local data: %w", err)
 			}
 			// Add project to the dataset
 			localData.Projects[project.ID] = project
 
-			// Debug: Show local data being sent
-			fmt.Fprintf(os.Stderr, "DEBUG: Sending %d local tasks\n", len(localData.Tasks))
-			count := 0
-			for id, task := range localData.Tasks {
-				if count < 3 {
-					fmt.Fprintf(os.Stderr, "DEBUG: Local task: %s - %s\n", id, task.Title)
-					count++
-				}
-			}
+			loggerService.Debug("Starting bidirectional sync with local data",
+				zap.Int("task_count", len(localData.Tasks)))
 
-			fmt.Fprintf(os.Stderr, "DEBUG: About to call SyncBidirectional\n")
 			result, err = syncManager.SyncBidirectional(c.Context, localData)
 			if err != nil {
-				fmt.Fprintf(os.Stderr, "DEBUG: SyncBidirectional error: %v\n", err)
 				loggerService.Error("Bidirectional sync failed", zap.Error(err))
 				return fmt.Errorf("bidirectional sync failed: %w", err)
 			}
-			fmt.Fprintf(os.Stderr, "DEBUG: SyncBidirectional completed - Created: %d, Updated: %d, Errors: %d\n",
-				result.Created, result.Updated, len(result.Errors))
+
+			loggerService.Debug("Bidirectional sync completed",
+				zap.Int("created", result.Created),
+				zap.Int("updated", result.Updated),
+				zap.Int("errors", len(result.Errors)))
 
 		default:
-			return fmt.Errorf("invalid direction '%s'. Valid options: push, push-only, pull, pull-only, bi, bidirectional", direction)
+			return fmt.Errorf("invalid direction '%s'. Valid options: push, pull, bi", direction)
 		}
 
 		// Display results
@@ -156,7 +142,6 @@ func Commands() []*cli.Command {
 			Flags: []cli.Flag{
 				&cli.StringFlag{
 					Name:     "project-id",
-					Aliases:  []string{"p"},
 					Usage:    "Project ID to sync",
 					Required: true,
 				},

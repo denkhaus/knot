@@ -238,12 +238,12 @@ func deleteAction() cli.ActionFunc {
 
 		actor := shared.ResolveActor(c.String("actor"))
 
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			return errors.TaskNotFoundError(taskID)
 		}
 
-		children, err := projectManager.GetChildTasks(context.Background(), taskID)
+		children, err := projectManager.GetChildTasks(c.Context, taskID)
 		if err != nil {
 			return errors.WrapWithSuggestion(err, "checking child tasks")
 		}

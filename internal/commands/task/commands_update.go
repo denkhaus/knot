@@ -1,7 +1,6 @@
 package task
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
@@ -55,7 +54,7 @@ func updateAction() cli.ActionFunc {
 		if err != nil {
 			return errors.InvalidUUIDError("task-id", taskIDStr)
 		}
-		initialTask, getErr := projectManager.GetTask(context.Background(), taskID)
+		initialTask, getErr := projectManager.GetTask(c.Context, taskID)
 		if getErr != nil {
 			return errors.TaskNotFoundError(taskID)
 		}
@@ -164,7 +163,7 @@ func updateStateSubAction() cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Get current task to preserve other fields
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
@@ -185,7 +184,7 @@ func updateStateSubAction() cli.ActionFunc {
 		}
 
 		// Update task state
-		updatedTask, err := projectManager.UpdateTaskState(context.Background(), taskID, newState, actor)
+		updatedTask, err := projectManager.UpdateTaskState(c.Context, taskID, newState, actor)
 		if err != nil {
 			loggerService.Error("Failed to update task state", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task state")
@@ -225,7 +224,7 @@ func updateTitleSubAction() cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Get current task to check if it exists and get old title
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
@@ -234,7 +233,7 @@ func updateTitleSubAction() cli.ActionFunc {
 		oldTitle := task.Title
 
 		// Update task title
-		updatedTask, err := projectManager.UpdateTaskTitle(context.Background(), taskID, newTitle, actor)
+		updatedTask, err := projectManager.UpdateTaskTitle(c.Context, taskID, newTitle, actor)
 		if err != nil {
 			loggerService.Error("Failed to update task title", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task title")
@@ -271,7 +270,7 @@ func updateDescriptionSubAction() cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Get current task to check if it exists and get old description
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
@@ -280,7 +279,7 @@ func updateDescriptionSubAction() cli.ActionFunc {
 		oldDescription := task.Description
 
 		// Update task description
-		updatedTask, err := projectManager.UpdateTaskDescription(context.Background(), taskID, newDescription, actor)
+		updatedTask, err := projectManager.UpdateTaskDescription(c.Context, taskID, newDescription, actor)
 		if err != nil {
 			loggerService.Error("Failed to update task description", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task description")
@@ -327,7 +326,7 @@ func updatePrioritySubAction() cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Get current task to check if it exists and get old priority
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
@@ -336,7 +335,7 @@ func updatePrioritySubAction() cli.ActionFunc {
 		oldPriority := task.Priority
 
 		// Update task priority using the service method
-		updatedTask, err := projectManager.UpdateTaskPriority(context.Background(), taskID, utils.ParsePriority(priority), actor)
+		updatedTask, err := projectManager.UpdateTaskPriority(c.Context, taskID, utils.ParsePriority(priority), actor)
 		if err != nil {
 			loggerService.Error("Failed to update task priority", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task priority")
@@ -378,7 +377,7 @@ func updateComplexitySubAction() cli.ActionFunc {
 			zap.String("actor", actor))
 
 		// Get current task to check if it exists and get old complexity
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return errors.TaskNotFoundError(taskID)
@@ -387,7 +386,7 @@ func updateComplexitySubAction() cli.ActionFunc {
 		oldComplexity := task.Complexity
 
 		// Update task complexity using the service method
-		updatedTask, err := projectManager.UpdateTaskComplexity(context.Background(), taskID, complexity, actor)
+		updatedTask, err := projectManager.UpdateTaskComplexity(c.Context, taskID, complexity, actor)
 		if err != nil {
 			loggerService.Error("Failed to update task complexity", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "updating task complexity")

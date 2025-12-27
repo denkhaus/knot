@@ -1,7 +1,6 @@
 package task
 
 import (
-	"context"
 	"fmt"
 	"sort"
 	"strings"
@@ -219,7 +218,7 @@ func ChildrenAction() cli.ActionFunc {
 			zap.Bool("recursive", recursive))
 
 		// Get the parent task for context
-		parentTask, err := projectManager.GetTask(context.Background(), taskID)
+		parentTask, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get parent task", zap.Error(err))
 			return fmt.Errorf("failed to get parent task: %w", err)
@@ -227,9 +226,9 @@ func ChildrenAction() cli.ActionFunc {
 
 		var children []*types.Task
 		if recursive {
-			children, err = getAllDescendants(projectManager, taskID)
+			children, err = getAllDescendants(c.Context, projectManager, taskID)
 		} else {
-			children, err = projectManager.GetChildTasks(context.Background(), taskID)
+			children, err = projectManager.GetChildTasks(c.Context, taskID)
 		}
 
 		if err != nil {
@@ -284,7 +283,7 @@ func ParentAction() cli.ActionFunc {
 		loggerService.Info("Getting parent task", zap.String("taskID", taskID.String()))
 
 		// Get the child task first
-		childTask, err := projectManager.GetTask(context.Background(), taskID)
+		childTask, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get task", zap.Error(err))
 			return fmt.Errorf("failed to get task: %w", err)
@@ -297,7 +296,7 @@ func ParentAction() cli.ActionFunc {
 			return nil
 		}
 
-		parentTask, err := projectManager.GetParentTask(context.Background(), taskID)
+		parentTask, err := projectManager.GetParentTask(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get parent task", zap.Error(err))
 			return fmt.Errorf("failed to get parent task: %w", err)
@@ -337,7 +336,7 @@ func RootsAction() cli.ActionFunc {
 			zap.String("projectID", projectID.String()),
 			zap.Int("limit", limit))
 
-		rootTasks, err := projectManager.GetRootTasks(context.Background(), projectID)
+		rootTasks, err := projectManager.GetRootTasks(c.Context, projectID)
 		if err != nil {
 			loggerService.Error("Failed to get root tasks", zap.Error(err))
 			return fmt.Errorf("failed to get root tasks: %w", err)

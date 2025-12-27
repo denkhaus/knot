@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/samber/do/v2"
@@ -15,30 +16,34 @@ import (
 )
 
 func TestReadyAction(t *testing.T) {
-	config := testutil.NewTestConfig(t)
-	testInjector := config.SetupTestInjector(t)
-
-	// Get project manager from DI
-	projectManager := do.MustInvoke[manager.ProjectManager](testInjector)
-	project := testutil.CreateTestProject(t, projectManager)
-
-	// Set project context
-	err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
-	require.NoError(t, err)
-
 	t.Run("pending task is ready", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create a pending task
 		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Ready Task", "A task ready to work on", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Create a new flag set for the ReadyAction
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Int("limit", 0, "")
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
 
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
+		ctx := cli.NewContext(cliCtx.App, flagSet, nil)
 
 		action := ReadyAction()
 		err = action(ctx)
@@ -52,6 +57,17 @@ func TestReadyAction(t *testing.T) {
 	})
 
 	t.Run("in-progress task is ready", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create an in-progress task
 		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "In Progress Task", "A task in progress", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
@@ -60,14 +76,18 @@ func TestReadyAction(t *testing.T) {
 		_, err = projectManager.UpdateTaskState(context.TODO(), task.ID, types.TaskStateInProgress, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Create a new flag set for the ReadyAction
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Int("limit", 0, "")
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
 
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
+		ctx := cli.NewContext(cliCtx.App, flagSet, nil)
 
 		action := ReadyAction()
 		err = action(ctx)
@@ -81,6 +101,17 @@ func TestReadyAction(t *testing.T) {
 	})
 
 	t.Run("completed task is not ready", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		// Create a project in the test's DI container
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
 		// Create and complete a task
 		task, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Completed Task", "A completed task", 3, types.TaskPriorityMedium, "test-user")
 		require.NoError(t, err)
@@ -91,14 +122,18 @@ func TestReadyAction(t *testing.T) {
 		_, err = projectManager.UpdateTaskState(context.TODO(), task.ID, types.TaskStateCompleted, "test-user")
 		require.NoError(t, err)
 
-		app := &cli.App{}
+		// Create a new flag set for the ReadyAction
 		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
 		flagSet.Bool("json", false, "")
 		flagSet.Int("limit", 0, "")
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
 
-		ctx := cli.NewContext(app, flagSet, nil)
-
-		// Use testInjector instead of AppContext
+		ctx := cli.NewContext(cliCtx.App, flagSet, nil)
 
 		action := ReadyAction()
 		err = action(ctx)

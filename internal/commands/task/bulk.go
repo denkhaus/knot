@@ -1,7 +1,6 @@
 package task
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"os"
@@ -46,7 +45,7 @@ func DuplicateAction() cli.ActionFunc {
 			zap.String("taskID", taskID.String()),
 			zap.String("targetProjectID", targetProjectID.String()))
 
-		duplicatedTask, err := projectManager.DuplicateTask(context.Background(), taskID, targetProjectID)
+		duplicatedTask, err := projectManager.DuplicateTask(c.Context, taskID, targetProjectID)
 		if err != nil {
 			loggerService.Error("Failed to duplicate task", zap.Error(err))
 			return fmt.Errorf("failed to duplicate task: %w", err)
@@ -86,7 +85,7 @@ func ListByStateAction() cli.ActionFunc {
 			zap.String("projectID", projectID.String()),
 			zap.String("state", stateStr))
 
-		tasks, err := projectManager.ListTasksByState(context.Background(), projectID, state)
+		tasks, err := projectManager.ListTasksByState(c.Context, projectID, state)
 		if err != nil {
 			loggerService.Error("Failed to list tasks by state", zap.Error(err))
 			return fmt.Errorf("failed to list tasks by state: %w", err)
@@ -186,7 +185,7 @@ func BulkCreateAction() cli.ActionFunc {
 
 			// Create task
 			task, err := projectManager.CreateTask(
-				context.Background(),
+				c.Context,
 				projectID,
 				parentID,
 				input.Title,
@@ -254,7 +253,7 @@ func BulkDeleteAction() cli.ActionFunc {
 			zap.Bool("force", force))
 
 		// Get task details for confirmation using optimized batch loading
-		tasksToDelete, err := projectManager.GetTasksWithDependencies(context.Background(), taskIDs)
+		tasksToDelete, err := projectManager.GetTasksWithDependencies(c.Context, taskIDs)
 		if err != nil {
 			loggerService.Error("Failed to get tasks", zap.Error(err), zap.Strings("taskIDs", utils.ConvertUUIDsToStrings(taskIDs)))
 			return fmt.Errorf("failed to get tasks: %w", err)
@@ -292,7 +291,7 @@ func BulkDeleteAction() cli.ActionFunc {
 		// Delete tasks
 		var deletedCount int
 		for _, taskID := range taskIDs {
-			err := projectManager.DeleteTask(context.Background(), taskID, actor)
+			err := projectManager.DeleteTask(c.Context, taskID, actor)
 			if err != nil {
 				loggerService.Error("Failed to delete task", zap.Error(err), zap.String("taskID", taskID.String()))
 				fmt.Printf("Failed to delete task %s: %v\n", taskID, err)

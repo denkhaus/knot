@@ -80,7 +80,7 @@ func checkAction() cli.ActionFunc {
 		timeout := c.Duration("timeout")
 		jsonOutput := c.Bool("json")
 
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(c.Context, timeout)
 		defer cancel()
 
 		loggerService.Info("Performing database health check", zap.Duration("timeout", timeout))
@@ -119,7 +119,7 @@ func pingAction() cli.ActionFunc {
 
 		timeout := c.Duration("timeout")
 
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(c.Context, timeout)
 		defer cancel()
 
 		loggerService.Info("Pinging database", zap.Duration("timeout", timeout))
@@ -155,7 +155,7 @@ func validateAction() cli.ActionFunc {
 
 		timeout := c.Duration("timeout")
 
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(c.Context, timeout)
 		defer cancel()
 
 		loggerService.Info("Validating database connection", zap.Duration("timeout", timeout))

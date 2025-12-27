@@ -13,7 +13,6 @@
 package validation
 
 import (
-	"context"
 	"fmt"
 	"strings"
 
@@ -154,7 +153,7 @@ func transitionAction() cli.ActionFunc {
 		lenient := c.Bool("lenient")
 
 		// Get task
-		task, err := projectManager.GetTask(context.Background(), taskID)
+		task, err := projectManager.GetTask(c.Context, taskID)
 		if err != nil {
 			return fmt.Errorf("failed to get task: %w", err)
 		}
@@ -220,7 +219,7 @@ func projectAction() cli.ActionFunc {
 		loggerService.Info("Validating project task states", logger.String("projectID", projectID.String()))
 
 		// Get all tasks
-		tasks, err := projectManager.ListTasksForProject(context.Background(), projectID)
+		tasks, err := projectManager.ListTasksForProject(c.Context, projectID)
 		if err != nil {
 			return fmt.Errorf("failed to get project tasks: %w", err)
 		}
@@ -246,7 +245,7 @@ func projectAction() cli.ActionFunc {
 						logger.String("taskID", task.ID.String()),
 						logger.String("invalidState", string(task.State)))
 
-					_, err := projectManager.UpdateTaskState(context.Background(), task.ID, types.TaskStatePending, actor)
+					_, err := projectManager.UpdateTaskState(c.Context, task.ID, types.TaskStatePending, actor)
 					if err != nil {
 						fmt.Printf("Failed to fix task %s: %v\n", task.ID, err)
 					} else {

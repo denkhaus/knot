@@ -13,7 +13,6 @@
 package dependency
 
 import (
-	"context"
 	"fmt"
 
 	"github.com/denkhaus/knot/v2/internal/errors"
@@ -110,7 +109,7 @@ func addAction() cli.ActionFunc {
 			zap.String("dependsOnID", dependsOnID.String()),
 			zap.String("actor", actor))
 
-		_, err = projectManager.AddTaskDependency(context.Background(), taskID, dependsOnID, actor)
+		_, err = projectManager.AddTaskDependency(c.Context, taskID, dependsOnID, actor)
 		if err != nil {
 			loggerService.Error("Failed to add dependency", zap.Error(err))
 			return errors.WrapWithSuggestion(err, "adding task dependency")
@@ -148,7 +147,7 @@ func removeAction() cli.ActionFunc {
 			zap.String("dependsOnID", dependsOnID.String()),
 			zap.String("actor", actor))
 
-		_, err = projectManager.RemoveTaskDependency(context.Background(), taskID, dependsOnID, actor)
+		_, err = projectManager.RemoveTaskDependency(c.Context, taskID, dependsOnID, actor)
 		if err != nil {
 			loggerService.Error("Failed to remove dependency", zap.Error(err))
 			return fmt.Errorf("failed to remove dependency: %w", err)
@@ -175,13 +174,13 @@ func listAction() cli.ActionFunc {
 
 		loggerService.Info("Listing task dependencies", zap.String("taskID", taskID.String()))
 
-		dependencies, err := projectManager.GetTaskDependencies(context.Background(), taskID)
+		dependencies, err := projectManager.GetTaskDependencies(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get dependencies", zap.Error(err))
 			return fmt.Errorf("failed to get dependencies: %w", err)
 		}
 
-		dependents, err := projectManager.GetDependentTasks(context.Background(), taskID)
+		dependents, err := projectManager.GetDependentTasks(c.Context, taskID)
 		if err != nil {
 			loggerService.Error("Failed to get dependents", zap.Error(err))
 			return fmt.Errorf("failed to get dependents: %w", err)
