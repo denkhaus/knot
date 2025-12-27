@@ -42,6 +42,10 @@ func TestConfigServiceSingleton(t *testing.T) {
 }
 
 func TestInitializeFromCLIContext(t *testing.T) {
+	// Skip port validation for tests
+	os.Setenv("KNOT_SKIP_PORT_VALIDATION", "1")
+	defer os.Unsetenv("KNOT_SKIP_PORT_VALIDATION")
+
 	// Create a new injector for testing
 	injector := do.New()
 
@@ -50,17 +54,17 @@ func TestInitializeFromCLIContext(t *testing.T) {
 	defer func() { os.Args = originalArgs }()
 
 	// Set os.Args to simulate the full command path (flags before subcommands)
-	os.Args = []string{"knot", "--address", "0.0.0.0", "--port", "9090", "mcp", "server"}
+	os.Args = []string{"knot", "--mcp-address", "0.0.0.0", "--mcp-port", "9090", "--postgres-endpoint", "postgres://localhost:5432/test", "mcp", "server"}
 
 	// Create flags with defaults
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:    "address",
+			Name:    "mcp-address",
 			EnvVars: []string{"KNOT_MCP_ADDRESS"},
 			Value:   "localhost",
 		},
 		&cli.IntFlag{
-			Name:    "port",
+			Name:    "mcp-port",
 			EnvVars: []string{"KNOT_MCP_PORT"},
 			Value:   8080,
 		},
@@ -137,6 +141,10 @@ func TestInitializeFromCLIContext(t *testing.T) {
 }
 
 func TestEnvironmentVariableHandling(t *testing.T) {
+	// Skip port validation for tests
+	os.Setenv("KNOT_SKIP_PORT_VALIDATION", "1")
+	defer os.Unsetenv("KNOT_SKIP_PORT_VALIDATION")
+
 	// Create a new injector for testing
 	injector := do.New()
 
@@ -149,7 +157,7 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 
 	// Set environment variables
 	os.Setenv("KNOT_MCP_ADDRESS", "env.example.com")
-	os.Setenv("KNOT_MCP_PORT", "9999")
+	os.Setenv("KNOT_MCP_PORT", "59123")
 	os.Setenv("KNOT_POSTGRES_ENDPOINT", "postgres://env:pass@host/db")
 	defer func() {
 		os.Unsetenv("KNOT_MCP_ADDRESS")
@@ -160,12 +168,12 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 	// Create flags with defaults and env var support
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:    "address",
+			Name:    "mcp-address",
 			EnvVars: []string{"KNOT_MCP_ADDRESS"},
 			Value:   "localhost",
 		},
 		&cli.IntFlag{
-			Name:    "port",
+			Name:    "mcp-port",
 			EnvVars: []string{"KNOT_MCP_PORT"},
 			Value:   8080,
 		},
@@ -223,8 +231,8 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 			if config.Address != "env.example.com" {
 				t.Errorf("Expected address from env var 'env.example.com', got %s", config.Address)
 			}
-			if config.Port != 9999 {
-				t.Errorf("Expected port from env var 9999, got %d", config.Port)
+			if config.Port != 59123 {
+				t.Errorf("Expected port from env var 59123, got %d", config.Port)
 			}
 			if config.Database.Endpoint != "postgres://env:pass@host/db" {
 				t.Errorf("Expected endpoint from env var 'postgres://env:pass@host/db', got %s", config.Database.Endpoint)
@@ -241,6 +249,10 @@ func TestEnvironmentVariableHandling(t *testing.T) {
 }
 
 func TestPriorityCLIOverEnvVars(t *testing.T) {
+	// Skip port validation for tests
+	os.Setenv("KNOT_SKIP_PORT_VALIDATION", "1")
+	defer os.Unsetenv("KNOT_SKIP_PORT_VALIDATION")
+
 	// Create a new injector for testing
 	injector := do.New()
 
@@ -249,7 +261,7 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 	defer func() { os.Args = originalArgs }()
 
 	// Set os.Args to simulate the command with CLI flags (flags before subcommands)
-	os.Args = []string{"knot", "--address", "cli.example.com", "--port", "7777", "mcp", "server"}
+	os.Args = []string{"knot", "--mcp-address", "cli.example.com", "--mcp-port", "59234", "--postgres-endpoint", "postgres://localhost:5432/test", "mcp", "server"}
 
 	// Set environment variables (should be overridden by CLI flags)
 	os.Setenv("KNOT_MCP_ADDRESS", "env.example.com")
@@ -262,12 +274,12 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 	// Create flags with defaults and env var support
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:    "address",
+			Name:    "mcp-address",
 			EnvVars: []string{"KNOT_MCP_ADDRESS"},
 			Value:   "localhost",
 		},
 		&cli.IntFlag{
-			Name:    "port",
+			Name:    "mcp-port",
 			EnvVars: []string{"KNOT_MCP_PORT"},
 			Value:   8080,
 		},
@@ -301,6 +313,10 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 			Name:  "log-level",
 			Value: "off",
 		},
+		&cli.StringFlag{
+			Name:    "postgres-endpoint",
+			EnvVars: []string{"KNOT_POSTGRES_ENDPOINT"},
+		},
 	}
 
 	// Create app
@@ -321,8 +337,8 @@ func TestPriorityCLIOverEnvVars(t *testing.T) {
 			if config.Address != "cli.example.com" {
 				t.Errorf("Expected address from CLI flag 'cli.example.com', got %s", config.Address)
 			}
-			if config.Port != 7777 {
-				t.Errorf("Expected port from CLI flag 7777, got %d", config.Port)
+			if config.Port != 59234 {
+				t.Errorf("Expected port from CLI flag 59234, got %d", config.Port)
 			}
 			return nil
 		},
@@ -342,12 +358,12 @@ func TestDefaultValues(t *testing.T) {
 	// Create flags with defaults
 	flags := []cli.Flag{
 		&cli.StringFlag{
-			Name:    "address",
+			Name:    "mcp-address",
 			EnvVars: []string{"KNOT_MCP_ADDRESS"},
 			Value:   "localhost",
 		},
 		&cli.IntFlag{
-			Name:    "port",
+			Name:    "mcp-port",
 			EnvVars: []string{"KNOT_MCP_PORT"},
 			Value:   8080,
 		},
@@ -381,6 +397,10 @@ func TestDefaultValues(t *testing.T) {
 			Name:    "auto-reduce-complexity",
 			Value:   true,
 			EnvVars: []string{"KNOT_AUTO_REDUCE_COMPLEXITY"},
+		},
+		&cli.StringFlag{
+			Name:    "postgres-endpoint",
+			EnvVars: []string{"KNOT_POSTGRES_ENDPOINT"},
 		},
 	}
 

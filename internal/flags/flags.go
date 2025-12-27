@@ -159,13 +159,7 @@ func NewSyncConfigFlags() []cli.Flag {
 			Name:    "sync-auth-token",
 			Usage:   "Bearer token for sync server authentication",
 			EnvVars: []string{"KNOT_SYNC_AUTH_TOKEN"},
-		},
-		&cli.StringFlag{
-			Name:    "sync-format",
-			Usage:   "Preferred sync data format (json or msgpack)",
-			Value:   "json",
-			EnvVars: []string{"KNOT_SYNC_FORMAT"},
-		},
+		},		
 		&cli.IntFlag{
 			Name:    "sync-timeout",
 			Usage:   "HTTP request timeout in seconds",

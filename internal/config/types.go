@@ -99,9 +99,6 @@ type SyncConfig struct {
 	// AuthToken is the optional bearer token for authentication
 	AuthToken string `json:"auth_token,omitempty"`
 
-	// PreferredFormat is "json" or "msgpack" (default: "json")
-	PreferredFormat string `json:"preferred_format,omitempty"`
-
 	// Timeout is the HTTP request timeout
 	Timeout time.Duration `json:"timeout"`
 

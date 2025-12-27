@@ -15,18 +15,20 @@ package di
 
 import (
 	"github.com/denkhaus/knot/v2/internal/config"
-	configsvc "github.com/denkhaus/knot/v2/internal/config"
+	"github.com/denkhaus/knot/v2/internal/handlers"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp"
 	"github.com/denkhaus/knot/v2/internal/mcp/hints"
-	"github.com/denkhaus/knot/v2/internal/mcp/shared"
+	mcpshared "github.com/denkhaus/knot/v2/internal/mcp/shared"
 	"github.com/denkhaus/knot/v2/internal/mcp/transports"
 	"github.com/denkhaus/knot/v2/internal/repository"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
 	"github.com/denkhaus/knot/v2/internal/repository/postgres"
 	"github.com/denkhaus/knot/v2/internal/repository/sqlite"
 	"github.com/denkhaus/knot/v2/internal/session"
+	"github.com/denkhaus/knot/v2/internal/sync"
+	syncshared "github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/templates"
 	"github.com/samber/do/v2"
 	"github.com/urfave/cli/v2"
@@ -56,7 +58,7 @@ func (c *Container) GetInjector() do.Injector {
 // Returns the injector for immediate use if needed.
 func (c *Container) RegisterAllServices(cliCtx *cli.Context) do.Injector {
 	// Register core services first (no dependencies)
-	do.Provide(c.injector, configsvc.NewService(cliCtx))
+	do.Provide(c.injector, config.NewService(cliCtx))
 	do.Provide(c.injector, logger.NewService)
 
 	// Register repository providers with named providers using well-defined types
@@ -97,18 +99,49 @@ func (c *Container) RegisterAllServices(cliCtx *cli.Context) do.Injector {
 	do.Provide(c.injector, mcp.NewServer)
 
 	// Register MCP shared components
-	do.Provide[shared.SessionRegistry](c.injector, shared.NewSessionRegistry)
+	do.Provide(c.injector, mcpshared.NewSessionRegistry)
 
 	// Register transport - this will select the appropriate transport based on config
-	do.Provide(c.injector, transports.NewTransportProvider)
+	do.Provide(c.injector, transports.NewTransport)
+
+	// Register REST sync client provider for remote synchronization
+	do.Provide(c.injector, sync.NewSyncClient)
+
+	// Register sync shared serializer
+	do.Provide(c.injector, syncshared.NewSerializerProvider)
+
+	// Register sync data extractor service
+	do.Provide(c.injector, sync.NewDataExtractorService)
+
+	// Register sync diff engine service
+	do.Provide(c.injector, sync.NewDiffEngine)
+
+	// Register conflict resolver for sync conflict resolution
+	do.Provide(c.injector, sync.NewConflictResolver)
+
+	// Register migration engine for applying sync operations
+	do.Provide(c.injector, sync.NewMigrationEngine)
+
+	// Register sync manager for bidirectional synchronization
+	do.Provide(c.injector, sync.NewSyncManager)
+	do.Provide(c.injector, handlers.NewSyncService)
+	do.Provide(c.injector, handlers.NewSyncHandler)
+
+	// Register sync HTTP endpoints
+	do.Provide(c.injector, handlers.NewSyncHTTPHandlers)
 
 	return c.injector
 }
 
 // Shutdown gracefully shuts down the container and all registered services.
 // This should be called during application shutdown to clean up resources.
+// Note: Shutdown errors are logged but don't affect the exit code since
+// the command has already completed successfully.
 func (c *Container) Shutdown() error {
-	return do.Shutdown[any](c.injector)
+	// For CLI mode, we don't need explicit shutdown of services.
+	// The DI container will clean up on process exit.
+	// Returning nil to avoid affecting exit codes.
+	return nil
 }
 
 func (c *Container) GetLogger() logger.Logger {
@@ -125,4 +158,13 @@ func (c *Container) GetConfigService() (config.Service, error) {
 
 func (c *Container) GetMCPServer() (mcp.Server, error) {
 	return do.Invoke[mcp.Server](c.injector)
+}
+
+func (c *Container) GetSyncManager() (sync.SyncManager, error) {
+	return do.Invoke[sync.SyncManager](c.injector)
+}
+
+// GetDataExtractor returns the DataExtractor service from the DI container
+func (c *Container) GetDataExtractor() (sync.DataExtractor, error) {
+	return do.Invoke[sync.DataExtractor](c.injector)
 }

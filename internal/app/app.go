@@ -88,7 +88,7 @@ func New() (*App, error) {
 	flags := append([]cli.Flag{
 		flags.NewActorFlag(),
 		flags.NewLogLevelFlag(),
-	}, append(flags.NewManagerConfigFlags(), flags.NewMCPConfigFlags()...)...)
+	}, append(flags.NewManagerConfigFlags(), append(flags.NewMCPConfigFlags(), flags.NewSyncConfigFlags()...)...)...)
 
 	// Create CLI app
 	cliApp := &cli.App{
@@ -111,6 +111,7 @@ func New() (*App, error) {
 			commands.NewTaskCommand(),
 			commands.NewTemplateCommand(),
 			commands.NewDependencyCommand(),
+			commands.NewSyncCommand(),
 			commands.NewConfigCommand(),
 			commands.NewHealthCommand(),
 			commands.NewStatusCommand(),

@@ -370,15 +370,17 @@ func (s *serviceImpl) validateMCPConfig() error {
 		return fmt.Errorf("invalid postgres-endpoint: %w", err)
 	}
 
-	// Check if port is available
-	if err := s.checkPortAvailable(s.mcpConfig.Address, s.mcpConfig.Port); err != nil {
-		// Provide suggestions for alternative ports
-		alternatives := s.suggestAlternativePorts(s.mcpConfig.Port)
-		suggestion := ""
-		if len(alternatives) > 0 {
-			suggestion = fmt.Sprintf(" Suggested alternatives: %s", strings.Join(alternatives, ", "))
+	// Check if port is available (skip if KNOT_SKIP_PORT_VALIDATION is set for testing)
+	if os.Getenv("KNOT_SKIP_PORT_VALIDATION") == "" {
+		if err := s.checkPortAvailable(s.mcpConfig.Address, s.mcpConfig.Port); err != nil {
+			// Provide suggestions for alternative ports
+			alternatives := s.suggestAlternativePorts(s.mcpConfig.Port)
+			suggestion := ""
+			if len(alternatives) > 0 {
+				suggestion = fmt.Sprintf(" Suggested alternatives: %s", strings.Join(alternatives, ", "))
+			}
+			return fmt.Errorf("%s%s", err.Error(), suggestion)
 		}
-		return fmt.Errorf("%s%s", err.Error(), suggestion)
 	}
 
 	return nil
@@ -455,7 +457,6 @@ func (s *serviceImpl) initializeSyncConfig(c *cli.Context) {
 	s.syncConfig = &SyncConfig{
 		ServerURL:       c.String("server-url"),
 		AuthToken:       c.String("sync-auth-token"),
-		PreferredFormat: c.String("sync-format"),
 		Timeout:         time.Duration(c.Int("sync-timeout")) * time.Second,
 		RetryAttempts:   c.Int("retry-attempts"),
 		RetryDelay:      time.Duration(c.Int("retry-delay")) * time.Second,
@@ -472,7 +473,6 @@ func (s *serviceImpl) initializeSyncConfig(c *cli.Context) {
 func (s *serviceImpl) getDefaultSyncConfig() *SyncConfig {
 	return &SyncConfig{
 		ServerURL:        "http://localhost:9094",
-		PreferredFormat:  "json",
 		Timeout:          30 * time.Second,
 		RetryAttempts:    3,
 		RetryDelay:       1 * time.Second,
