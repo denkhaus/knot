@@ -59,6 +59,9 @@ type SessionRepository interface {
 	// ClearSessionProject removes the project association from a session
 	ClearSessionProject(ctx context.Context, sessionID uuid.UUID) error
 
+	// SetSessionActor sets the actor for a session
+	SetSessionActor(ctx context.Context, sessionID uuid.UUID, actor string) error
+
 	// CleanupExpiredSessions removes sessions that have expired
 	CleanupExpiredSessions(ctx context.Context, before time.Time) error
 

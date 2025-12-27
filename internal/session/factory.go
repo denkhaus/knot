@@ -267,6 +267,22 @@ func (m *databaseSessionManagerImpl) ClearProject(sessionID uuid.UUID) error {
 	return nil
 }
 
+// SetActor sets the actor for a session
+func (m *databaseSessionManagerImpl) SetActor(sessionID uuid.UUID, actor string) error {
+	ctx := context.Background()
+
+	err := m.repo.SetSessionActor(ctx, sessionID, actor)
+	if err != nil {
+		return fmt.Errorf("failed to set session actor: %w", err)
+	}
+
+	m.logger.Debug("Actor set for session",
+		logger.String("session_id", sessionID.String()),
+		logger.String("actor", actor))
+
+	return nil
+}
+
 // ValidateSession checks if a session exists and is active
 func (m *databaseSessionManagerImpl) ValidateSession(sessionID uuid.UUID) bool {
 	ctx := context.Background()

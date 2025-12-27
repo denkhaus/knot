@@ -153,6 +153,19 @@ func (m *managerImpl) ClearProject(sessionID uuid.UUID) error {
 	return nil
 }
 
+// SetActor sets the actor for a session
+func (m *managerImpl) SetActor(sessionID uuid.UUID, actor string) error {
+	value, ok := m.sessions.Load(sessionID)
+	if !ok {
+		return fmt.Errorf("session not found: %s", sessionID)
+	}
+
+	session := value.(*SessionContext)
+	session.Actor = actor
+	session.LastActivity = time.Now()
+	return nil
+}
+
 // ValidateSession checks if a session exists and is not expired
 func (m *managerImpl) ValidateSession(sessionID uuid.UUID) bool {
 	value, ok := m.sessions.Load(sessionID)
