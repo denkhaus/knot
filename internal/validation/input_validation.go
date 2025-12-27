@@ -206,3 +206,35 @@ func (v *InputValidator) ValidateActor(actor string) error {
 
 	return nil
 }
+
+// ValidateSyncConflictStrategy validates sync conflict resolution strategy
+func (v *InputValidator) ValidateSyncConflictStrategy(strategy string) error {
+	validStrategies := []string{"last-writer-wins", "prefer-local", "prefer-remote"}
+
+	for _, valid := range validStrategies {
+		if strategy == valid {
+			return nil
+		}
+	}
+
+	return fmt.Errorf("invalid conflict strategy: %s. Valid options: %v", strategy, validStrategies)
+}
+
+// ValidateURL validates a URL string
+func (v *InputValidator) ValidateURL(url string) error {
+	if url == "" {
+		return fmt.Errorf("URL cannot be empty")
+	}
+
+	// Basic URL format validation
+	if len(url) < 8 || (url[:7] != "http://" && url[:8] != "https://") {
+		return fmt.Errorf("invalid URL format: must start with http:// or https://")
+	}
+
+	// Reasonable limit for URLs
+	if utf8.RuneCountInString(url) > 2048 {
+		return fmt.Errorf("URL too long: %d characters (max: 2048)", utf8.RuneCountInString(url))
+	}
+
+	return nil
+}

@@ -12,9 +12,8 @@ func NewManagerWithRepository(repo types.Repository, cfg *config.ManagerConfig) 
 		cfg = config.DefaultConfig()
 	}
 
-	return &service{
+	return &projectManagerImpl{
 		repo:   repo,
 		config: cfg,
 	}
 }
-

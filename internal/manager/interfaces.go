@@ -45,6 +45,7 @@ import (
 type ProjectManager interface {
 	// Project operations
 	CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error)
+	SyncCreateProjectWithTimestamps(ctx context.Context, project *types.Project) (*types.Project, error)
 	GetProject(ctx context.Context, projectID uuid.UUID) (*types.Project, error)
 	UpdateProject(ctx context.Context, projectID uuid.UUID, title, description string, actor string) (*types.Project, error)
 	UpdateProjectDescription(ctx context.Context, projectID uuid.UUID, description string, actor string) (*types.Project, error)
@@ -54,9 +55,11 @@ type ProjectManager interface {
 
 	// Task operations
 	CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error)
+	SyncCreateTaskWithTimestamps(ctx context.Context, task *types.Task) (*types.Task, error)
 	GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error)
 	GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error)
 	UpdateTask(ctx context.Context, taskID uuid.UUID, title, description string, complexity int, state types.TaskState, actor string) (*types.Task, error)
+	UpdateTaskForSync(ctx context.Context, task *types.Task) (*types.Task, error)
 	UpdateTaskComplexity(ctx context.Context, taskID uuid.UUID, complexity int, actor string) (*types.Task, error)
 	UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error)
 	UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error)
