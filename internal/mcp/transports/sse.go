@@ -18,23 +18,17 @@ import (
 // SSETransport implements the Transport interface for Server-Sent Events
 type SSETransport struct {
 	*BaseTransport
-	sseServer *server.SSEServer
-}
-
-// NewSSETransport creates a new SSE transport
-func NewSSETransport(deps TransportDependencies) *SSETransport {
-	return &SSETransport{
-		BaseTransport: NewBaseTransport(config.TransportTypeSSE, deps),
-	}
+	sseServer    *server.SSEServer
+	mcpServer    *server.MCPServer
+	serverConfig *config.MCPConfig
 }
 
 // Start starts the SSE transport server using mcp-go's built-in SSE server
 func (s *SSETransport) Start(ctx context.Context) error {
-	deps := s.Dependencies()
-	addr := fmt.Sprintf("%s:%d", deps.ServerConfig.Address, deps.ServerConfig.Port)
+	addr := fmt.Sprintf("%s:%d", s.serverConfig.Address, s.serverConfig.Port)
 
 	// Create HTTP server with timeout configuration
-	httpTimeout := time.Duration(deps.ServerConfig.Transport.SSE.ClientTimeout) * time.Second
+	httpTimeout := time.Duration(s.serverConfig.Transport.SSE.ClientTimeout) * time.Second
 	customHTTPServer := &http.Server{
 		Addr:         addr,
 		ReadTimeout:  httpTimeout,
@@ -43,9 +37,9 @@ func (s *SSETransport) Start(ctx context.Context) error {
 	}
 
 	// Create SSE server with configuration options
-	heartbeatInterval := time.Duration(deps.ServerConfig.Transport.SSE.HeartbeatInterval) * time.Second
+	heartbeatInterval := time.Duration(s.serverConfig.Transport.SSE.HeartbeatInterval) * time.Second
 	s.sseServer = server.NewSSEServer(
-		deps.MCPServer,
+		s.mcpServer,
 		server.WithHTTPServer(customHTTPServer),
 		server.WithKeepAlive(true),
 		server.WithKeepAliveInterval(heartbeatInterval),
@@ -53,8 +47,8 @@ func (s *SSETransport) Start(ctx context.Context) error {
 
 	s.Logger().Info("Starting SSE transport server",
 		logger.String("address", addr),
-		logger.Int("heartbeat_interval_seconds", deps.ServerConfig.Transport.SSE.HeartbeatInterval),
-		logger.Int("client_timeout_seconds", deps.ServerConfig.Transport.SSE.ClientTimeout),
+		logger.Int("heartbeat_interval_seconds", s.serverConfig.Transport.SSE.HeartbeatInterval),
+		logger.Int("client_timeout_seconds", s.serverConfig.Transport.SSE.ClientTimeout),
 	)
 
 	// Start the SSE server and block
@@ -82,8 +76,8 @@ func (s *SSETransport) Stop(ctx context.Context) error {
 	return nil
 }
 
-// NewSSETransportProvider creates an SSE transport provider for DI
-func NewSSETransportProvider(injector do.Injector) (Transport, error) {
+// newSSETransport creates an SSE transport provider for DI
+func newSSETransport(injector do.Injector) (Transport, error) {
 	mcpServer := do.MustInvoke[*server.MCPServer](injector)
 	logger := do.MustInvoke[logger.Logger](injector)
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
@@ -91,15 +85,20 @@ func NewSSETransportProvider(injector do.Injector) (Transport, error) {
 	hintIntegration := do.MustInvoke[hints.Integration](injector)
 	configService := do.MustInvoke[config.Service](injector)
 
-	// Create transport dependencies
-	deps := TransportDependencies{
-		MCPServer:       mcpServer,
-		ProjectManager:  projectManager,
-		SessionManager:  sessionManager,
-		Logger:          logger,
-		HintIntegration: hintIntegration,
-		ServerConfig:    configService.GetMCPConfig(),
-	}
+	serverConfig := configService.GetMCPConfig()
 
-	return NewSSETransport(deps), nil
+	base := NewBaseTransport(
+		config.TransportTypeSSE,
+		mcpServer,
+		projectManager,
+		sessionManager,
+		logger,
+		hintIntegration,
+		serverConfig,
+	)
+	return &SSETransport{
+		BaseTransport: base,
+		mcpServer:     mcpServer,
+		serverConfig:  serverConfig,
+	}, nil
 }

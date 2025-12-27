@@ -18,14 +18,6 @@ type StdioTransport struct {
 	mcpServer *server.MCPServer
 }
 
-// NewStdioTransport creates a new stdio transport
-func NewStdioTransport(deps TransportDependencies) *StdioTransport {
-	return &StdioTransport{
-		BaseTransport: NewBaseTransport(config.TransportTypeStdio, deps),
-		mcpServer:     deps.MCPServer,
-	}
-}
-
 // Start starts the stdio transport server
 func (s *StdioTransport) Start(ctx context.Context) error {
 	s.Logger().Info("Starting stdio transport")
@@ -35,8 +27,8 @@ func (s *StdioTransport) Start(ctx context.Context) error {
 	return server.ServeStdio(s.mcpServer)
 }
 
-// NewStdioTransportProvider creates a stdio transport provider for DI
-func NewStdioTransportProvider(injector do.Injector) (Transport, error) {
+// newStdioTransport creates a stdio transport provider for DI
+func newStdioTransport(injector do.Injector) (Transport, error) {
 	mcpServer := do.MustInvoke[*server.MCPServer](injector)
 	logger := do.MustInvoke[logger.Logger](injector)
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
@@ -44,15 +36,19 @@ func NewStdioTransportProvider(injector do.Injector) (Transport, error) {
 	hintIntegration := do.MustInvoke[hints.Integration](injector)
 	configService := do.MustInvoke[config.Service](injector)
 
-	// Create transport dependencies
-	deps := TransportDependencies{
-		MCPServer:       mcpServer,
-		ProjectManager:  projectManager,
-		SessionManager:  sessionManager,
-		Logger:          logger,
-		HintIntegration: hintIntegration,
-		ServerConfig:    configService.GetMCPConfig(),
-	}
+	serverConfig := configService.GetMCPConfig()
 
-	return NewStdioTransport(deps), nil
+	base := NewBaseTransport(
+		config.TransportTypeStdio,
+		mcpServer,
+		projectManager,
+		sessionManager,
+		logger,
+		hintIntegration,
+		serverConfig,
+	)
+	return &StdioTransport{
+		BaseTransport: base,
+		mcpServer:     mcpServer,
+	}, nil
 }

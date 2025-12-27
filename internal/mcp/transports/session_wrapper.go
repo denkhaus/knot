@@ -59,16 +59,15 @@ func (m *CustomSessionIDManager) Generate() string {
 	sessionID := uuid.New()
 	fmt.Printf("🔥 [CustomSessionIDManager.Generate] CALLED! Creating session: %s\n", sessionID.String())
 
-	// Create session in our registry
+	// Create session in our registry (actor is read from internal session)
 	ctx := context.Background()
-	actor := shared.ActorMCPUser
-	mcpSession, err := m.sessionRegistry.GetOrCreateSession(ctx, sessionID, actor)
+	mcpSession, err := m.sessionRegistry.GetOrCreateSession(ctx, sessionID)
 	if err != nil {
 		fmt.Printf("❌ [CustomSessionIDManager.Generate] FAILED to create session: %v\n", err)
 		// Log error but still return the ID
 		// The session will be created lazily when needed
 	} else {
-		fmt.Printf("✅ [CustomSessionIDManager.Generate] Successfully created session: %s (Actor: %s)\n", mcpSession.SessionID(), actor)
+		fmt.Printf("✅ [CustomSessionIDManager.Generate] Successfully created session: %s (Actor: %s)\n", mcpSession.SessionID(), mcpSession.GetActor())
 	}
 
 	fmt.Printf("🚀 [CustomSessionIDManager.Generate] Returning session ID: %s\n", sessionID.String())
@@ -96,8 +95,7 @@ func (m *CustomSessionIDManager) Validate(sessionID string) (bool, error) {
 	fmt.Printf("✅ [CustomSessionIDManager.Validate] Parsed UUID successfully: %s\n", uuidSessionID.String())
 
 	ctx := context.Background()
-	actor := shared.ActorMCPUser
-	mcpSession, err := m.sessionRegistry.GetOrCreateSession(ctx, uuidSessionID, actor)
+	mcpSession, err := m.sessionRegistry.GetOrCreateSession(ctx, uuidSessionID)
 	if err != nil {
 		fmt.Printf("❌ [CustomSessionIDManager.Validate] FAILED to get/create session: %v\n", err)
 		return false, fmt.Errorf("failed to get or create session: %w", err)
@@ -180,10 +178,9 @@ func (sw *SessionWrapper) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if sessionID != "" {
 		// Try to parse the session ID
 		if uuid, err := uuid.Parse(sessionID); err == nil {
-			// Ensure session exists in our registry
+			// Ensure session exists in our registry (actor is read from internal session)
 			ctx := context.Background()
-			actor := shared.ActorMCPUser
-			_, err = sw.sessionRegistry.GetOrCreateSession(ctx, uuid, actor)
+			_, err = sw.sessionRegistry.GetOrCreateSession(ctx, uuid)
 			if err != nil {
 				sw.logger.Warn("Failed to ensure session exists",
 					logger.String("session_id", sessionID),

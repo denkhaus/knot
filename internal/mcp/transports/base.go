@@ -7,25 +7,45 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
+	"github.com/denkhaus/knot/v2/internal/session"
+	"github.com/mark3labs/mcp-go/server"
 )
 
 // BaseTransport provides common functionality for all transport implementations
 type BaseTransport struct {
 	transportType config.TransportType
-	dependencies  TransportDependencies
-	logger        logger.Logger
-	running       bool
-	mu            sync.RWMutex
-	cancelFunc    context.CancelFunc
+	mcpServer     *server.MCPServer
+	projectManager manager.ProjectManager
+	sessionManager session.SessionManager
+	logger         logger.Logger
+	hintIntegration hints.Integration
+	serverConfig   *config.MCPConfig
+	running        bool
+	mu             sync.RWMutex
+	cancelFunc     context.CancelFunc
 }
 
-// NewBaseTransport creates a new base transport
-func NewBaseTransport(transportType config.TransportType, deps TransportDependencies) *BaseTransport {
+// NewBaseTransport creates a new base transport with direct dependencies
+func NewBaseTransport(
+	transportType config.TransportType,
+	mcpServer *server.MCPServer,
+	projectManager manager.ProjectManager,
+	sessionManager session.SessionManager,
+	logger logger.Logger,
+	hintIntegration hints.Integration,
+	serverConfig *config.MCPConfig,
+) *BaseTransport {
 	return &BaseTransport{
-		transportType: transportType,
-		dependencies:  deps,
-		logger:        deps.Logger,
-		running:       false,
+		transportType:  transportType,
+		mcpServer:      mcpServer,
+		projectManager: projectManager,
+		sessionManager: sessionManager,
+		logger:         logger,
+		hintIntegration: hintIntegration,
+		serverConfig:   serverConfig,
+		running:        false,
 	}
 }
 
@@ -62,11 +82,6 @@ func (b *BaseTransport) getCancelFunc() context.CancelFunc {
 	return b.cancelFunc
 }
 
-// Dependencies returns the transport dependencies
-func (b *BaseTransport) Dependencies() TransportDependencies {
-	return b.dependencies
-}
-
 // Logger returns the logger instance
 func (b *BaseTransport) Logger() logger.Logger {
 	return b.logger
@@ -86,7 +101,7 @@ func (b *BaseTransport) Stop(ctx context.Context) error {
 	}
 
 	// Close all sessions
-	if err := b.dependencies.SessionManager.CloseAll(ctx); err != nil {
+	if err := b.sessionManager.CloseAll(ctx); err != nil {
 		b.logger.Error("Error closing sessions during transport stop",
 			logger.Error(err),
 		)
