@@ -2,6 +2,8 @@ package hints
 
 import (
 	"context"
+
+	"github.com/denkhaus/knot/v2/internal/mcp/shared"
 )
 
 // HintIntegration provides the main interface for hint integration with MCP tools
@@ -19,9 +21,13 @@ func NewHintIntegration(enabled bool, maxHints int, categories []string) *HintIn
 // GetSessionContext extracts session context information from a context
 func (hi *HintIntegration) GetSessionContext(ctx context.Context, projectManager interface{}, sessionManager interface{}) (*SessionState, error) {
 	// This would need to be implemented based on the actual session management interface
-	// For now, return a basic session state
+	// For now, return a basic session state with actor from context if available
+	actor := shared.GetSessionActor(ctx)
+	if actor == "" {
+		actor = shared.ActorMCPUser
+	}
 	return &SessionState{
-		Actor:       "mcp-user",
+		Actor:       actor,
 		TaskCount:   0,
 		RecentTools: []string{},
 	}, nil
@@ -31,9 +37,13 @@ func (hi *HintIntegration) GetSessionContext(ctx context.Context, projectManager
 func (hi *HintIntegration) GenerateToolHints(ctx context.Context, toolName string, result interface{}, projectManager interface{}, sessionManager interface{}) []Hint {
 	sessionState, err := hi.GetSessionContext(ctx, projectManager, sessionManager)
 	if err != nil {
-		// Fallback to basic session state
+		// Fallback to basic session state - try to get actor from context
+		actor := shared.GetSessionActor(ctx)
+		if actor == "" {
+			actor = shared.ActorMCPUser
+		}
 		sessionState = &SessionState{
-			Actor:       "mcp-user",
+			Actor:       actor,
 			TaskCount:   0,
 			RecentTools: []string{},
 		}

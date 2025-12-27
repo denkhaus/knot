@@ -163,8 +163,13 @@ func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager
 		hi.logger.Warn("Failed to get session for hint generation",
 			logger.String("session_id", sessionID.String()),
 			logger.Error(err))
+		// Try to get actor from MCP context as fallback
+		actor := shared.GetSessionActor(ctx)
+		if actor == "" {
+			actor = shared.ActorMCPUser
+		}
 		return &SessionState{
-			Actor:       shared.ActorMCPUser,
+			Actor:       actor,
 			TaskCount:   0,
 			RecentTools: []string{},
 		}, nil
@@ -190,9 +195,19 @@ func (hi *hintIntegration) GetSessionContext(ctx context.Context, projectManager
 		projectIDStr = &pStr
 	}
 
+	// Get actor from session - this is the real actor, not a placeholder
+	actor := sess.Actor
+	if actor == "" {
+		// Try to get from MCP context as additional fallback
+		actor = shared.GetSessionActor(ctx)
+		if actor == "" {
+			actor = shared.ActorMCPUser
+		}
+	}
+
 	return &SessionState{
 		ProjectID:   projectIDStr,
-		Actor:       "mcp-user", // Default actor for now
+		Actor:       actor,
 		TaskCount:   taskCount,
 		RecentTools: []string{}, // Not tracked in current session implementation
 	}, nil
@@ -205,9 +220,13 @@ func (hi *hintIntegration) GenerateToolHints(ctx context.Context, toolName strin
 		hi.logger.Warn("Failed to get session context for hints",
 			logger.String("tool", toolName),
 			logger.Error(err))
-		// Fallback to basic session state
+		// Fallback to basic session state - try to get actor from MCP context
+		actor := shared.GetSessionActor(ctx)
+		if actor == "" {
+			actor = shared.ActorMCPUser
+		}
 		sessionState = &SessionState{
-			Actor:       "mcp-user",
+			Actor:       actor,
 			TaskCount:   0,
 			RecentTools: []string{},
 		}
