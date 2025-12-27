@@ -340,6 +340,26 @@ func (r *postgresRepository) ClearSessionProject(ctx context.Context, sessionID 
 	return nil
 }
 
+// SetSessionActor sets the actor for a session
+func (r *postgresRepository) SetSessionActor(ctx context.Context, sessionID uuid.UUID, actor string) error {
+	_, err := r.client.Session.UpdateOneID(sessionID).
+		SetActor(actor).
+		SetLastActivity(time.Now()).
+		Save(ctx)
+	if err != nil {
+		if ent.IsNotFound(err) {
+			return fmt.Errorf("session not found")
+		}
+		return fmt.Errorf("failed to set session actor: %w", err)
+	}
+
+	r.logger.Debug("Actor set for session",
+		zap.String("session_id", sessionID.String()),
+		zap.String("actor", actor))
+
+	return nil
+}
+
 // CleanupExpiredSessions removes sessions that have expired
 func (r *postgresRepository) CleanupExpiredSessions(ctx context.Context, before time.Time) error {
 	_, err := r.client.Session.Delete().

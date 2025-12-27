@@ -70,18 +70,54 @@ func (r *postgresRepository) UpdateProject(ctx context.Context, project *types.P
 	return nil
 }
 
-// DeleteProject removes a project and all its tasks
+// DeleteProject removes a project and all its tasks using a transaction
 func (r *postgresRepository) DeleteProject(ctx context.Context, id uuid.UUID) error {
 	r.logger.Debug("Deleting project", zap.String("project_id", id.String()))
 
-	err := r.client.Project.DeleteOneID(id).Exec(ctx)
-	if err != nil {
-		r.logger.Error("Failed to delete project", zap.Error(err))
-		return fmt.Errorf("failed to delete project: %w", err)
-	}
+	return r.withTx(ctx, func(ctx context.Context, tx *ent.Tx) error {
+		// Get all task IDs for this project
+		taskIDs, err := tx.Task.Query().
+			Where(enttask.ProjectID(id)).
+			IDs(ctx)
+		if err != nil && !ent.IsNotFound(err) {
+			return fmt.Errorf("failed to get task IDs for project: %w", err)
+		}
 
-	r.logger.Info("Project deleted successfully", zap.String("project_id", id.String()))
-	return nil
+		// Delete all task dependencies for tasks in this project
+		if len(taskIDs) > 0 {
+			_, err = tx.TaskDependency.Delete().
+				Where(taskdependency.Or(
+					taskdependency.TaskIDIn(taskIDs...),
+					taskdependency.DependsOnTaskIDIn(taskIDs...),
+				)).
+				Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to delete task dependencies: %w", err)
+			}
+
+			// Delete all tasks in the project
+			_, err = tx.Task.Delete().
+				Where(enttask.ProjectID(id)).
+				Exec(ctx)
+			if err != nil {
+				return fmt.Errorf("failed to delete tasks: %w", err)
+			}
+		}
+
+		// Delete the project
+		err = tx.Project.DeleteOneID(id).Exec(ctx)
+		if err != nil {
+			if ent.IsNotFound(err) {
+				return fmt.Errorf("project not found: %s", id)
+			}
+			return fmt.Errorf("failed to delete project: %w", err)
+		}
+
+		r.logger.Info("Project deleted successfully",
+			zap.String("project_id", id.String()),
+			zap.Int("tasks_deleted", len(taskIDs)))
+		return nil
+	})
 }
 
 // ListProjects returns all projects
@@ -101,7 +137,7 @@ func (r *postgresRepository) ListProjects(ctx context.Context) ([]*types.Project
 	return result, nil
 }
 
-// CreateTask creates a new task
+// CreateTask creates a new task with dependency handling
 func (r *postgresRepository) CreateTask(ctx context.Context, task *types.Task) error {
 	r.logger.Debug("Creating task", zap.String("title", task.Title))
 
@@ -114,6 +150,11 @@ func (r *postgresRepository) CreateTask(ctx context.Context, task *types.Task) e
 		SetComplexity(task.Complexity).
 		SetDepth(task.Depth)
 
+	// Preserve UUID if already set (for sync operations)
+	if task.ID != uuid.Nil {
+		creator = creator.SetID(task.ID)
+	}
+
 	if task.ParentID != nil {
 		creator = creator.SetParentID(*task.ParentID)
 	}
@@ -124,10 +165,48 @@ func (r *postgresRepository) CreateTask(ctx context.Context, task *types.Task) e
 		return fmt.Errorf("failed to create task: %w", err)
 	}
 
-	// Update the task with the generated ID
-	task.ID = result.ID
+	// Update timestamps from result (but preserve ID if it was set)
+	if task.ID == uuid.Nil {
+		task.ID = result.ID
+	}
 	task.CreatedAt = result.CreatedAt
 	task.UpdatedAt = result.UpdatedAt
+
+	// Create task dependencies if any
+	if len(task.Dependencies) > 0 {
+		for _, depID := range task.Dependencies {
+			// Validate dependency exists
+			depTask, err := r.client.Task.Get(ctx, depID)
+			if err != nil {
+				r.logger.Error("Failed to get dependency task for validation",
+					zap.String("dependency_id", depID.String()),
+					zap.Error(err))
+				return fmt.Errorf("dependency task %s not found: %w", depID, err)
+			}
+
+			// Validate dependency is in the same project
+			if depTask.ProjectID != task.ProjectID {
+				return fmt.Errorf("dependency task %s is not in the same project", depID)
+			}
+
+			// Create the dependency
+			_, err = r.client.TaskDependency.Create().
+				SetTaskID(task.ID).
+				SetDependsOnTaskID(depID).
+				SetID(uuid.New()).
+				Save(ctx)
+			if err != nil {
+				r.logger.Error("Failed to create task dependency",
+					zap.String("task_id", task.ID.String()),
+					zap.String("depends_on", depID.String()),
+					zap.Error(err))
+				return fmt.Errorf("failed to create dependency on %s: %w", depID, err)
+			}
+		}
+		r.logger.Debug("Created task dependencies",
+			zap.String("task_id", task.ID.String()),
+			zap.Int("dependency_count", len(task.Dependencies)))
+	}
 
 	r.logger.Info("Task created successfully",
 		zap.String("task_id", task.ID.String()),
@@ -213,6 +292,12 @@ func (r *postgresRepository) UpdateTask(ctx context.Context, task *types.Task) e
 		return fmt.Errorf("failed to update task: %w", err)
 	}
 
+	// Synchronize dependencies: delete old ones and create new ones
+	if err := r.syncTaskDependencies(ctx, task); err != nil {
+		r.logger.Error("Failed to sync task dependencies", zap.Error(err))
+		return fmt.Errorf("failed to sync task dependencies: %w", err)
+	}
+
 	r.logger.Info("Task updated successfully",
 		zap.String("task_id", task.ID.String()),
 		zap.String("title", task.Title))
@@ -220,11 +305,50 @@ func (r *postgresRepository) UpdateTask(ctx context.Context, task *types.Task) e
 	return nil
 }
 
+// syncTaskDependencies synchronizes task dependencies by deleting old ones and creating new ones
+func (r *postgresRepository) syncTaskDependencies(ctx context.Context, task *types.Task) error {
+	// Delete all existing dependencies for this task
+	_, err := r.client.TaskDependency.Delete().
+		Where(taskdependency.TaskID(task.ID)).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete old dependencies: %w", err)
+	}
+
+	// Create new dependencies
+	for _, depID := range task.Dependencies {
+		_, err := r.client.TaskDependency.Create().
+			SetTaskID(task.ID).
+			SetDependsOnTaskID(depID).
+			SetID(uuid.New()).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create dependency on %s: %w", depID, err)
+		}
+	}
+
+	return nil
+}
+
 // DeleteTask removes a task
+// Returns an error if the task has child tasks (to prevent orphaned subtasks)
+// Use DeleteTaskSubtree to delete a task and all its descendants
 func (r *postgresRepository) DeleteTask(ctx context.Context, id uuid.UUID) error {
 	r.logger.Debug("Deleting task", zap.String("task_id", id.String()))
 
-	err := r.client.Task.DeleteOneID(id).Exec(ctx)
+	// Check for child tasks before deleting
+	childCount, err := r.client.Task.Query().
+		Where(enttask.ParentID(id)).
+		Count(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to check for child tasks: %w", err)
+	}
+
+	if childCount > 0 {
+		return fmt.Errorf("cannot delete task with %d child task(s): use DeleteTaskSubtree to delete the entire subtree", childCount)
+	}
+
+	err = r.client.Task.DeleteOneID(id).Exec(ctx)
 	if err != nil {
 		r.logger.Error("Failed to delete task", zap.Error(err))
 		return fmt.Errorf("failed to delete task: %w", err)

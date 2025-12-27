@@ -836,3 +836,177 @@ func TestErrorTypeHelpers(t *testing.T) {
 		assert.Contains(t, err.Error(), "foreign key constraint violation: parent_id does not exist")
 	})
 }
+
+// TestGetTasksByProject_LoadsDependencies tests that GetTasksByProject correctly loads dependencies
+// This is a regression test for the bug where tasks with unmet dependencies were incorrectly
+// marked as actionable because dependencies weren't being loaded from the database.
+func TestGetTasksByProject_LoadsDependencies(t *testing.T) {
+	repo, cleanup := setupTestRepository(t)
+	defer cleanup()
+
+	ctx := context.Background()
+
+	// Create a test project
+	projectID := uuid.New()
+	project := &types.Project{
+		ID:          projectID,
+		Title:       "Test Project",
+		Description: "Test Description",
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err := repo.CreateProject(ctx, project)
+	require.NoError(t, err)
+
+	// Create tasks with dependencies
+	// Task A (no dependencies)
+	taskA := &types.Task{
+		ID:          uuid.New(),
+		ProjectID:   projectID,
+		Title:       "Task A",
+		Description: "Root task A",
+		State:       types.TaskStatePending,
+		Priority:    types.TaskPriorityMedium,
+		Complexity:  5,
+		Depth:       0,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err = repo.CreateTask(ctx, taskA)
+	require.NoError(t, err)
+
+	// Task B (depends on Task A)
+	taskB := &types.Task{
+		ID:          uuid.New(),
+		ProjectID:   projectID,
+		Title:       "Task B",
+		Description: "Task B depends on A",
+		State:       types.TaskStatePending,
+		Priority:    types.TaskPriorityMedium,
+		Complexity:  5,
+		Depth:       0,
+		Dependencies: []uuid.UUID{taskA.ID},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err = repo.CreateTask(ctx, taskB)
+	require.NoError(t, err)
+
+	// Task C (depends on Task B)
+	taskC := &types.Task{
+		ID:          uuid.New(),
+		ProjectID:   projectID,
+		Title:       "Task C",
+		Description: "Task C depends on B",
+		State:       types.TaskStatePending,
+		Priority:    types.TaskPriorityMedium,
+		Complexity:  5,
+		Depth:       0,
+		Dependencies: []uuid.UUID{taskB.ID},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err = repo.CreateTask(ctx, taskC)
+	require.NoError(t, err)
+
+	// Create subtasks
+	taskA1 := &types.Task{
+		ID:          uuid.New(),
+		ProjectID:   projectID,
+		Title:       "Task A.1",
+		Description: "Subtask of A",
+		State:       types.TaskStatePending,
+		Priority:    types.TaskPriorityMedium,
+		Complexity:  3,
+		Depth:       1,
+		ParentID:    &taskA.ID,
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err = repo.CreateTask(ctx, taskA1)
+	require.NoError(t, err)
+
+	taskB1 := &types.Task{
+		ID:          uuid.New(),
+		ProjectID:   projectID,
+		Title:       "Task B.1",
+		Description: "Subtask of B, depends on A.1",
+		State:       types.TaskStatePending,
+		Priority:    types.TaskPriorityMedium,
+		Complexity:  3,
+		Depth:       1,
+		ParentID:    &taskB.ID,
+		Dependencies: []uuid.UUID{taskA1.ID},
+		CreatedAt:   time.Now(),
+		UpdatedAt:   time.Now(),
+	}
+	err = repo.CreateTask(ctx, taskB1)
+	require.NoError(t, err)
+
+	// Get all tasks for the project
+	tasks, err := repo.GetTasksByProject(ctx, projectID)
+	require.NoError(t, err)
+	assert.Len(t, tasks, 5, "should return all 5 tasks")
+
+	// Create a map for easy lookup
+	taskMap := make(map[uuid.UUID]*types.Task)
+	for _, task := range tasks {
+		taskMap[task.ID] = task
+	}
+
+	// Verify Task A has no dependencies
+	t.Run("Task A has no dependencies", func(t *testing.T) {
+		taskAFromDB := taskMap[taskA.ID]
+		require.NotNil(t, taskAFromDB)
+		assert.Empty(t, taskAFromDB.Dependencies, "Task A should have no dependencies")
+	})
+
+	// Verify Task B depends on Task A
+	t.Run("Task B depends on Task A", func(t *testing.T) {
+		taskBFromDB := taskMap[taskB.ID]
+		require.NotNil(t, taskBFromDB)
+		assert.Len(t, taskBFromDB.Dependencies, 1, "Task B should have 1 dependency")
+		assert.Contains(t, taskBFromDB.Dependencies, taskA.ID, "Task B should depend on Task A")
+	})
+
+	// Verify Task C depends on Task B
+	t.Run("Task C depends on Task B", func(t *testing.T) {
+		taskCFromDB := taskMap[taskC.ID]
+		require.NotNil(t, taskCFromDB)
+		assert.Len(t, taskCFromDB.Dependencies, 1, "Task C should have 1 dependency")
+		assert.Contains(t, taskCFromDB.Dependencies, taskB.ID, "Task C should depend on Task B")
+	})
+
+	// Verify Task A.1 has no dependencies
+	t.Run("Task A.1 has no dependencies", func(t *testing.T) {
+		taskA1FromDB := taskMap[taskA1.ID]
+		require.NotNil(t, taskA1FromDB)
+		assert.Empty(t, taskA1FromDB.Dependencies, "Task A.1 should have no dependencies")
+	})
+
+	// Verify Task B.1 depends on Task A.1
+	t.Run("Task B.1 depends on Task A.1", func(t *testing.T) {
+		taskB1FromDB := taskMap[taskB1.ID]
+		require.NotNil(t, taskB1FromDB)
+		assert.Len(t, taskB1FromDB.Dependencies, 1, "Task B.1 should have 1 dependency")
+		assert.Contains(t, taskB1FromDB.Dependencies, taskA1.ID, "Task B.1 should depend on Task A.1")
+	})
+
+	// Verify dependents are also loaded
+	t.Run("Dependents are loaded correctly", func(t *testing.T) {
+		taskAFromDB := taskMap[taskA.ID]
+		require.NotNil(t, taskAFromDB)
+		assert.Len(t, taskAFromDB.Dependents, 1, "Task A should have 1 dependent (Task B)")
+		assert.Contains(t, taskAFromDB.Dependents, taskB.ID, "Task A's dependents should include Task B")
+
+		taskBFromDB := taskMap[taskB.ID]
+		require.NotNil(t, taskBFromDB)
+		assert.Len(t, taskBFromDB.Dependents, 1, "Task B should have 1 dependent (Task C)")
+		assert.Contains(t, taskBFromDB.Dependents, taskC.ID, "Task B's dependents should include Task C")
+
+		taskA1FromDB := taskMap[taskA1.ID]
+		require.NotNil(t, taskA1FromDB)
+		assert.Len(t, taskA1FromDB.Dependents, 1, "Task A.1 should have 1 dependent (Task B.1)")
+		assert.Contains(t, taskA1FromDB.Dependents, taskB1.ID, "Task A.1's dependents should include Task B.1")
+	})
+}

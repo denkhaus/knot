@@ -15,8 +15,8 @@ import (
 
 // setupTestPostgresRepository creates a test repository with PostgreSQL
 func setupTestPostgresRepository(t *testing.T) (*postgresRepository, func()) {
-	// Use test database configuration from environment or default to test instance
-	dsn := "postgres://postgres:password@localhost:5432/knot_test?sslmode=disable"
+	// Use test database configuration from docker-compose
+	dsn := "postgres://knot_user:knot_password@localhost:5432/knot_test?sslmode=disable"
 
 	// Create repository with test configuration
 	repo, err := NewRepository(dsn,

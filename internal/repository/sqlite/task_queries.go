@@ -7,6 +7,7 @@ import (
 	"github.com/denkhaus/knot/v2/internal/repository/ent"
 	"github.com/denkhaus/knot/v2/internal/repository/ent/project"
 	task "github.com/denkhaus/knot/v2/internal/repository/ent/task"
+	taskdependency "github.com/denkhaus/knot/v2/internal/repository/ent/taskdependency"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 )
@@ -62,6 +63,8 @@ func (r *sqliteRepository) ListTasks(ctx context.Context, filter types.TaskFilte
 }
 
 // GetTasksByProject retrieves all tasks for a specific project using ent
+// NOTE: This method loads dependencies for all tasks, unlike ListTasks which does not.
+// This is necessary for the actionable command to correctly evaluate task dependencies.
 func (r *sqliteRepository) GetTasksByProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
 	entTasks, err := r.client.Task.Query().
 		Where(task.ProjectID(projectID)).
@@ -71,10 +74,60 @@ func (r *sqliteRepository) GetTasksByProject(ctx context.Context, projectID uuid
 		return nil, r.mapError("get tasks by project", err)
 	}
 
-	// Convert to domain models
+	if len(entTasks) == 0 {
+		return []*types.Task{}, nil
+	}
+
+	// Extract task IDs
+	taskIDs := make([]uuid.UUID, len(entTasks))
+	for i, entTask := range entTasks {
+		taskIDs[i] = entTask.ID
+	}
+
+	// Batch load all dependencies for all tasks
+	allDependencies, err := r.client.TaskDependency.Query().
+		Where(taskdependency.TaskIDIn(taskIDs...)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to batch load dependencies: %w", err)
+	}
+
+	// Batch load all dependents for all tasks
+	allDependents, err := r.client.TaskDependency.Query().
+		Where(taskdependency.DependsOnTaskIDIn(taskIDs...)).
+		All(ctx)
+	if err != nil {
+		return nil, fmt.Errorf("failed to batch load dependents: %w", err)
+	}
+
+	// Organize dependencies by task ID
+	dependenciesByTask := make(map[uuid.UUID][]*ent.TaskDependency)
+	for _, dep := range allDependencies {
+		dependenciesByTask[dep.TaskID] = append(dependenciesByTask[dep.TaskID], dep)
+	}
+
+	// Organize dependents by task ID
+	dependentsByTask := make(map[uuid.UUID][]*ent.TaskDependency)
+	for _, dep := range allDependents {
+		dependentsByTask[dep.DependsOnTaskID] = append(dependentsByTask[dep.DependsOnTaskID], dep)
+	}
+
+	// Convert to domain models and attach dependencies/dependents
 	tasks := make([]*types.Task, len(entTasks))
 	for i, entTask := range entTasks {
-		tasks[i] = entTaskToTask(entTask)
+		domainTask := entTaskToTask(entTask)
+
+		// Attach dependencies
+		if deps, exists := dependenciesByTask[entTask.ID]; exists {
+			domainTask.Dependencies = entTaskDependenciesToTaskIDs(deps)
+		}
+
+		// Attach dependents
+		if deps, exists := dependentsByTask[entTask.ID]; exists {
+			domainTask.Dependents = entTaskDependentsToTaskIDs(deps)
+		}
+
+		tasks[i] = domainTask
 	}
 
 	return tasks, nil

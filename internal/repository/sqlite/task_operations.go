@@ -254,6 +254,11 @@ func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) err
 			return fmt.Errorf("failed to update task: %w", err)
 		}
 
+		// Synchronize dependencies: delete old ones and create new ones
+		if err := r.syncTaskDependenciesInTx(ctx, tx, task); err != nil {
+			return fmt.Errorf("failed to sync task dependencies: %w", err)
+		}
+
 		// Update project metrics if state changed
 		if string(existingTask.State) != string(task.State) {
 			return r.updateProjectMetricsInTx(ctx, tx, task.ProjectID)
@@ -261,6 +266,31 @@ func (r *sqliteRepository) UpdateTask(ctx context.Context, task *types.Task) err
 
 		return nil
 	})
+}
+
+// syncTaskDependenciesInTx synchronizes task dependencies within a transaction
+func (r *sqliteRepository) syncTaskDependenciesInTx(ctx context.Context, tx *ent.Tx, task *types.Task) error {
+	// Delete all existing dependencies for this task
+	_, err := tx.TaskDependency.Delete().
+		Where(taskdependency.TaskID(task.ID)).
+		Exec(ctx)
+	if err != nil {
+		return fmt.Errorf("failed to delete old dependencies: %w", err)
+	}
+
+	// Create new dependencies
+	for _, depID := range task.Dependencies {
+		_, err := tx.TaskDependency.Create().
+			SetTaskID(task.ID).
+			SetDependsOnTaskID(depID).
+			SetID(uuid.New()).
+			Save(ctx)
+		if err != nil {
+			return fmt.Errorf("failed to create dependency on %s: %w", depID, err)
+		}
+	}
+
+	return nil
 }
 
 // DeleteTask deletes a task if it has no children using ent
