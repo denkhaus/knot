@@ -11,19 +11,20 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	knoterrors "github.com/denkhaus/knot/v2/internal/errors"
+	"github.com/denkhaus/knot/v2/internal/selection"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
 	"github.com/samber/do/v2"
 )
 
-// service provides business logic for project task management
-type service struct {
+// projectManagerImpl provides business logic for project task management
+type projectManagerImpl struct {
 	repo   types.Repository
 	config *config.ManagerConfig
 }
 
 // Ensure service implements ProjectManager
-var _ ProjectManager = (*service)(nil)
+var _ ProjectManager = (*projectManagerImpl)(nil)
 
 // NewService creates a new manager service instance following the DI pattern.
 // This replaces the direct instantiation in favor of dependency injection.
@@ -32,7 +33,7 @@ func NewService(injector do.Injector) (ProjectManager, error) {
 	repo := do.MustInvoke[types.Repository](injector)
 	configService := do.MustInvoke[config.Service](injector)
 
-	return &service{
+	return &projectManagerImpl{
 		repo:   repo,
 		config: configService.GetManagerConfig(),
 	}, nil
@@ -40,7 +41,7 @@ func NewService(injector do.Injector) (ProjectManager, error) {
 
 // Project operations
 
-func (s *service) CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error) {
+func (s *projectManagerImpl) CreateProject(ctx context.Context, title, description, actor string) (*types.Project, error) {
 	if err := s.validateProjectInput(title, description); err != nil {
 		return nil, err
 	}
@@ -63,11 +64,47 @@ func (s *service) CreateProject(ctx context.Context, title, description, actor s
 	return s.repo.GetProject(ctx, project.ID)
 }
 
-func (s *service) GetProject(ctx context.Context, projectID uuid.UUID) (*types.Project, error) {
+// SyncCreateProjectWithTimestamps creates or updates a project with all fields preserved for 1:1 sync
+// This implements an upsert pattern: if the UUID exists, update it; otherwise create it
+func (s *projectManagerImpl) SyncCreateProjectWithTimestamps(ctx context.Context, project *types.Project) (*types.Project, error) {
+	if err := s.validateProjectInput(project.Title, project.Description); err != nil {
+		return nil, err
+	}
+
+	// Check if project already exists with this UUID
+	existing, err := s.repo.GetProject(ctx, project.ID)
+	if err != nil {
+		// Project doesn't exist, create it
+		if err := s.repo.CreateProject(ctx, project); err != nil {
+			return nil, fmt.Errorf("failed to create project with specific ID: %w", err)
+		}
+		return s.repo.GetProject(ctx, project.ID)
+	}
+
+	// Project exists, update all fields to preserve 1:1 sync
+	existing.Title = project.Title
+	existing.Description = project.Description
+	existing.State = project.State
+	existing.TotalTasks = project.TotalTasks
+	existing.CompletedTasks = project.CompletedTasks
+	existing.Progress = project.Progress
+	existing.CreatedBy = project.CreatedBy
+	existing.UpdatedBy = project.UpdatedBy
+	existing.CreatedAt = project.CreatedAt
+	existing.UpdatedAt = project.UpdatedAt
+
+	if err := s.repo.UpdateProject(ctx, existing); err != nil {
+		return nil, fmt.Errorf("failed to update existing project: %w", err)
+	}
+
+	return s.repo.GetProject(ctx, project.ID)
+}
+
+func (s *projectManagerImpl) GetProject(ctx context.Context, projectID uuid.UUID) (*types.Project, error) {
 	return s.repo.GetProject(ctx, projectID)
 }
 
-func (s *service) UpdateProject(ctx context.Context, projectID uuid.UUID, title, description string, actor string) (*types.Project, error) {
+func (s *projectManagerImpl) UpdateProject(ctx context.Context, projectID uuid.UUID, title, description string, actor string) (*types.Project, error) {
 	if err := s.validateProjectInput(title, description); err != nil {
 		return nil, err
 	}
@@ -88,7 +125,7 @@ func (s *service) UpdateProject(ctx context.Context, projectID uuid.UUID, title,
 	return s.repo.GetProject(ctx, projectID)
 }
 
-func (s *service) UpdateProjectDescription(ctx context.Context, projectID uuid.UUID, description string, actor string) (*types.Project, error) {
+func (s *projectManagerImpl) UpdateProjectDescription(ctx context.Context, projectID uuid.UUID, description string, actor string) (*types.Project, error) {
 	// Validate description length
 	if len(description) > s.config.MaxDescriptionLength {
 		return nil, fmt.Errorf("description cannot exceed %d characters", s.config.MaxDescriptionLength)
@@ -109,7 +146,7 @@ func (s *service) UpdateProjectDescription(ctx context.Context, projectID uuid.U
 	return s.repo.GetProject(ctx, projectID)
 }
 
-func (s *service) UpdateProjectState(ctx context.Context, projectID uuid.UUID, state types.ProjectState, actor string) (*types.Project, error) {
+func (s *projectManagerImpl) UpdateProjectState(ctx context.Context, projectID uuid.UUID, state types.ProjectState, actor string) (*types.Project, error) {
 	project, err := s.repo.GetProject(ctx, projectID)
 	if err != nil {
 		return nil, err
@@ -131,21 +168,29 @@ func (s *service) UpdateProjectState(ctx context.Context, projectID uuid.UUID, s
 	return s.repo.GetProject(ctx, projectID)
 }
 
-func (s *service) GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error) {
 	return s.repo.GetTasksWithDependencies(ctx, taskIDs)
 }
 
-func (s *service) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
+func (s *projectManagerImpl) DeleteProject(ctx context.Context, projectID uuid.UUID) error {
 	return s.repo.DeleteProject(ctx, projectID)
 }
 
-func (s *service) ListProjects(ctx context.Context) ([]*types.Project, error) {
+func (s *projectManagerImpl) ListProjects(ctx context.Context) ([]*types.Project, error) {
 	return s.repo.ListProjects(ctx)
 }
 
 // Task operations
 
-func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) CreateTask(
+	ctx context.Context,
+	projectID uuid.UUID,
+	parentID *uuid.UUID,
+	title, description string,
+	complexity int,
+	priority types.TaskPriority,
+	actor string,
+) (*types.Task, error) {
 	// Validate basic input
 	if err := s.validateTaskInput(title, description, complexity); err != nil {
 		return nil, err
@@ -179,8 +224,69 @@ func (s *service) CreateTask(ctx context.Context, projectID uuid.UUID, parentID 
 	return s.repo.GetTask(ctx, task.ID)
 }
 
+// SyncCreateTaskWithTimestamps creates or updates a task with all fields preserved for 1:1 sync
+// This implements an upsert pattern: if the UUID exists, update it; otherwise create it
+func (s *projectManagerImpl) SyncCreateTaskWithTimestamps(ctx context.Context, task *types.Task) (*types.Task, error) {
+	// Validate basic input
+	if err := s.validateTaskInput(task.Title, task.Description, task.Complexity); err != nil {
+		return nil, err
+	}
+
+	// Validate project exists
+	if err := s.validateProjectExists(ctx, task.ProjectID); err != nil {
+		return nil, err
+	}
+
+	// Validate parent task and calculate depth (if parent provided)
+	depth := 0
+	if task.ParentID != nil {
+		var err error
+		depth, err = s.validateParentAndCalculateDepth(ctx, task.ParentID, task.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	// Set calculated depth
+	task.Depth = depth
+
+	// Check if task already exists with this UUID
+	existing, err := s.repo.GetTask(ctx, task.ID)
+	if err != nil {
+		// Task doesn't exist, create it
+		if err := s.repo.CreateTask(ctx, task); err != nil {
+			return nil, fmt.Errorf("failed to create task with specific ID: %w", err)
+		}
+		// Note: We don't reduce parent complexity for sync operations
+		// since we're restoring existing state, not creating new work
+		return s.repo.GetTask(ctx, task.ID)
+	}
+
+	// Task exists, update all fields to preserve 1:1 sync
+	existing.Title = task.Title
+	existing.Description = task.Description
+	existing.State = task.State
+	existing.Priority = task.Priority
+	existing.Complexity = task.Complexity
+	existing.ParentID = task.ParentID
+	existing.Depth = task.Depth
+	existing.Estimate = task.Estimate
+	existing.AssignedAgent = task.AssignedAgent
+	existing.Dependencies = task.Dependencies
+	existing.CreatedBy = task.CreatedBy
+	existing.UpdatedBy = task.UpdatedBy
+	existing.CreatedAt = task.CreatedAt
+	existing.UpdatedAt = task.UpdatedAt
+
+	if err := s.repo.UpdateTask(ctx, existing); err != nil {
+		return nil, fmt.Errorf("failed to update existing task: %w", err)
+	}
+
+	return s.repo.GetTask(ctx, task.ID)
+}
+
 // validateProjectExists checks if the project exists
-func (s *service) validateProjectExists(ctx context.Context, projectID uuid.UUID) error {
+func (s *projectManagerImpl) validateProjectExists(ctx context.Context, projectID uuid.UUID) error {
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return fmt.Errorf("project not found: %w", err)
 	}
@@ -188,7 +294,7 @@ func (s *service) validateProjectExists(ctx context.Context, projectID uuid.UUID
 }
 
 // validateParentAndCalculateDepth validates the parent task and calculates the depth
-func (s *service) validateParentAndCalculateDepth(ctx context.Context, parentID *uuid.UUID, projectID uuid.UUID) (int, error) {
+func (s *projectManagerImpl) validateParentAndCalculateDepth(ctx context.Context, parentID *uuid.UUID, projectID uuid.UUID) (int, error) {
 	if parentID == nil {
 		return 0, nil
 	}
@@ -206,7 +312,7 @@ func (s *service) validateParentAndCalculateDepth(ctx context.Context, parentID 
 }
 
 // validateTaskConstraints validates depth and task count constraints
-func (s *service) validateTaskConstraints(ctx context.Context, projectID uuid.UUID, depth int) error {
+func (s *projectManagerImpl) validateTaskConstraints(ctx context.Context, projectID uuid.UUID, depth int) error {
 	// Check depth constraints
 	if depth > s.config.MaxDepth {
 		return fmt.Errorf("maximum depth of %d exceeded", s.config.MaxDepth)
@@ -226,7 +332,7 @@ func (s *service) validateTaskConstraints(ctx context.Context, projectID uuid.UU
 }
 
 // buildNewTask creates a new task instance with the given parameters
-func (s *service) buildNewTask(projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, depth int, actor string) *types.Task {
+func (s *projectManagerImpl) buildNewTask(projectID uuid.UUID, parentID *uuid.UUID, title, description string, complexity int, priority types.TaskPriority, depth int, actor string) *types.Task {
 	return &types.Task{
 		ID:          uuid.New(),
 		ProjectID:   projectID,
@@ -245,7 +351,7 @@ func (s *service) buildNewTask(projectID uuid.UUID, parentID *uuid.UUID, title, 
 }
 
 // handleParentComplexityReduction automatically reduces parent complexity if enabled
-func (s *service) handleParentComplexityReduction(ctx context.Context, parentID *uuid.UUID) {
+func (s *projectManagerImpl) handleParentComplexityReduction(ctx context.Context, parentID *uuid.UUID) {
 	if !s.config.AutoReduceComplexity || parentID == nil {
 		return
 	}
@@ -257,11 +363,11 @@ func (s *service) handleParentComplexityReduction(ctx context.Context, parentID 
 	}
 }
 
-func (s *service) GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {
+func (s *projectManagerImpl) GetTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {
 	return s.repo.GetTask(ctx, taskID)
 }
 
-func (s *service) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state types.TaskState, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state types.TaskState, actor string) (*types.Task, error) {
 	task, err := s.repo.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -302,7 +408,7 @@ func (s *service) UpdateTaskState(ctx context.Context, taskID uuid.UUID, state t
 }
 
 // evaluateAndUpdateParentTask calculates the appropriate state for a parent task based on its children and updates it
-func (s *service) evaluateAndUpdateParentTask(ctx context.Context, parentID uuid.UUID, actor string) error {
+func (s *projectManagerImpl) evaluateAndUpdateParentTask(ctx context.Context, parentID uuid.UUID, actor string) error {
 	// Get the parent task
 	parentTask, err := s.repo.GetTask(ctx, parentID)
 	if err != nil {
@@ -360,7 +466,7 @@ func (s *service) evaluateAndUpdateParentTask(ctx context.Context, parentID uuid
 }
 
 // calculateParentTaskState determines the appropriate state for a parent task based on its children
-func (s *service) calculateParentTaskState(children []*types.Task, currentState types.TaskState) types.TaskState {
+func (s *projectManagerImpl) calculateParentTaskState(children []*types.Task, currentState types.TaskState) types.TaskState {
 	if len(children) == 0 {
 		return currentState // No change if no children
 	}
@@ -402,7 +508,11 @@ func (s *service) calculateParentTaskState(children []*types.Task, currentState 
 	return types.TaskStatePending
 }
 
-func (s *service) UpdateTask(ctx context.Context, taskID uuid.UUID, title, description string, complexity int, state types.TaskState, actor string) (*types.Task, error) {
+// UpdateTask updates specific task fields for user-initiated changes.
+// Only updates the fields explicitly provided as parameters (title, description, complexity, state).
+// Other fields like dependencies, priority, parentID, etc. remain unchanged.
+// Sets UpdatedBy to the provided actor and UpdatedAt to the current time.
+func (s *projectManagerImpl) UpdateTask(ctx context.Context, taskID uuid.UUID, title, description string, complexity int, state types.TaskState, actor string) (*types.Task, error) {
 	if err := s.validateTaskInput(title, description, complexity); err != nil {
 		return nil, err
 	}
@@ -427,7 +537,54 @@ func (s *service) UpdateTask(ctx context.Context, taskID uuid.UUID, title, descr
 	return task, nil
 }
 
-func (s *service) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error) {
+// UpdateTaskForSync updates ALL task fields during sync operations.
+// Unlike UpdateTask which only updates specific user-provided fields, this method
+// copies ALL fields from the input task including dependencies, priority, parentID,
+// estimate, and assignedAgent. This preserves the complete task state when syncing
+// between systems. The original actor and timestamps are preserved to maintain
+// audit trail accuracy across sync boundaries.
+func (s *projectManagerImpl) UpdateTaskForSync(ctx context.Context, task *types.Task) (*types.Task, error) {
+	if err := s.validateTaskInput(task.Title, task.Description, task.Complexity); err != nil {
+		return nil, err
+	}
+
+	// Validate parent task and calculate depth (if parent provided)
+	depth := 0
+	if task.ParentID != nil {
+		var err error
+		depth, err = s.validateParentAndCalculateDepth(ctx, task.ParentID, task.ProjectID)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	existing, err := s.repo.GetTask(ctx, task.ID)
+	if err != nil {
+		return nil, fmt.Errorf("task not found: %w", err)
+	}
+
+	// Update ALL fields to preserve sync state
+	existing.Title = task.Title
+	existing.Description = task.Description
+	existing.State = task.State
+	existing.Priority = task.Priority
+	existing.Complexity = task.Complexity
+	existing.ParentID = task.ParentID
+	existing.Depth = depth // Recalculate depth
+	existing.Estimate = task.Estimate
+	existing.AssignedAgent = task.AssignedAgent
+	existing.Dependencies = task.Dependencies
+	existing.UpdatedBy = task.UpdatedBy
+	// Note: We keep the existing CreatedAt and use the incoming UpdatedAt for sync
+
+	if err := s.repo.UpdateTask(ctx, existing); err != nil {
+		return nil, fmt.Errorf("failed to update task for sync: %w", err)
+	}
+
+	return s.repo.GetTask(ctx, task.ID)
+}
+
+func (s *projectManagerImpl) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, description string, actor string) (*types.Task, error) {
 	// Validate description length
 	if len(description) > s.config.MaxDescriptionLength {
 		return nil, fmt.Errorf("description cannot exceed %d characters", s.config.MaxDescriptionLength)
@@ -449,7 +606,7 @@ func (s *service) UpdateTaskDescription(ctx context.Context, taskID uuid.UUID, d
 	return task, nil
 }
 
-func (s *service) UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title string, actor string) (*types.Task, error) {
 	// Validate title
 	if title == "" {
 		return nil, fmt.Errorf("title cannot be empty")
@@ -473,7 +630,7 @@ func (s *service) UpdateTaskTitle(ctx context.Context, taskID uuid.UUID, title s
 	return s.repo.GetTask(ctx, taskID)
 }
 
-func (s *service) UpdateTaskPriority(ctx context.Context, taskID uuid.UUID, priority types.TaskPriority, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) UpdateTaskPriority(ctx context.Context, taskID uuid.UUID, priority types.TaskPriority, actor string) (*types.Task, error) {
 	task, err := s.repo.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -490,7 +647,7 @@ func (s *service) UpdateTaskPriority(ctx context.Context, taskID uuid.UUID, prio
 	return s.repo.GetTask(ctx, taskID)
 }
 
-func (s *service) UpdateTaskComplexity(ctx context.Context, taskID uuid.UUID, complexity int, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) UpdateTaskComplexity(ctx context.Context, taskID uuid.UUID, complexity int, actor string) (*types.Task, error) {
 	// Validate complexity
 	if err := knoterrors.ValidateComplexity(complexity); err != nil {
 		return nil, err
@@ -512,17 +669,17 @@ func (s *service) UpdateTaskComplexity(ctx context.Context, taskID uuid.UUID, co
 	return s.repo.GetTask(ctx, taskID)
 }
 
-func (s *service) DeleteTask(ctx context.Context, taskID uuid.UUID, actor string) error {
+func (s *projectManagerImpl) DeleteTask(ctx context.Context, taskID uuid.UUID, actor string) error {
 	return s.repo.DeleteTask(ctx, taskID)
 }
 
-func (s *service) DeleteTaskSubtree(ctx context.Context, taskID uuid.UUID, actor string) error {
+func (s *projectManagerImpl) DeleteTaskSubtree(ctx context.Context, taskID uuid.UUID, actor string) error {
 	return s.repo.DeleteTaskSubtree(ctx, taskID)
 }
 
 // Task queries and analysis
 
-func (s *service) GetParentTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {
+func (s *projectManagerImpl) GetParentTask(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {
 	task, err := s.repo.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, err
@@ -533,7 +690,7 @@ func (s *service) GetParentTask(ctx context.Context, taskID uuid.UUID) (*types.T
 	return s.repo.GetTask(ctx, *task.ParentID)
 }
 
-func (s *service) GetChildTasks(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) GetChildTasks(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error) {
 	// Validate task exists
 	if _, err := s.repo.GetTask(ctx, taskID); err != nil {
 		return nil, fmt.Errorf("task not found: %w", err)
@@ -541,12 +698,12 @@ func (s *service) GetChildTasks(ctx context.Context, taskID uuid.UUID) ([]*types
 	return s.repo.GetTasksByParent(ctx, taskID)
 }
 
-func (s *service) GetRootTasks(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) GetRootTasks(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
 	return s.repo.GetRootTasks(ctx, projectID)
 }
 
 // ListTasksForProject returns all tasks in a project regardless of hierarchy level
-func (s *service) ListTasksForProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) ListTasksForProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -556,7 +713,7 @@ func (s *service) ListTasksForProject(ctx context.Context, projectID uuid.UUID) 
 }
 
 // BulkUpdateTasks updates multiple tasks with the same updates
-func (s *service) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, updates types.TaskUpdates, actor string) error {
+func (s *projectManagerImpl) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, updates types.TaskUpdates, actor string) error {
 	if len(taskIDs) == 0 {
 		return nil // Nothing to update
 	}
@@ -622,7 +779,7 @@ func (s *service) BulkUpdateTasks(ctx context.Context, taskIDs []uuid.UUID, upda
 }
 
 // DuplicateTask creates a copy of a task in a new project
-func (s *service) DuplicateTask(ctx context.Context, taskID uuid.UUID, newProjectID uuid.UUID) (*types.Task, error) {
+func (s *projectManagerImpl) DuplicateTask(ctx context.Context, taskID uuid.UUID, newProjectID uuid.UUID) (*types.Task, error) {
 	// Validate source task exists
 	originalTask, err := s.repo.GetTask(ctx, taskID)
 	if err != nil {
@@ -658,7 +815,7 @@ func (s *service) DuplicateTask(ctx context.Context, taskID uuid.UUID, newProjec
 }
 
 // SetTaskEstimate sets the time estimate for a task
-func (s *service) SetTaskEstimate(ctx context.Context, taskID uuid.UUID, estimate int64) (*types.Task, error) {
+func (s *projectManagerImpl) SetTaskEstimate(ctx context.Context, taskID uuid.UUID, estimate int64) (*types.Task, error) {
 	// Validate estimate
 	if estimate < 0 {
 		return nil, errors.New("estimate must be non-negative")
@@ -683,7 +840,7 @@ func (s *service) SetTaskEstimate(ctx context.Context, taskID uuid.UUID, estimat
 // Agent assignment methods
 
 // AssignTaskToAgent assigns a task to a specific agent
-func (s *service) AssignTaskToAgent(ctx context.Context, taskID uuid.UUID, agentID uuid.UUID) (*types.Task, error) {
+func (s *projectManagerImpl) AssignTaskToAgent(ctx context.Context, taskID uuid.UUID, agentID uuid.UUID) (*types.Task, error) {
 	task, err := s.repo.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, fmt.Errorf("task not found: %w", err)
@@ -701,7 +858,7 @@ func (s *service) AssignTaskToAgent(ctx context.Context, taskID uuid.UUID, agent
 }
 
 // UnassignTaskFromAgent removes agent assignment from a task
-func (s *service) UnassignTaskFromAgent(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {
+func (s *projectManagerImpl) UnassignTaskFromAgent(ctx context.Context, taskID uuid.UUID) (*types.Task, error) {
 	task, err := s.repo.GetTask(ctx, taskID)
 	if err != nil {
 		return nil, fmt.Errorf("task not found: %w", err)
@@ -719,7 +876,7 @@ func (s *service) UnassignTaskFromAgent(ctx context.Context, taskID uuid.UUID) (
 }
 
 // ListTasksByAgent returns all tasks assigned to a specific agent in a project
-func (s *service) ListTasksByAgent(ctx context.Context, projectID uuid.UUID, agentID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) ListTasksByAgent(ctx context.Context, projectID uuid.UUID, agentID uuid.UUID) ([]*types.Task, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -743,7 +900,7 @@ func (s *service) ListTasksByAgent(ctx context.Context, projectID uuid.UUID, age
 }
 
 // ListUnassignedTasks returns all tasks that have no agent assigned in a project
-func (s *service) ListUnassignedTasks(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) ListUnassignedTasks(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -766,7 +923,7 @@ func (s *service) ListUnassignedTasks(ctx context.Context, projectID uuid.UUID) 
 	return unassignedTasks, nil
 }
 
-func (s *service) FindNextActionableTask(ctx context.Context, projectID uuid.UUID) (*types.Task, error) {
+func (s *projectManagerImpl) FindNextActionableTask(ctx context.Context, projectID uuid.UUID) (*types.Task, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -778,69 +935,38 @@ func (s *service) FindNextActionableTask(ctx context.Context, projectID uuid.UUI
 		return nil, fmt.Errorf("failed to get project tasks: %w", err)
 	}
 
-	// Create a map of task IDs to tasks for quick lookup
-	taskMap := make(map[uuid.UUID]*types.Task)
-	for _, task := range allTasks {
-		taskMap[task.ID] = task
+	// Use the same selection logic as the CLI actionable command
+	config := selection.DefaultConfig()
+	selector, err := selection.NewTaskSelector(config)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create task selector: %w", err)
 	}
 
-	// Separate tasks by state
-	var pendingTasks, inProgressTasks []*types.Task
-	for _, task := range allTasks {
-		switch task.State {
-		case types.TaskStatePending:
-			pendingTasks = append(pendingTasks, task)
-		case types.TaskStateInProgress:
-			inProgressTasks = append(inProgressTasks, task)
-		}
-	}
-
-	// Prioritize in-progress tasks first
-	if len(inProgressTasks) > 0 {
-		// For in-progress tasks, find one that has all its dependencies met
-		for _, task := range inProgressTasks {
-			if s.areDependenciesMet(task, taskMap) {
-				return task, nil
+	// Select next actionable task
+	selectedTask, err := selector.SelectNextActionableTask(allTasks)
+	if err != nil {
+		// Handle specific error types and convert to simple error for backward compatibility
+		if selErr, ok := err.(*selection.SelectionError); ok {
+			switch selErr.Type {
+			case selection.ErrorTypeNoTasks:
+				return nil, fmt.Errorf("no tasks found in project")
+			case selection.ErrorTypeNoActionable:
+				return nil, fmt.Errorf("no actionable tasks available")
+			case selection.ErrorTypeDeadlock:
+				return nil, fmt.Errorf("no actionable tasks found: %s", selErr.Message)
+			case selection.ErrorTypeCircularDep:
+				return nil, fmt.Errorf("circular dependencies detected: %s", selErr.Message)
+			default:
+				return nil, fmt.Errorf("task selection failed: %w", err)
 			}
 		}
-		// If no in-progress task has its dependencies met, this indicates an inconsistency
-		// Since we prevent circular dependencies and should maintain data integrity,
-		// this should not happen. We'll return an error to highlight the issue.
-		return nil, fmt.Errorf("in-progress tasks exist but none have all dependencies met - possible data inconsistency")
+		return nil, fmt.Errorf("failed to select actionable task: %w", err)
 	}
 
-	// For pending tasks, find one that has all its dependencies met
-	for _, task := range pendingTasks {
-		if s.areDependenciesMet(task, taskMap) {
-			return task, nil
-		}
-	}
-
-	// If we reach here, it means either:
-	// 1. There are no pending or in-progress tasks
-	// 2. All pending tasks have unmet dependencies (potential deadlock scenario)
-	// Since we prevent circular dependencies, case 2 suggests a logical error in task setup
-	if len(pendingTasks) > 0 {
-		return nil, fmt.Errorf("pending tasks exist but none have all dependencies met - possible deadlock scenario")
-	}
-
-	// No actionable tasks found
-	return nil, fmt.Errorf("no actionable tasks found")
+	return selectedTask, nil
 }
 
-// areDependenciesMet checks if all dependencies of a task are completed
-func (s *service) areDependenciesMet(task *types.Task, taskMap map[uuid.UUID]*types.Task) bool {
-	for _, depID := range task.Dependencies {
-		depTask, exists := taskMap[depID]
-		if !exists || depTask.State != types.TaskStateCompleted {
-			// If a dependency doesn't exist or isn't completed, the dependencies aren't met
-			return false
-		}
-	}
-	return true
-}
-
-func (s *service) FindTasksNeedingBreakdown(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) FindTasksNeedingBreakdown(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -869,7 +995,7 @@ func (s *service) FindTasksNeedingBreakdown(ctx context.Context, projectID uuid.
 	return needsBreakdown, nil
 }
 
-func (s *service) GetProjectProgress(ctx context.Context, projectID uuid.UUID) (*types.ProjectProgress, error) {
+func (s *projectManagerImpl) GetProjectProgress(ctx context.Context, projectID uuid.UUID) (*types.ProjectProgress, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -878,7 +1004,7 @@ func (s *service) GetProjectProgress(ctx context.Context, projectID uuid.UUID) (
 	return s.repo.GetProjectProgress(ctx, projectID)
 }
 
-func (s *service) ListTasksByState(ctx context.Context, projectID uuid.UUID, state types.TaskState) ([]*types.Task, error) {
+func (s *projectManagerImpl) ListTasksByState(ctx context.Context, projectID uuid.UUID, state types.TaskState) ([]*types.Task, error) {
 	// Validate project exists
 	if _, err := s.repo.GetProject(ctx, projectID); err != nil {
 		return nil, fmt.Errorf("project not found: %w", err)
@@ -892,7 +1018,7 @@ func (s *service) ListTasksByState(ctx context.Context, projectID uuid.UUID, sta
 
 // Validation helpers
 
-func (s *service) validateProjectInput(title, description string) error {
+func (s *projectManagerImpl) validateProjectInput(title, description string) error {
 	if title == "" {
 		return errors.New("title cannot be empty")
 	}
@@ -905,7 +1031,7 @@ func (s *service) validateProjectInput(title, description string) error {
 	return nil
 }
 
-func (s *service) validateTaskInput(title, description string, complexity int) error {
+func (s *projectManagerImpl) validateTaskInput(title, description string, complexity int) error {
 	if title == "" {
 		return errors.New("title cannot be empty")
 	}
@@ -923,18 +1049,18 @@ func (s *service) validateTaskInput(title, description string, complexity int) e
 
 // Config management
 
-func (s *service) GetConfig() *config.ManagerConfig {
+func (s *projectManagerImpl) GetConfig() *config.ManagerConfig {
 	return s.config
 }
 
-func (s *service) UpdateConfig(cfg *config.ManagerConfig) {
+func (s *projectManagerImpl) UpdateConfig(cfg *config.ManagerConfig) {
 	if cfg != nil {
 		s.config = cfg
 	}
 }
 
 // LoadConfigFromFile loads configuration from .knot/config.json
-func (s *service) LoadConfigFromFile() error {
+func (s *projectManagerImpl) LoadConfigFromFile() error {
 	// Import here to avoid circular dependency
 	configPath, err := getConfigPath()
 	if err != nil {
@@ -967,7 +1093,7 @@ func (s *service) LoadConfigFromFile() error {
 }
 
 // SaveConfigToFile saves current configuration to .knot/config.json
-func (s *service) SaveConfigToFile() error {
+func (s *projectManagerImpl) SaveConfigToFile() error {
 	if err := validateConfig(s.config); err != nil {
 		return fmt.Errorf("invalid config: %w", err)
 	}
@@ -998,22 +1124,32 @@ func (s *service) SaveConfigToFile() error {
 }
 
 // AddTaskDependency adds a dependency between tasks
-func (s *service) AddTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) AddTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) {
+	// Check for circular dependencies before adding
+	isCircular, circularPath := CheckCircularDependency(ctx, s, taskID, dependsOnTaskID)
+	if isCircular {
+		return nil, &CircularDependencyError{
+			TaskID:    taskID,
+			DependsOn: dependsOnTaskID,
+			Path:      circularPath,
+		}
+	}
+
 	return s.repo.AddTaskDependency(ctx, taskID, dependsOnTaskID)
 }
 
 // RemoveTaskDependency removes a dependency between tasks
-func (s *service) RemoveTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) {
+func (s *projectManagerImpl) RemoveTaskDependency(ctx context.Context, taskID uuid.UUID, dependsOnTaskID uuid.UUID, actor string) (*types.Task, error) {
 	return s.repo.RemoveTaskDependency(ctx, taskID, dependsOnTaskID)
 }
 
 // GetTaskDependencies gets all tasks that the given task depends on
-func (s *service) GetTaskDependencies(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) GetTaskDependencies(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error) {
 	return s.repo.GetTaskDependencies(ctx, taskID)
 }
 
 // GetDependentTasks gets all tasks that depend on the given task
-func (s *service) GetDependentTasks(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error) {
+func (s *projectManagerImpl) GetDependentTasks(ctx context.Context, taskID uuid.UUID) ([]*types.Task, error) {
 	return s.repo.GetDependentTasks(ctx, taskID)
 }
 
@@ -1050,7 +1186,7 @@ func validateConfig(c *config.ManagerConfig) error {
 }
 
 // autoReduceParentComplexity reduces parent task complexity when subtasks are added
-func (s *service) autoReduceParentComplexity(ctx context.Context, parentID uuid.UUID) error {
+func (s *projectManagerImpl) autoReduceParentComplexity(ctx context.Context, parentID uuid.UUID) error {
 	// Get parent task
 	parentTask, err := s.repo.GetTask(ctx, parentID)
 	if err != nil {
@@ -1220,12 +1356,12 @@ func isValidProjectStateTransition(from, to types.ProjectState) bool {
 // Project context management methods
 
 // GetSelectedProject retrieves the currently selected project ID
-func (s *service) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
+func (s *projectManagerImpl) GetSelectedProject(ctx context.Context) (*uuid.UUID, error) {
 	return s.repo.GetSelectedProject(ctx)
 }
 
 // ResolveProjectID resolves the project ID from stored context
-func (s *service) ResolveProjectID(ctx context.Context) (uuid.UUID, error) {
+func (s *projectManagerImpl) ResolveProjectID(ctx context.Context) (uuid.UUID, error) {
 	// Get project from database stored context
 	if contextProjectID, err := s.repo.GetSelectedProject(ctx); err == nil && contextProjectID != nil {
 		return *contextProjectID, nil
@@ -1236,21 +1372,21 @@ func (s *service) ResolveProjectID(ctx context.Context) (uuid.UUID, error) {
 }
 
 // SetSelectedProject sets the currently selected project ID
-func (s *service) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
+func (s *projectManagerImpl) SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error {
 	return s.repo.SetSelectedProject(ctx, projectID, actor)
 }
 
 // ClearSelectedProject removes the currently selected project
-func (s *service) ClearSelectedProject(ctx context.Context) error {
+func (s *projectManagerImpl) ClearSelectedProject(ctx context.Context) error {
 	return s.repo.ClearSelectedProject(ctx)
 }
 
 // HasSelectedProject checks if there is a currently selected project
-func (s *service) HasSelectedProject(ctx context.Context) (bool, error) {
+func (s *projectManagerImpl) HasSelectedProject(ctx context.Context) (bool, error) {
 	return s.repo.HasSelectedProject(ctx)
 }
 
 // GetCurrentTime returns the current time
-func (s *service) GetCurrentTime() time.Time {
+func (s *projectManagerImpl) GetCurrentTime() time.Time {
 	return time.Now()
 }

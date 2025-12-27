@@ -6,8 +6,8 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/mcp/shared"
-	knotutils "github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/denkhaus/knot/v2/internal/session"
+	knotutils "github.com/denkhaus/knot/v2/internal/utils"
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
@@ -22,10 +22,10 @@ type DependencyListRequest struct {
 
 // DependencyListResponse defines the response for task dependencies
 type DependencyListResponse struct {
-	TaskID       string    `json:"task_id" jsonschema_description:"Task ID"`
+	TaskID       string     `json:"task_id" jsonschema_description:"Task ID"`
 	Dependencies []TaskInfo `json:"dependencies" jsonschema_description:"List of task dependencies"`
-	Total        int       `json:"total" jsonschema_description:"Number of dependencies"`
-	Message      string    `json:"message" jsonschema_description:"Status message"`
+	Total        int        `json:"total" jsonschema_description:"Number of dependencies"`
+	Message      string     `json:"message" jsonschema_description:"Status message"`
 }
 
 // DependencyAddRequest defines the request for adding a dependency
@@ -36,10 +36,10 @@ type DependencyAddRequest struct {
 
 // DependencyAddResponse defines the response for adding a dependency
 type DependencyAddResponse struct {
-	Message          string      `json:"message" jsonschema_description:"Confirmation message"`
-	TaskID           string      `json:"task_id" jsonschema_description:"Task ID"`
-	DependsOnTaskID  string      `json:"depends_on_task_id" jsonschema_description:"Dependency task ID"`
-	UpdatedTask      TaskDetails `json:"updated_task" jsonschema_description:"Updated task information"`
+	Message         string      `json:"message" jsonschema_description:"Confirmation message"`
+	TaskID          string      `json:"task_id" jsonschema_description:"Task ID"`
+	DependsOnTaskID string      `json:"depends_on_task_id" jsonschema_description:"Dependency task ID"`
+	UpdatedTask     TaskDetails `json:"updated_task" jsonschema_description:"Updated task information"`
 }
 
 // DependencyRemoveRequest defines the request for removing a dependency
@@ -50,10 +50,10 @@ type DependencyRemoveRequest struct {
 
 // DependencyRemoveResponse defines the response for removing a dependency
 type DependencyRemoveResponse struct {
-	Message          string      `json:"message" jsonschema_description:"Confirmation message"`
-	TaskID           string      `json:"task_id" jsonschema_description:"Task ID"`
-	DependsOnTaskID  string      `json:"depends_on_task_id" jsonschema_description:"Dependency task ID"`
-	UpdatedTask      TaskDetails `json:"updated_task" jsonschema_description:"Updated task information"`
+	Message         string      `json:"message" jsonschema_description:"Confirmation message"`
+	TaskID          string      `json:"task_id" jsonschema_description:"Task ID"`
+	DependsOnTaskID string      `json:"depends_on_task_id" jsonschema_description:"Dependency task ID"`
+	UpdatedTask     TaskDetails `json:"updated_task" jsonschema_description:"Updated task information"`
 }
 
 // DependencyCheckRequest defines the request for checking circular dependencies
@@ -131,27 +131,27 @@ func RegisterDependencyTools(mcpServer *server.MCPServer, projectManager manager
 		// Get actor from session
 		actor := shared.GetSessionActor(ctx)
 
-		// Add dependency
+		// Add dependency (manager now handles circular dependency check)
 		updatedTask, err := projectManager.AddTaskDependency(ctx, taskUUID, dependsOnUUID, actor)
 		if err != nil {
 			return DependencyAddResponse{}, fmt.Errorf("failed to add dependency: %w", err)
 		}
 
 		return DependencyAddResponse{
-			Message: fmt.Sprintf("Successfully added dependency: task %s now depends on task %s", args.TaskID, args.DependsOnTaskID),
-			TaskID:  args.TaskID,
+			Message:         fmt.Sprintf("Successfully added dependency: task %s now depends on task %s", args.TaskID, args.DependsOnTaskID),
+			TaskID:          args.TaskID,
 			DependsOnTaskID: args.DependsOnTaskID,
 			UpdatedTask: TaskDetails{
-				ID:           updatedTask.ID.String(),
-				Title:        updatedTask.Title,
-				Description:  updatedTask.Description,
-				State:        string(updatedTask.State),
-				Priority:     updatedTask.Priority.ToExternalString(),
-				Complexity:   updatedTask.Complexity,
-				ProjectID:    updatedTask.ProjectID.String(),
-				ParentID:     knotutils.GetParentIDAsString(updatedTask.ParentID),
-				CreatedAt:    updatedTask.CreatedAt.Format("2006-01-02T15:04:05Z"),
-				UpdatedAt:    updatedTask.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+				ID:          updatedTask.ID.String(),
+				Title:       updatedTask.Title,
+				Description: updatedTask.Description,
+				State:       string(updatedTask.State),
+				Priority:    updatedTask.Priority.ToExternalString(),
+				Complexity:  updatedTask.Complexity,
+				ProjectID:   updatedTask.ProjectID.String(),
+				ParentID:    knotutils.GetParentIDAsString(updatedTask.ParentID),
+				CreatedAt:   updatedTask.CreatedAt.Format("2006-01-02T15:04:05Z"),
+				UpdatedAt:   updatedTask.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 			},
 		}, nil
 	}))
@@ -184,20 +184,20 @@ func RegisterDependencyTools(mcpServer *server.MCPServer, projectManager manager
 		}
 
 		return DependencyRemoveResponse{
-			Message: fmt.Sprintf("Successfully removed dependency: task %s no longer depends on task %s", args.TaskID, args.DependsOnTaskID),
-			TaskID:  args.TaskID,
+			Message:         fmt.Sprintf("Successfully removed dependency: task %s no longer depends on task %s", args.TaskID, args.DependsOnTaskID),
+			TaskID:          args.TaskID,
 			DependsOnTaskID: args.DependsOnTaskID,
 			UpdatedTask: TaskDetails{
-				ID:           updatedTask.ID.String(),
-				Title:        updatedTask.Title,
-				Description:  updatedTask.Description,
-				State:        string(updatedTask.State),
-				Priority:     updatedTask.Priority.ToExternalString(),
-				Complexity:   updatedTask.Complexity,
-				ProjectID:    updatedTask.ProjectID.String(),
-				ParentID:     knotutils.GetParentIDAsString(updatedTask.ParentID),
-				CreatedAt:    updatedTask.CreatedAt.Format("2006-01-02T15:04:05Z"),
-				UpdatedAt:    updatedTask.UpdatedAt.Format("2006-01-02T15:04:05Z"),
+				ID:          updatedTask.ID.String(),
+				Title:       updatedTask.Title,
+				Description: updatedTask.Description,
+				State:       string(updatedTask.State),
+				Priority:    updatedTask.Priority.ToExternalString(),
+				Complexity:  updatedTask.Complexity,
+				ProjectID:   updatedTask.ProjectID.String(),
+				ParentID:    knotutils.GetParentIDAsString(updatedTask.ParentID),
+				CreatedAt:   updatedTask.CreatedAt.Format("2006-01-02T15:04:05Z"),
+				UpdatedAt:   updatedTask.UpdatedAt.Format("2006-01-02T15:04:05Z"),
 			},
 		}, nil
 	}))
@@ -273,3 +273,4 @@ func RegisterDependencyTools(mcpServer *server.MCPServer, projectManager manager
 		}, nil
 	}))
 }
+
