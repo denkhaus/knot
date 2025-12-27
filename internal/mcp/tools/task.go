@@ -238,15 +238,39 @@ func RegisterTaskManagementTools(
 		}
 
 		actor := shared.GetSessionActor(ctx)
-		priority := parsePriority(args.Priority)
 
-		task, err := projectManager.UpdateTask(ctx, taskID, args.Title, args.Description, args.Complexity, types.TaskState(""), actor)
+		// Get the current task to start with
+		task, err := projectManager.GetTask(ctx, taskID)
 		if err != nil {
-			return TaskUpdateResponse{}, fmt.Errorf("failed to update task: %w", err)
+			return TaskUpdateResponse{}, fmt.Errorf("failed to get task: %w", err)
 		}
 
-		// Update priority if specified
+		// Update fields individually based on what was provided
+		// This avoids validation errors from empty/invalid state values
+
+		if args.Title != "" {
+			task, err = projectManager.UpdateTaskTitle(ctx, taskID, args.Title, actor)
+			if err != nil {
+				return TaskUpdateResponse{}, fmt.Errorf("failed to update task title: %w", err)
+			}
+		}
+
+		if args.Description != "" {
+			task, err = projectManager.UpdateTaskDescription(ctx, taskID, args.Description, actor)
+			if err != nil {
+				return TaskUpdateResponse{}, fmt.Errorf("failed to update task description: %w", err)
+			}
+		}
+
+		if args.Complexity > 0 {
+			task, err = projectManager.UpdateTaskComplexity(ctx, taskID, args.Complexity, actor)
+			if err != nil {
+				return TaskUpdateResponse{}, fmt.Errorf("failed to update task complexity: %w", err)
+			}
+		}
+
 		if args.Priority != "" {
+			priority := parsePriority(args.Priority)
 			task, err = projectManager.UpdateTaskPriority(ctx, taskID, priority, actor)
 			if err != nil {
 				return TaskUpdateResponse{}, fmt.Errorf("failed to update task priority: %w", err)

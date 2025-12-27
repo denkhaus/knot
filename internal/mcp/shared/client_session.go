@@ -48,12 +48,13 @@ func NewMCPClientSession(sessionID uuid.UUID, actor string) *MCPClientSession {
 }
 
 // NewMCPClientSessionFromInternal creates an MCP client session from our internal session data
-func NewMCPClientSessionFromInternal(internalSession *session.SessionContext, actor string) *MCPClientSession {
+// Uses the actor from the internal session directly (no fallback)
+func NewMCPClientSessionFromInternal(internalSession *session.SessionContext) *MCPClientSession {
 	return &MCPClientSession{
 		id:               internalSession.SessionID.String(),
 		notificationChan: make(chan mcp.JSONRPCNotification, 100),
 		isInitialized:    1, // Internal sessions are considered initialized
-		actor:            actor,
+		actor:            internalSession.Actor,
 		projectID:        internalSession.ProjectID,
 		createdAt:        internalSession.CreatedAt,
 		lastActive:       internalSession.LastActivity,

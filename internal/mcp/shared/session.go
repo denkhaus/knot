@@ -41,8 +41,18 @@ func GetSessionUUIDFromContext(ctx context.Context) (uuid.UUID, error) {
 }
 
 // GetSessionActor extracts actor information from session context
-// For now, returns a default actor since we don't have user authentication
-// TODO(knot-lom): the actor must be defined in the process of session creation to not have a dummy value
+// Returns the actor stored in the MCP client session from context
+// Returns empty string if no session or no actor is set (no fallback)
 func GetSessionActor(ctx context.Context) string {
-	return ActorMCPUser
+	session := server.ClientSessionFromContext(ctx)
+	if session == nil {
+		return ""
+	}
+
+	// Get actor from MCP client session if it implements GetActor
+	if mcpSession, ok := session.(interface{ GetActor() string }); ok {
+		return mcpSession.GetActor()
+	}
+
+	return ""
 }

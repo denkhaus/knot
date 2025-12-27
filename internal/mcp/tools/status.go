@@ -12,6 +12,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/mark3labs/mcp-go/mcp"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/denkhaus/knot/v2/internal/selection"
 )
 
 // Status and query tools provide project status, task state queries, and actionable work discovery
@@ -51,7 +52,7 @@ type StatusTreeResponse struct {
 // TreeNode represents a node in the task hierarchy tree for MCP responses
 type TreeNode struct {
 	TaskInfo
-	Children []TreeNode `json:"children,omitempty" jsonschema_description:"Child tasks"`
+	Children []TreeNode `json:"children,omitempty" jsonschema_description:"Child tasks" jsonschema:"{\"type\":\"array\",\"items\":{\"$ref\":\"#/definitions/TreeNode\"}}"`
 	Level    int        `json:"level" jsonschema_description:"Depth level in the tree"`
 }
 
@@ -132,10 +133,33 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 			return StatusReadyResponse{}, fmt.Errorf("invalid project ID: %w", err)
 		}
 
-		// Get pending tasks (ready to work on)
-		pendingTasks, err := projectManager.ListTasksByState(ctx, projectUUID, types.TaskStatePending)
+		// Get all tasks to check dependencies
+		allTasks, err := projectManager.ListTasksForProject(ctx, projectUUID)
 		if err != nil {
-			return StatusReadyResponse{}, fmt.Errorf("failed to get pending tasks: %w", err)
+			return StatusReadyResponse{}, fmt.Errorf("failed to get project tasks: %w", err)
+		}
+
+		// Extract task IDs for dependency loading
+		taskIDs := make([]uuid.UUID, len(allTasks))
+		for i, task := range allTasks {
+			taskIDs[i] = task.ID
+		}
+
+		// Get tasks with dependencies populated
+		tasksWithDeps, err := projectManager.GetTasksWithDependencies(ctx, taskIDs)
+		if err != nil {
+			return StatusReadyResponse{}, fmt.Errorf("failed to get tasks with dependencies: %w", err)
+		}
+
+		// Filter for pending tasks whose dependencies are completed
+		readyTasks := make([]*types.Task, 0)
+		for _, task := range tasksWithDeps {
+			if task.State == types.TaskStatePending {
+				// Check if all dependencies are completed
+				if areTaskDependenciesCompleted(task, tasksWithDeps) {
+					readyTasks = append(readyTasks, task)
+				}
+			}
 		}
 
 		// Convert to task info
@@ -144,8 +168,8 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 			limit = *args.Limit
 		}
 
-		tasks := make([]TaskInfo, 0, len(pendingTasks))
-		for i, task := range pendingTasks {
+		tasks := make([]TaskInfo, 0, len(readyTasks))
+		for i, task := range readyTasks {
 			if i >= limit {
 				break
 			}
@@ -161,14 +185,14 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 		return StatusReadyResponse{
 			ProjectID: projectID,
 			Tasks:     tasks,
-			Total:     len(pendingTasks),
-			Message:   fmt.Sprintf("Found %d ready tasks in project", len(pendingTasks)),
+			Total:     len(readyTasks),
+			Message:   fmt.Sprintf("Found %d ready tasks in project", len(readyTasks)),
 		}, nil
 	}))
 
-	// status_actionable - Get actionable tasks
+	// status_actionable - Get actionable tasks using dependency-aware selection
 	statusActionableTool := mcp.NewTool("status_actionable",
-		mcp.WithDescription("Get tasks that are actionable (pending or in-progress) and recommend the next task to work on"),
+		mcp.WithDescription("Get the next actionable task using dependency-aware selection"),
 		mcp.WithInputSchema[StatusActionableRequest](),
 		mcp.WithOutputSchema[StatusActionableResponse](),
 	)
@@ -185,55 +209,85 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 			return StatusActionableResponse{}, fmt.Errorf("invalid project ID: %w", err)
 		}
 
-		// Find next actionable task
-		nextTask, err := projectManager.FindNextActionableTask(ctx, projectUUID)
+		// Get all tasks in the project
+		allTasks, err := projectManager.ListTasksForProject(ctx, projectUUID)
 		if err != nil {
-			return StatusActionableResponse{}, fmt.Errorf("failed to find next actionable task: %w", err)
+			return StatusActionableResponse{}, fmt.Errorf("failed to get project tasks: %w", err)
 		}
 
-		// Get all pending and in-progress tasks (actionable tasks)
-		pendingTasks, err := projectManager.ListTasksByState(ctx, projectUUID, types.TaskStatePending)
+		// Use the same selection logic as the CLI actionable command
+		config := selection.DefaultConfig()
+		selector, err := selection.NewTaskSelector(config)
 		if err != nil {
-			return StatusActionableResponse{}, fmt.Errorf("failed to get pending tasks: %w", err)
+			return StatusActionableResponse{}, fmt.Errorf("failed to create task selector: %w", err)
 		}
 
-		inProgressTasks, err := projectManager.ListTasksByState(ctx, projectUUID, types.TaskStateInProgress)
+		// Select next actionable task
+		selectedTask, err := selector.SelectNextActionableTask(allTasks)
 		if err != nil {
-			return StatusActionableResponse{}, fmt.Errorf("failed to get in-progress tasks: %w", err)
-		}
-
-		// Combine tasks
-		allActionableTasks := append(pendingTasks, inProgressTasks...)
-
-		// Convert to task info
-		limit := 20
-		if args.Limit != nil {
-			limit = *args.Limit
-		}
-
-		tasks := make([]TaskInfo, 0, len(allActionableTasks))
-		for i, task := range allActionableTasks {
-			if i >= limit {
-				break
+			// Handle specific error types
+			if selErr, ok := err.(*selection.SelectionError); ok {
+				switch selErr.Type {
+				case selection.ErrorTypeNoTasks:
+					return StatusActionableResponse{
+						ProjectID: projectID,
+						Tasks:     []TaskInfo{},
+						Total:     0,
+						Message:   "No tasks found in project",
+					}, nil
+				case selection.ErrorTypeNoActionable:
+					return StatusActionableResponse{
+						ProjectID: projectID,
+						Tasks:     []TaskInfo{},
+						Total:     0,
+						Message:   "No actionable tasks available",
+					}, nil
+				case selection.ErrorTypeDeadlock:
+					return StatusActionableResponse{
+						ProjectID: projectID,
+						Tasks:     []TaskInfo{},
+						Total:     0,
+						Message:   fmt.Sprintf("No actionable tasks found: %s", selErr.Message),
+					}, nil
+				case selection.ErrorTypeCircularDep:
+					return StatusActionableResponse{
+						ProjectID: projectID,
+						Tasks:     []TaskInfo{},
+						Total:     0,
+						Message:   fmt.Sprintf("Circular dependencies detected: %s", selErr.Message),
+					}, nil
+				default:
+					return StatusActionableResponse{}, fmt.Errorf("task selection failed: %w", err)
+				}
 			}
-			tasks = append(tasks, TaskInfo{
-				ID:         task.ID.String(),
-				Title:      task.Title,
-				State:      string(task.State),
-				Priority:   task.Priority.ToExternalString(),
-				Complexity: task.Complexity,
-			})
+			return StatusActionableResponse{}, fmt.Errorf("failed to select actionable task: %w", err)
 		}
 
-		message := fmt.Sprintf("Found %d actionable tasks in project", len(allActionableTasks))
-		if nextTask != nil {
-			message += fmt.Sprintf(". Next recommended task: %s", nextTask.Title)
+		// Get selection result for additional context
+		result := selector.GetLastResult()
+
+		// Build response with selected task
+		selectedTaskInfo := TaskInfo{
+			ID:         selectedTask.ID.String(),
+			Title:      selectedTask.Title,
+			State:      string(selectedTask.State),
+			Priority:   selectedTask.Priority.ToExternalString(),
+			Complexity: selectedTask.Complexity,
+		}
+
+		// Build message with selection reasoning
+		message := result.Reason
+		if result.Score.UnblockedTaskCount > 0 {
+			message += fmt.Sprintf(" | Will unblock: %d task(s)", result.Score.UnblockedTaskCount)
+		}
+		if result.Score.DependentCount > 0 {
+			message += fmt.Sprintf(" | Dependent tasks: %d", result.Score.DependentCount)
 		}
 
 		return StatusActionableResponse{
 			ProjectID: projectID,
-			Tasks:     tasks,
-			Total:     len(allActionableTasks),
+			Tasks:     []TaskInfo{selectedTaskInfo},
+			Total:     1,
 			Message:   message,
 		}, nil
 	}))
@@ -324,10 +378,37 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 			return StatusBlockedResponse{}, fmt.Errorf("invalid project ID: %w", err)
 		}
 
-		// Get blocked tasks
-		blockedTasks, err := projectManager.ListTasksByState(ctx, projectUUID, types.TaskStateBlocked)
+		// Get all tasks to check for blocking dependencies
+		allTasks, err := projectManager.ListTasksForProject(ctx, projectUUID)
 		if err != nil {
-			return StatusBlockedResponse{}, fmt.Errorf("failed to get blocked tasks: %w", err)
+			return StatusBlockedResponse{}, fmt.Errorf("failed to get project tasks: %w", err)
+		}
+
+		// Extract task IDs for dependency loading
+		taskIDs := make([]uuid.UUID, len(allTasks))
+		for i, task := range allTasks {
+			taskIDs[i] = task.ID
+		}
+
+		// Get tasks with dependencies populated
+		tasksWithDeps, err := projectManager.GetTasksWithDependencies(ctx, taskIDs)
+		if err != nil {
+			return StatusBlockedResponse{}, fmt.Errorf("failed to get tasks with dependencies: %w", err)
+		}
+
+		// Find tasks that are pending or in-progress but have incomplete dependencies
+		blockedTasks := make([]*types.Task, 0)
+		for _, task := range tasksWithDeps {
+			if (task.State == types.TaskStatePending || task.State == types.TaskStateInProgress) &&
+				!areTaskDependenciesCompleted(task, tasksWithDeps) {
+				blockedTasks = append(blockedTasks, task)
+			}
+		}
+
+		// Create a task map for dependency lookup
+		taskMap := make(map[uuid.UUID]*types.Task)
+		for _, t := range tasksWithDeps {
+			taskMap[t.ID] = t
 		}
 
 		// Convert to blocked task info with reasons
@@ -342,23 +423,14 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 				break
 			}
 
-			// Get dependencies to determine blocking reasons
-			dependencies, err := projectManager.GetTaskDependencies(ctx, task.ID)
-			if err != nil {
-				dependencies = []*types.Task{} // Continue without dependencies if error
-			}
-
-			// Create blocking reasons
-			blockingReasons := make([]string, 0, len(dependencies))
-			for _, dep := range dependencies {
-				if dep.State != types.TaskStateCompleted {
-					blockingReasons = append(blockingReasons, fmt.Sprintf("Waiting for dependency: %s", dep.Title))
+			// Create blocking reasons from incomplete dependencies
+			blockingReasons := make([]string, 0)
+			for _, depID := range task.Dependencies {
+				if depTask, exists := taskMap[depID]; exists {
+					if depTask.State != types.TaskStateCompleted {
+						blockingReasons = append(blockingReasons, fmt.Sprintf("Waiting for dependency: %s", depTask.Title))
+					}
 				}
-			}
-
-			// If no blocking dependencies found, check other potential reasons
-			if len(blockingReasons) == 0 {
-				blockingReasons = append(blockingReasons, "Task marked as blocked - check task notes for details")
 			}
 
 			blockedTaskInfos = append(blockedTaskInfos, BlockedTaskInfo{
@@ -369,8 +441,8 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 					Priority:   task.Priority.ToExternalString(),
 					Complexity: task.Complexity,
 				},
-				BlockingReasons: blockingReasons,
-				DependenciesCount: len(dependencies),
+				BlockingReasons:   blockingReasons,
+				DependenciesCount: len(task.Dependencies),
 			})
 		}
 
@@ -383,6 +455,9 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 	}))
 
 	// status_tree - Show task hierarchy with indentation
+	// Temporarily disabled due to recursive schema generation issues
+	// TODO: Fix TreeNode recursive schema with proper $ref definitions
+	/*
 	statusTreeTool := mcp.NewTool("status_tree",
 		mcp.WithDescription("Show task hierarchy with indentation based on parent-child relationships"),
 		mcp.WithInputSchema[StatusTreeRequest](),
@@ -420,6 +495,7 @@ func RegisterStatusTools(mcpServer *server.MCPServer, projectManager manager.Pro
 			Message:   fmt.Sprintf("Task hierarchy for project with %d tasks", len(allTasks)),
 		}, nil
 	}))
+	*/
 
 	}
 
@@ -470,4 +546,27 @@ func convertToMCPtreeNodes(knotNodes []knotutils.TaskTreeNode) []TreeNode {
 		treeNodes = append(treeNodes, node)
 	}
 	return treeNodes
+}
+
+// areTaskDependenciesCompleted checks if all of a task's dependencies are in completed state
+func areTaskDependenciesCompleted(task *types.Task, allTasks []*types.Task) bool {
+	// Create a task map for quick lookup
+	taskMap := make(map[uuid.UUID]*types.Task)
+	for _, t := range allTasks {
+		taskMap[t.ID] = t
+	}
+
+	// Check if all dependencies are completed
+	for _, depID := range task.Dependencies {
+		depTask, exists := taskMap[depID]
+		if !exists {
+			// Missing dependency means not ready
+			return false
+		}
+		if depTask.State != types.TaskStateCompleted {
+			return false
+		}
+	}
+
+	return true
 }

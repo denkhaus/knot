@@ -14,7 +14,7 @@ import (
 )
 
 type SessionRegistry interface {
-	GetOrCreateSession(ctx context.Context, sessionID uuid.UUID, actor string) (*MCPClientSession, error)
+	GetOrCreateSession(ctx context.Context, sessionID uuid.UUID) (*MCPClientSession, error)
 	GetSession(sessionID uuid.UUID) (*MCPClientSession, error)
 	RemoveSession(ctx context.Context, sessionID uuid.UUID) error
 	CleanupExpiredSessions(ctx context.Context, timeout time.Duration) error
@@ -47,18 +47,17 @@ func NewSessionRegistry(injector do.Injector) (SessionRegistry, error) {
 
 // GetOrCreateSession gets an existing session or creates a new one
 // This is called by the MCP transport when handling requests
-func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID uuid.UUID, actor string) (*MCPClientSession, error) {
-	fmt.Printf("🔥🔥🔥 GetOrCreateSession called with sessionID: %s, actor: %s\n", sessionID.String(), actor)
-	r.logger.Info("🔥 GetOrCreateSession called with sessionID",
-		logger.String("session_id", sessionID.String()),
-		logger.String("actor", actor))
+// Actor is read from the internal session (not passed as parameter)
+func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID uuid.UUID) (*MCPClientSession, error) {
+	r.logger.Info("GetOrCreateSession called with sessionID",
+		logger.String("session_id", sessionID.String()))
 
 	// Check if we already have an MCP session cached for this ID
 	if mcpSession, ok := r.mcpSessions.Load(sessionID.String()); ok {
 		if session, ok := mcpSession.(*MCPClientSession); ok {
 			// Update last active time and return cached session
 			session.updateLastActive()
-			fmt.Printf("✅ Using cached MCP session for ID: %s\n", sessionID.String())
+
 			r.logger.Debug("Using cached MCP session",
 				logger.String("session_id", sessionID.String()))
 			return session, nil
@@ -69,7 +68,6 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 	internalSession, err := r.sessionManager.GetSession(sessionID)
 	if err == nil {
 		// Found exact match by session ID - this is ideal
-		fmt.Printf("✅ Found exact internal session match: %s\n", internalSession.SessionID.String())
 		r.logger.Info("Found exact internal session by ID",
 			logger.String("session_id", sessionID.String()),
 			logger.String("internal_id", internalSession.SessionID.String()))
@@ -88,23 +86,16 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 			if err != nil {
 				return nil, fmt.Errorf("failed to create internal session: %w", err)
 			}
-			fmt.Printf("🆕 Created new internal session: %s\n", internalSession.SessionID.String())
+
 		} else {
-			fmt.Printf("✅ Found internal session by client ID: %s\n", internalSession.SessionID.String())
 			r.logger.Info("Found existing session by client ID",
 				logger.String("client_id", sessionID.String()),
 				logger.String("found_session_id", internalSession.SessionID.String()))
 		}
 	}
 
-	// Create new MCP session with the correct session ID
-	mcpSession := NewMCPClientSession(sessionID, actor)
-
-	// Copy project data from internal session if it exists
-	if internalSession.ProjectID != nil {
-		mcpSession.SetProjectID(internalSession.ProjectID)
-		fmt.Printf("✅ Copied project ID to MCP session: %s\n", internalSession.ProjectID.String())
-	}
+	// Create new MCP session from internal session (actor is read from internal session)
+	mcpSession := NewMCPClientSessionFromInternal(internalSession)
 
 	// Register with mcp-go
 	if err := r.mcpServer.RegisterSession(ctx, mcpSession); err != nil {
@@ -130,7 +121,7 @@ func (r *sessionRegistryImpl) GetOrCreateSession(ctx context.Context, sessionID 
 	r.logger.Info("Session registered with MCP server",
 		logger.String("session_id", sessionID.String()),
 		logger.String("internal_id", internalSession.SessionID.String()),
-		logger.String("actor", actor))
+		logger.String("actor", internalSession.Actor))
 
 	return mcpSession, nil
 }
@@ -160,13 +151,8 @@ func (r *sessionRegistryImpl) GetSession(sessionID uuid.UUID) (*MCPClientSession
 		}
 	}
 
-	// Create MCP session with the correct session ID (the one being looked up)
-	mcpSession := NewMCPClientSession(sessionID, ActorMCPUser)
-
-	// Copy project data from internal session if it exists
-	if internalSession.ProjectID != nil {
-		mcpSession.SetProjectID(internalSession.ProjectID)
-	}
+	// Create MCP session from internal session (actor is read from internal session)
+	mcpSession := NewMCPClientSessionFromInternal(internalSession)
 
 	// Register with MCP server
 	ctx := context.Background()
@@ -190,7 +176,8 @@ func (r *sessionRegistryImpl) GetSession(sessionID uuid.UUID) (*MCPClientSession
 	r.mcpSessions.Store(sessionID.String(), mcpSession)
 
 	r.logger.Info("Session recovered and registered",
-		logger.String("session_id", sessionID.String()))
+		logger.String("session_id", sessionID.String()),
+		logger.String("actor", internalSession.Actor))
 
 	return mcpSession, nil
 }
@@ -270,8 +257,8 @@ func (r *sessionRegistryImpl) SyncExistingSessions(ctx context.Context) error {
 	for _, internalSession := range sessions {
 		sessionID := internalSession.SessionID
 
-		// Create MCP session
-		mcpSession := NewMCPClientSessionFromInternal(internalSession, internalSession.ClientID)
+		// Create MCP session from internal session (actor is read from internal session)
+		mcpSession := NewMCPClientSessionFromInternal(internalSession)
 
 		// Try to register with MCP server
 		if err := r.mcpServer.RegisterSession(ctx, mcpSession); err != nil {

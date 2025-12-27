@@ -17,6 +17,7 @@ import (
 // ProjectSelectRequest defines the request for selecting a project
 type ProjectSelectRequest struct {
 	ProjectID string `json:"project_id" jsonschema_description:"The ID of the project to select" jsonschema:"required"`
+	Actor     string `json:"actor" jsonschema_description:"The actor for this session - used for all MCP tool calls within this session" jsonschema:"required"`
 }
 
 // ProjectSelectResponse defines the response for project selection
@@ -80,6 +81,11 @@ func RegisterNavigationTools(server *server.MCPServer, projectManager manager.Pr
 			return ProjectSelectResponse{}, fmt.Errorf("invalid project_id format: %w", err)
 		}
 
+		// Validate actor is provided (mandatory)
+		if args.Actor == "" {
+			return ProjectSelectResponse{}, fmt.Errorf("actor is required and cannot be empty")
+		}
+
 		sessionIDUUID, err := shared.GetSessionUUIDFromContext(ctx)
 		if err != nil {
 			return ProjectSelectResponse{}, fmt.Errorf("invalid session_id format: %w", err)
@@ -92,13 +98,18 @@ func RegisterNavigationTools(server *server.MCPServer, projectManager manager.Pr
 			return ProjectSelectResponse{}, fmt.Errorf("failed to get session: %w", err)
 		}
 
+		// Set the actor for this session - applies to all MCP tool calls in this session
+		if err := sessionManager.SetActor(session.SessionID, args.Actor); err != nil {
+			return ProjectSelectResponse{}, fmt.Errorf("failed to set session actor: %w", err)
+		}
+
 		// Use the internal session ID for project operations
 		if err := sessionManager.SetProject(session.SessionID, projectID); err != nil {
 			return ProjectSelectResponse{}, fmt.Errorf("failed to set session project: %w", err)
 		}
 
 		return ProjectSelectResponse{
-			Message:   fmt.Sprintf("Selected project %s for session", projectID),
+			Message:   fmt.Sprintf("Selected project %s for session (actor: %s)", projectID, args.Actor),
 			ProjectID: projectID.String(),
 		}, nil
 	}))
