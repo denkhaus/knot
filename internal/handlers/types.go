@@ -1,5 +1,5 @@
 // Package sync provides HTTP handlers for sync API endpoints
-package sync
+package handlers
 
 import (
 	"errors"
@@ -38,9 +38,6 @@ func (e *ValidationError) Error() string {
 
 // SyncHandler provides HTTP handlers for sync operations
 type SyncHandler interface {
-	// parseFormatFromRequest extracts serialization format from request
-	parseFormatFromRequest(r *http.Request) string
-
 	// writeResponse writes response in appropriate format
 	writeResponse(w http.ResponseWriter, r *http.Request, response interface{}) error
 
@@ -71,45 +68,23 @@ func NewSyncHandler(injector do.Injector) (SyncHandler, error) {
 
 // HTTP request/response helpers
 
-// parseFormatFromRequest extracts serialization format from request
-func (h *syncHandlerImpl) parseFormatFromRequest(r *http.Request) string {
-	// Check content type
-	if contentType := r.Header.Get("Content-Type"); contentType == "application/msgpack" {
-		return "msgpack"
-	}
 
-	// Check accept header
-	if accept := r.Header.Get("Accept"); accept == "application/msgpack" {
-		return "msgpack"
-	}
-
-	// Check format query parameter
-	if format := r.URL.Query().Get("format"); format == "msgpack" {
-		return "msgpack"
-	}
-
-	return "json"
-}
-
-// writeResponse writes response in appropriate format
+// writeResponse writes response in JSON format
 func (h *syncHandlerImpl) writeResponse(w http.ResponseWriter, r *http.Request, response interface{}) error {
-	format := h.parseFormatFromRequest(r)
-
 	// Set content type
-	contentType := h.serializer.GetContentType(format)
-	w.Header().Set("Content-Type", contentType)
+	w.Header().Set("Content-Type", "application/json")
 
-	// Serialize based on format
+	// Serialize to JSON
 	var data []byte
 	var err error
 
 	switch resp := response.(type) {
 	case *shared.SyncRequest:
-		data, err = h.serializer.SerializeRequest(resp, format)
+		data, err = h.serializer.SerializeRequest(resp)
 	case *shared.SyncResponse:
-		data, err = h.serializer.SerializeResponse(resp, format)
+		data, err = h.serializer.SerializeResponse(resp)
 	case *shared.ErrorResponse:
-		data, err = h.serializer.SerializeErrorResponse(resp, format)
+		data, err = h.serializer.SerializeErrorResponse(resp)
 	default:
 		return ErrInvalidResponseType
 	}
@@ -145,7 +120,7 @@ func (h *syncHandlerImpl) writeErrorResponse(w http.ResponseWriter, r *http.Requ
 	}
 }
 
-// validateAndDeserializeRequest validates and deserializes request
+// validateAndDeserializeRequest validates and deserializes request (JSON only)
 func (h *syncHandlerImpl) validateAndDeserializeRequest(w http.ResponseWriter, r *http.Request) (*shared.SyncRequest, bool) {
 	// Check content length
 	if r.ContentLength > MaxRequestSize {
@@ -161,14 +136,8 @@ func (h *syncHandlerImpl) validateAndDeserializeRequest(w http.ResponseWriter, r
 		return nil, false
 	}
 
-	// Determine format
-	format := h.serializer.DetectFormat(r.Header.Get("Content-Type"))
-	if format == "" {
-		format = h.parseFormatFromRequest(r)
-	}
-
-	// Deserialize request
-	request, err := h.serializer.DeserializeRequest(body, format)
+	// Deserialize request (JSON only)
+	request, err := h.serializer.DeserializeRequest(body)
 	if err != nil {
 		// Debug: Log the actual deserialization error
 		http.Error(w, fmt.Sprintf("DEBUG: Deserialization error: %v", err), http.StatusBadRequest)

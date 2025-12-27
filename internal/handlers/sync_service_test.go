@@ -1,4 +1,4 @@
-package sync
+package handlers
 
 import (
 	"context"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/mocks"
-	knotsync "github.com/denkhaus/knot/v2/internal/sync"
+	"github.com/denkhaus/knot/v2/internal/sync"
 	"github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -228,9 +228,11 @@ func (l *mockNoopLogger) Sync()                                 {}
 func (l *mockNoopLogger) With(fields ...zap.Field) logger.Logger {
 	return l
 }
+
 func (l *mockNoopLogger) Named(name string) logger.Logger {
 	return l
 }
+
 func (l *mockNoopLogger) ToZap() *zap.Logger {
 	return zap.NewNop()
 }
@@ -242,10 +244,10 @@ var _ logger.Logger = (*mockNoopLogger)(nil)
 // noopDiffEngine is a no-op diff engine for testing
 type noopDiffEngine struct{}
 
-func (e *noopDiffEngine) CalculateDiff(ctx context.Context, localData, remoteData *shared.SyncDataSet) (*knotsync.DiffResult, error) {
-	return &knotsync.DiffResult{}, nil
+func (e *noopDiffEngine) CalculateDiff(ctx context.Context, localData, remoteData *shared.SyncDataSet) (*sync.DiffResult, error) {
+	return &sync.DiffResult{}, nil
 }
 
-func (e *noopDiffEngine) ValidateDiff(ctx context.Context, result *knotsync.DiffResult) error {
+func (e *noopDiffEngine) ValidateDiff(ctx context.Context, result *sync.DiffResult) error {
 	return nil
 }

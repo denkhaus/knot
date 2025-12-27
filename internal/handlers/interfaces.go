@@ -1,5 +1,5 @@
 // Package sync provides interfaces for sync HTTP handlers
-package sync
+package handlers
 
 import (
 	"context"

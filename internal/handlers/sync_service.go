@@ -1,4 +1,4 @@
-package sync
+package handlers
 
 import (
 	"context"
@@ -7,7 +7,7 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/manager"
-	knotsync "github.com/denkhaus/knot/v2/internal/sync"
+	"github.com/denkhaus/knot/v2/internal/sync"
 	"github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -17,9 +17,10 @@ import (
 
 // syncServiceImpl implements SyncService interface and bridges HTTP handlers to database
 type syncServiceImpl struct {
-	projectManager manager.ProjectManager
-	logger         logger.Logger
-	diffEngine     knotsync.DiffEngine
+	projectManager   manager.ProjectManager
+	logger           logger.Logger
+	diffEngine       sync.DiffEngine
+	conflictResolver sync.ConflictResolver
 }
 
 // Ensure syncService implements SyncService
@@ -30,12 +31,14 @@ func NewSyncService(injector do.Injector) (SyncService, error) {
 	// Resolve dependencies using do.MustInvoke as per DI pattern
 	projectManager := do.MustInvoke[manager.ProjectManager](injector)
 	logger := do.MustInvoke[logger.Logger](injector)
-	diffEngine := do.MustInvoke[knotsync.DiffEngine](injector)
+	diffEngine := do.MustInvoke[sync.DiffEngine](injector)
+	conflictResolver := do.MustInvoke[sync.ConflictResolver](injector)
 
 	return &syncServiceImpl{
-		projectManager: projectManager,
-		logger:         logger,
-		diffEngine:     diffEngine,
+		projectManager:   projectManager,
+		logger:           logger,
+		diffEngine:       diffEngine,
+		conflictResolver: conflictResolver,
 	}, nil
 }
 
@@ -60,12 +63,24 @@ func (s *syncServiceImpl) PerformFullSync(ctx context.Context, request shared.Sy
 		// Project exists, add to remote data
 		remoteData.Projects[project.ID] = project
 
-		// Fetch all tasks for project
+		// Fetch all tasks for project with dependencies
 		tasks, listErr := s.projectManager.ListTasksForProject(ctx, request.ProjectID)
 		if listErr != nil {
 			return nil, fmt.Errorf("failed to list tasks: %w", listErr)
 		}
+
+		// Load tasks with dependencies for proper sync
+		taskIDs := make([]uuid.UUID, 0, len(tasks))
 		for _, task := range tasks {
+			taskIDs = append(taskIDs, task.ID)
+		}
+
+		tasksWithDeps, depsErr := s.projectManager.GetTasksWithDependencies(ctx, taskIDs)
+		if depsErr != nil {
+			return nil, fmt.Errorf("failed to load tasks with dependencies: %w", depsErr)
+		}
+
+		for _, task := range tasksWithDeps {
 			remoteData.Tasks[task.ID] = task
 		}
 	}
@@ -77,31 +92,40 @@ func (s *syncServiceImpl) PerformFullSync(ctx context.Context, request shared.Sy
 		return nil, fmt.Errorf("failed to calculate diff: %w", err)
 	}
 
-	// Step 3: Apply sync operations based on diff
-	result := &knotsync.SyncResult{
+	// Step 3: Resolve conflicts using the ConflictResolver
+	conflictResult, err := s.conflictResolver.ResolveConflicts(ctx, diffResult)
+	if err != nil {
+		return nil, fmt.Errorf("failed to resolve conflicts: %w", err)
+	}
+
+	// Step 4: Apply resolved sync operations
+	result := &sync.SyncResult{
 		SyncedAt:  time.Now(),
 		Success:   true,
 		Processed: 0,
 		Created:   0,
 		Updated:   0,
 		Deleted:   0,
-		Conflicts: make([]*shared.SyncConflict, 0),
+		Conflicts: conflictResult.Conflicts,
 		Errors:    make([]string, 0),
 	}
 
-	// Apply operations
-	for _, op := range diffResult.Operations {
+	// Apply only resolved operations
+	for _, op := range conflictResult.Resolved {
 		if err := s.applySyncOperation(ctx, op, result); err != nil {
 			result.Errors = append(result.Errors, fmt.Sprintf("failed to apply operation %s: %v", op.ID, err))
 			result.Success = false
 		}
 	}
 
-	// Step 4: Fetch updated remote data to return to client
-	updatedRemoteData := &shared.SyncDataSet{
-		Projects: make(map[uuid.UUID]*types.Project),
-		Tasks:    make(map[uuid.UUID]*types.Task),
+	// Validate conflict resolutions
+	if err := s.conflictResolver.ValidateResolutions(ctx, conflictResult); err != nil {
+		s.logger.Warn("Conflict resolution validation failed", zap.Error(err))
+		// Don't fail sync, just log warning
 	}
+
+	// Step 5: Fetch updated remote data to return to client
+	updatedRemoteData := shared.NewSyncDataSet()
 
 	project, err = s.projectManager.GetProject(ctx, request.ProjectID)
 	if err != nil {
@@ -114,8 +138,19 @@ func (s *syncServiceImpl) PerformFullSync(ctx context.Context, request shared.Sy
 	if listErr != nil {
 		result.Errors = append(result.Errors, fmt.Sprintf("failed to list updated tasks: %v", listErr))
 	} else {
+		// Load tasks with dependencies for proper sync response
+		taskIDs := make([]uuid.UUID, 0, len(tasks))
 		for _, task := range tasks {
-			updatedRemoteData.Tasks[task.ID] = task
+			taskIDs = append(taskIDs, task.ID)
+		}
+
+		tasksWithDeps, depsErr := s.projectManager.GetTasksWithDependencies(ctx, taskIDs)
+		if depsErr != nil {
+			result.Errors = append(result.Errors, fmt.Sprintf("failed to load tasks with dependencies: %v", depsErr))
+		} else {
+			for _, task := range tasksWithDeps {
+				updatedRemoteData.Tasks[task.ID] = task
+			}
 		}
 	}
 
@@ -235,7 +270,20 @@ func (s *syncServiceImpl) PerformPullSync(ctx context.Context, request shared.Sy
 		return response, fmt.Errorf("failed to list tasks: %w", err)
 	}
 
+	// Load tasks with dependencies - CRITICAL for pull sync to include dependencies
+	taskIDs := make([]uuid.UUID, 0, len(tasks))
 	for _, task := range tasks {
+		taskIDs = append(taskIDs, task.ID)
+	}
+
+	tasksWithDeps, err := s.projectManager.GetTasksWithDependencies(ctx, taskIDs)
+	if err != nil {
+		response.Success = false
+		response.Errors = []string{fmt.Sprintf("failed to load tasks with dependencies: %v", err)}
+		return response, fmt.Errorf("failed to load tasks with dependencies: %w", err)
+	}
+
+	for _, task := range tasksWithDeps {
 		response.RemoteChanges.Tasks[task.ID] = task
 	}
 
@@ -261,7 +309,7 @@ func (s *syncServiceImpl) HealthCheck(ctx context.Context) error {
 }
 
 // applySyncOperation applies a single sync operation based on diff result
-func (s *syncServiceImpl) applySyncOperation(ctx context.Context, op shared.SyncOperation, result *knotsync.SyncResult) error {
+func (s *syncServiceImpl) applySyncOperation(ctx context.Context, op shared.SyncOperation, result *sync.SyncResult) error {
 	switch op.EntityType {
 	case shared.EntityProject:
 		return s.applyProjectOperation(ctx, op, result)
@@ -273,7 +321,7 @@ func (s *syncServiceImpl) applySyncOperation(ctx context.Context, op shared.Sync
 }
 
 // applyProjectOperation applies a project sync operation
-func (s *syncServiceImpl) applyProjectOperation(ctx context.Context, op shared.SyncOperation, result *knotsync.SyncResult) error {
+func (s *syncServiceImpl) applyProjectOperation(ctx context.Context, op shared.SyncOperation, result *sync.SyncResult) error {
 	var project *types.Project
 
 	// Get the project data based on direction
@@ -304,7 +352,7 @@ func (s *syncServiceImpl) applyProjectOperation(ctx context.Context, op shared.S
 			zap.String("title", project.Title))
 
 	case shared.OpUpdate:
-		updated, err := s.projectManager.UpdateProject(ctx, project.ID, project.Title, project.Description, "sync-bi")
+		updated, err := s.projectManager.UpdateProject(ctx, project.ID, project.Title, project.Description, project.UpdatedBy)
 		if err != nil {
 			return fmt.Errorf("failed to update project: %w", err)
 		}
@@ -322,7 +370,7 @@ func (s *syncServiceImpl) applyProjectOperation(ctx context.Context, op shared.S
 }
 
 // applyTaskOperation applies a task sync operation
-func (s *syncServiceImpl) applyTaskOperation(ctx context.Context, op shared.SyncOperation, result *knotsync.SyncResult) error {
+func (s *syncServiceImpl) applyTaskOperation(ctx context.Context, op shared.SyncOperation, result *sync.SyncResult) error {
 	var task *types.Task
 
 	// Get the task data based on direction
@@ -353,8 +401,8 @@ func (s *syncServiceImpl) applyTaskOperation(ctx context.Context, op shared.Sync
 			zap.String("title", task.Title))
 
 	case shared.OpUpdate:
-		state := types.TaskState(task.State)
-		updated, err := s.projectManager.UpdateTask(ctx, task.ID, task.Title, task.Description, task.Complexity, state, "sync-bi")
+		// Use UpdateTaskForSync to preserve all task fields including dependencies
+		updated, err := s.projectManager.UpdateTaskForSync(ctx, task)
 		if err != nil {
 			return fmt.Errorf("failed to update task: %w", err)
 		}
@@ -372,8 +420,8 @@ func (s *syncServiceImpl) applyTaskOperation(ctx context.Context, op shared.Sync
 }
 
 // applyLocalData applies local data directly to the database (deprecated - use diff-based approach)
-func (s *syncServiceImpl) applyLocalData(ctx context.Context, localData *shared.SyncDataSet) *knotsync.SyncResult {
-	result := &knotsync.SyncResult{
+func (s *syncServiceImpl) applyLocalData(ctx context.Context, localData *shared.SyncDataSet) *sync.SyncResult {
+	result := &sync.SyncResult{
 		SyncedAt:  time.Now(),
 		Success:   true,
 		Processed: 0,
@@ -413,9 +461,8 @@ func (s *syncServiceImpl) applyLocalData(ctx context.Context, localData *shared.
 	for _, task := range localData.Tasks {
 		_, err := s.projectManager.SyncCreateTaskWithTimestamps(ctx, task)
 		if err != nil {
-			// Try update instead
-			state := types.TaskState(task.State)
-			updated, updateErr := s.projectManager.UpdateTask(ctx, task.ID, task.Title, task.Description, task.Complexity, state, "sync-push")
+			// Try update instead - use UpdateTaskForSync to preserve all fields including dependencies
+			updated, updateErr := s.projectManager.UpdateTaskForSync(ctx, task)
 			if updateErr != nil {
 				result.Errors = append(result.Errors, fmt.Sprintf("failed to sync task %s: %v", task.ID, err))
 				result.Success = false
@@ -441,7 +488,7 @@ func (s *syncServiceImpl) applyLocalData(ctx context.Context, localData *shared.
 // Helper methods for conversion between types
 
 // convertResultToResponse converts sync.SyncResult to shared.SyncResponse
-func (s *syncServiceImpl) convertResultToResponse(requestID uuid.UUID, result *knotsync.SyncResult) *shared.SyncResponse {
+func (s *syncServiceImpl) convertResultToResponse(requestID uuid.UUID, result *sync.SyncResult) *shared.SyncResponse {
 	response := &shared.SyncResponse{
 		Success:    result.Success,
 		RequestID:  requestID,

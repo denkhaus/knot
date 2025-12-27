@@ -1,4 +1,4 @@
-package sync
+package handlers
 
 import (
 	"bytes"
@@ -89,8 +89,7 @@ func TestSyncHandler_ValidateAndDeserializeRequest(t *testing.T) {
 	}
 
 	// Expectations
-	mockSerializer.EXPECT().DetectFormat("application/json").Return("json").Times(1)
-	mockSerializer.EXPECT().DeserializeRequest(gomock.Any(), "json").Return(&request, nil).Times(1)
+	mockSerializer.EXPECT().DeserializeRequest(gomock.Any()).Return(&request, nil).Times(1)
 	mockSerializer.EXPECT().ValidateRequest(&request).Return(shared.ValidationResult{Valid: true}).Times(1)
 
 	// Create handlers
@@ -141,8 +140,8 @@ func TestSyncHandler_WriteResponse(t *testing.T) {
 	}
 
 	// Expectations
-	mockSerializer.EXPECT().GetContentType("json").Return("application/json").Times(1)
-	mockSerializer.EXPECT().SerializeResponse(response, "json").Return([]byte(`{"success":true}`), nil).Times(1)
+
+	mockSerializer.EXPECT().SerializeResponse(response).Return([]byte(`{"success":true}`), nil).Times(1)
 
 	// Create handlers
 	handlers := &syncEndpoints{
@@ -182,8 +181,8 @@ func TestSyncHandler_WriteErrorResponse(t *testing.T) {
 	testError := &ValidationError{Message: "test error"}
 
 	// Expectations
-	mockSerializer.EXPECT().GetContentType("json").Return("application/json").Times(1)
-	mockSerializer.EXPECT().SerializeErrorResponse(gomock.Any(), "json").Return([]byte(`{"error":"test error"}`), nil).Times(1)
+
+	mockSerializer.EXPECT().SerializeErrorResponse(gomock.Any()).Return([]byte(`{"error":"test error"}`), nil).Times(1)
 
 	// Create handlers
 	handlers := &syncEndpoints{
@@ -203,45 +202,6 @@ func TestSyncHandler_WriteErrorResponse(t *testing.T) {
 	assert.Equal(t, http.StatusBadRequest, w.Code)
 	assert.Equal(t, "application/json", w.Header().Get("Content-Type"))
 	assert.Contains(t, w.Body.String(), "test error")
-}
-
-func TestSyncHandler_ParseFormatFromRequest(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
-
-	// Setup mocks
-	mockSerializer := mocks.NewMockSyncDataSerializer(ctrl)
-
-	mockService := mocks.NewMockSyncService(ctrl)
-
-	// Setup DI injector
-	injector := setupTestDI(mockSerializer, mockService)
-
-	// Create handlers
-	handlers := &syncEndpoints{
-		handler:    do.MustInvoke[SyncHandler](injector),
-		service:    mockService,
-		serializer: mockSerializer,
-	}
-
-	// Test JSON format
-	req1 := httptest.NewRequest("POST", "/api/sync/test", nil)
-	req1.Header.Set("Content-Type", "application/json")
-	assert.Equal(t, "json", handlers.handler.parseFormatFromRequest(req1))
-
-	// Test MessagePack format
-	req2 := httptest.NewRequest("POST", "/api/sync/test", nil)
-	req2.Header.Set("Content-Type", "application/msgpack")
-	assert.Equal(t, "msgpack", handlers.handler.parseFormatFromRequest(req2))
-
-	// Test Accept header
-	req3 := httptest.NewRequest("POST", "/api/sync/test", nil)
-	req3.Header.Set("Accept", "application/msgpack")
-	assert.Equal(t, "msgpack", handlers.handler.parseFormatFromRequest(req3))
-
-	// Test query parameter
-	req4 := httptest.NewRequest("GET", "/api/sync/test?format=msgpack", nil)
-	assert.Equal(t, "msgpack", handlers.handler.parseFormatFromRequest(req4))
 }
 
 func TestSyncHandler_HealthHandler(t *testing.T) {
@@ -358,10 +318,8 @@ func TestSyncHandler_RequestTooLarge(t *testing.T) {
 	// Setup DI injector
 	injector := setupTestDI(mockSerializer, mockService)
 
-	// Add expectation for GetContentType (called before size check)
-	mockSerializer.EXPECT().GetContentType(gomock.Any()).Return("application/json").AnyTimes()
 	// Add expectation for SerializeErrorResponse (called when size check fails)
-	mockSerializer.EXPECT().SerializeErrorResponse(gomock.Any(), "json").Return([]byte(`{"error":"request body too large"}`), nil).AnyTimes()
+	mockSerializer.EXPECT().SerializeErrorResponse(gomock.Any()).Return([]byte(`{"error":"request body too large"}`), nil).AnyTimes()
 
 	// Create handlers
 	handlers := &syncEndpoints{

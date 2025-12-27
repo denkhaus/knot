@@ -1,4 +1,4 @@
-package sync
+package handlers
 
 import (
 	"context"
@@ -52,29 +52,29 @@ func NewSyncEndpoints(injector do.Injector) (SyncEndpoints, error) {
 // Middleware for request timeout and logging
 func (e *syncEndpointsImpl) Middleware() func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		// Set request timeout
-		ctx, cancel := context.WithTimeout(r.Context(), RequestTimeout)
-		defer cancel()
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Set request timeout
+			ctx, cancel := context.WithTimeout(r.Context(), RequestTimeout)
+			defer cancel()
 
-		// Add request ID to context
-		requestID := uuid.New()
-		ctx = context.WithValue(ctx, "request_id", requestID)
+			// Add request ID to context
+			requestID := uuid.New()
+			ctx = context.WithValue(ctx, "request_id", requestID)
 
-		// Set CORS headers
-		w.Header().Set("Access-Control-Allow-Origin", "*")
-		w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept")
+			// Set CORS headers
+			w.Header().Set("Access-Control-Allow-Origin", "*")
+			w.Header().Set("Access-Control-Allow-Methods", "POST, OPTIONS")
+			w.Header().Set("Access-Control-Allow-Headers", "Content-Type, Accept")
 
-		// Handle OPTIONS preflight
-		if r.Method == "OPTIONS" {
-			w.WriteHeader(http.StatusOK)
-			return
-		}
+			// Handle OPTIONS preflight
+			if r.Method == "OPTIONS" {
+				w.WriteHeader(http.StatusOK)
+				return
+			}
 
-		// Continue with modified request
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
+			// Continue with modified request
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
 	}
 }
 

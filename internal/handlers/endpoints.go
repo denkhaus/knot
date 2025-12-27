@@ -1,4 +1,4 @@
-package sync
+package handlers
 
 import (
 	"context"
@@ -216,13 +216,25 @@ func (e *syncEndpoints) ListTasksHandler() http.HandlerFunc {
 			return
 		}
 
+		// Load tasks with dependencies - CRITICAL for sync to include dependency relationships
+		taskIDs := make([]uuid.UUID, 0, len(tasks))
+		for _, task := range tasks {
+			taskIDs = append(taskIDs, task.ID)
+		}
+
+		tasksWithDeps, err := e.projectManager.GetTasksWithDependencies(r.Context(), taskIDs)
+		if err != nil {
+			http.Error(w, fmt.Sprintf("failed to load tasks with dependencies: %v", err), http.StatusInternalServerError)
+			return
+		}
+
 		// Convert to SyncDataSet format
 		dataSet := &shared.SyncDataSet{
 			Projects: make(map[uuid.UUID]*types.Project),
 			Tasks:    make(map[uuid.UUID]*types.Task),
 		}
 
-		for _, t := range tasks {
+		for _, t := range tasksWithDeps {
 			dataSet.Tasks[t.ID] = t
 		}
 
