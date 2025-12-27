@@ -3,6 +3,7 @@ package sync
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/logger"
@@ -171,8 +172,31 @@ func (e *migrationEngineImpl) PullSync(ctx context.Context, projectID *uuid.UUID
 		}
 	}
 
-	// Apply tasks
+	// Apply tasks in two passes:
+	// Pass 1: Create all tasks WITHOUT dependencies (to avoid "dependency not found" errors)
+	// Pass 2: Add dependencies after all tasks exist
+
+	// Prepare tasks - save dependencies and clear them for first pass
+	taskDeps := make(map[uuid.UUID][]uuid.UUID) // task ID -> dependencies
+	taskSlice := make([]*types.Task, 0, len(remoteData.Tasks))
 	for _, task := range remoteData.Tasks {
+		// Save dependencies
+		if len(task.Dependencies) > 0 {
+			taskDeps[task.ID] = append([]uuid.UUID{}, task.Dependencies...)
+		}
+		// Clear dependencies for first pass
+		taskCopy := *task
+		taskCopy.Dependencies = nil
+		taskSlice = append(taskSlice, &taskCopy)
+	}
+
+	// Sort by depth (parent tasks before child tasks)
+	sort.Slice(taskSlice, func(i, j int) bool {
+		return taskSlice[i].Depth < taskSlice[j].Depth
+	})
+
+	// Pass 1: Create all tasks without dependencies
+	for _, task := range taskSlice {
 		_, err := e.projectManager.SyncCreateTaskWithTimestamps(ctx, task)
 		if err != nil {
 			// Try update instead
@@ -195,6 +219,25 @@ func (e *migrationEngineImpl) PullSync(ctx context.Context, projectID *uuid.UUID
 			e.logger.Debug("Created task from remote",
 				zap.String("task_id", task.ID.String()),
 				zap.String("title", task.Title))
+		}
+	}
+
+	// Pass 2: Add dependencies to tasks
+	for taskID, deps := range taskDeps {
+		for _, depID := range deps {
+			_, err := e.projectManager.AddTaskDependency(ctx, taskID, depID, "sync-pull")
+			if err != nil {
+				// Log error but don't fail the entire sync
+				e.logger.Warn("Failed to add dependency during sync",
+					zap.String("task_id", taskID.String()),
+					zap.String("depends_on", depID.String()),
+					zap.Error(err))
+				result.Errors = append(result.Errors, fmt.Sprintf("failed to add dependency %s -> %s: %v", taskID, depID, err))
+			} else {
+				e.logger.Debug("Added dependency during sync",
+					zap.String("task_id", taskID.String()),
+					zap.String("depends_on", depID.String()))
+			}
 		}
 	}
 

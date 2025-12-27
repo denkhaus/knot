@@ -10,20 +10,15 @@ import (
 // SyncDataSerializer provides interface for serializing and validating sync data
 type SyncDataSerializer interface {
 	// Request serialization
-	SerializeRequest(req *SyncRequest, format string) ([]byte, error)
-	DeserializeRequest(data []byte, format string) (*SyncRequest, error)
+	SerializeRequest(req *SyncRequest) ([]byte, error)
+	DeserializeRequest(data []byte) (*SyncRequest, error)
 
 	// Response serialization
-	SerializeResponse(resp *SyncResponse, format string) ([]byte, error)
-	DeserializeResponse(data []byte, format string) (*SyncResponse, error)
+	SerializeResponse(resp *SyncResponse) ([]byte, error)
+	DeserializeResponse(data []byte) (*SyncResponse, error)
 
 	// Error serialization
-	SerializeErrorResponse(errResp *ErrorResponse, format string) ([]byte, error)
-
-	// Format utilities
-	GetContentType(format string) string
-	DetectFormat(contentType string) string
-	CompareSize(data interface{}) (jsonSize, msgpackSize int, ratio float64, err error)
+	SerializeErrorResponse(errResp *ErrorResponse) ([]byte, error)
 
 	// Validation
 	ValidateRequest(req *SyncRequest) ValidationResult
@@ -32,38 +27,38 @@ type SyncDataSerializer interface {
 
 // SyncRequest represents a sync request payload for HTTP transport
 type SyncRequest struct {
-	ProjectID    uuid.UUID     `json:"project_id" msgpack:"project_id"`
-	Direction    SyncDirection `json:"direction" msgpack:"direction"`
-	SinceVersion *int64        `json:"since_version,omitempty" msgpack:"since_version,omitempty"`
-	LocalData    *SyncDataSet  `json:"local_data,omitempty" msgpack:"local_data,omitempty"`
-	RequestID    uuid.UUID     `json:"request_id" msgpack:"request_id"`
-	Timestamp    time.Time     `json:"timestamp" msgpack:"timestamp"`
+	ProjectID    uuid.UUID     `json:"project_id"`
+	Direction    SyncDirection `json:"direction"`
+	SinceVersion *int64        `json:"since_version,omitempty"`
+	LocalData    *SyncDataSet  `json:"local_data,omitempty"`
+	RequestID    uuid.UUID     `json:"request_id"`
+	Timestamp    time.Time     `json:"timestamp"`
 }
 
 // SyncResponse represents a sync response payload for HTTP transport
 type SyncResponse struct {
-	Success       bool           `json:"success" msgpack:"success"`
-	RequestID     uuid.UUID      `json:"request_id" msgpack:"request_id"`
-	Processed     int            `json:"processed" msgpack:"processed"`
-	Created       int            `json:"created" msgpack:"created"`
-	Updated       int            `json:"updated" msgpack:"updated"`
-	Deleted       int            `json:"deleted" msgpack:"deleted"`
-	RemoteChanges *SyncDataSet   `json:"remote_changes,omitempty" msgpack:"remote_changes,omitempty"`
-	Conflicts     []SyncConflict `json:"conflicts,omitempty" msgpack:"conflicts,omitempty"`
-	NewVersion    int64          `json:"new_version" msgpack:"new_version"`
-	Timestamp     time.Time      `json:"timestamp" msgpack:"timestamp"`
-	Duration      time.Duration  `json:"duration" msgpack:"duration"`
-	Errors        []string       `json:"errors,omitempty" msgpack:"errors,omitempty"`
+	Success       bool           `json:"success"`
+	RequestID     uuid.UUID      `json:"request_id"`
+	Processed     int            `json:"processed"`
+	Created       int            `json:"created"`
+	Updated       int            `json:"updated"`
+	Deleted       int            `json:"deleted"`
+	RemoteChanges *SyncDataSet   `json:"remote_changes,omitempty"`
+	Conflicts     []SyncConflict `json:"conflicts,omitempty"`
+	NewVersion    int64          `json:"new_version"`
+	Timestamp     time.Time      `json:"timestamp"`
+	Duration      time.Duration  `json:"duration"`
+	Errors        []string       `json:"errors,omitempty"`
 }
 
 // ErrorResponse represents a standardized error response
 type ErrorResponse struct {
-	Error      string    `json:"error" msgpack:"error"`
-	RequestID  uuid.UUID `json:"request_id" msgpack:"request_id"`
-	Timestamp  time.Time `json:"timestamp" msgpack:"timestamp"`
-	Details    string    `json:"details,omitempty" msgpack:"details,omitempty"`
-	Retryable  bool      `json:"retryable" msgpack:"retryable"`
-	Suggestion string    `json:"suggestion,omitempty" msgpack:"suggestion,omitempty"`
+	Error      string    `json:"error"`
+	RequestID  uuid.UUID `json:"request_id"`
+	Timestamp  time.Time `json:"timestamp"`
+	Details    string    `json:"details,omitempty"`
+	Retryable  bool      `json:"retryable"`
+	Suggestion string    `json:"suggestion,omitempty"`
 }
 
 // ValidationError represents a validation error

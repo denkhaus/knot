@@ -1,4 +1,4 @@
-package sync
+package sync_test
 
 import (
 	"context"
@@ -6,21 +6,48 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/config"
+	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mocks"
+	knotsync "github.com/denkhaus/knot/v2/internal/sync"
+	"github.com/denkhaus/knot/v2/internal/sync/client"
 	"github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+	"go.uber.org/zap"
 )
+
+// noopLogger is a minimal logger implementation for testing
+type noopLogger struct{}
+
+func (l *noopLogger) Debug(msg string, fields ...zap.Field) {}
+func (l *noopLogger) Info(msg string, fields ...zap.Field)  {}
+func (l *noopLogger) Warn(msg string, fields ...zap.Field)  {}
+func (l *noopLogger) Error(msg string, fields ...zap.Field) {}
+func (l *noopLogger) Sync()                                 {}
+func (l *noopLogger) With(fields ...zap.Field) logger.Logger {
+	return l
+}
+func (l *noopLogger) Named(name string) logger.Logger {
+	return l
+}
+func (l *noopLogger) ToZap() *zap.Logger {
+	return zap.NewNop()
+}
+func (l *noopLogger) SetLevel(level string) {}
 
 // testSyncService is a minimal service for testing without full dependencies
 type testSyncService struct {
 	logger *noopLogger
 }
 
-func (s *testSyncService) Sync(ctx context.Context, projectID uuid.UUID, direction shared.SyncDirection) (*SyncResult, error) {
+func (s *testSyncService) Sync(ctx context.Context, projectID uuid.UUID, direction shared.SyncDirection) (*knotsync.SyncResult, error) {
 	// Return a mock result for testing
-	return &SyncResult{
+	return &knotsync.SyncResult{
 		SyncedAt:  time.Now(),
 		Success:   true,
 		Processed: 0,
@@ -31,14 +58,41 @@ func (s *testSyncService) Sync(ctx context.Context, projectID uuid.UUID, directi
 	}, nil
 }
 
+// newTestIntegrationComponents creates test components using DI for integration testing
+func newTestIntegrationComponents(t *testing.T) (knotsync.DataExtractor, knotsync.DiffEngine) {
+	t.Helper()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create mocks
+	mockPM := mocks.NewMockProjectManager(ctrl)
+	mockClient := mocks.NewMockRESTSyncClient(ctrl)
+
+	// Setup default mock expectations
+	mockClient.EXPECT().GetRemoteData(gomock.Any(), gomock.Any()).Return(&shared.SyncDataSet{}, nil).AnyTimes()
+	mockPM.EXPECT().ListTasksForProject(gomock.Any(), gomock.Any()).Return([]*types.Task{}, nil).AnyTimes()
+	mockPM.EXPECT().GetTasksWithDependencies(gomock.Any(), gomock.Any()).Return([]*types.Task{}, nil).AnyTimes()
+
+	// Create test DI injector
+	injector := do.New()
+	do.ProvideValue[logger.Logger](injector, &noopLogger{})
+	do.ProvideValue[manager.ProjectManager](injector, mockPM)
+	do.ProvideValue[client.RESTSyncClient](injector, mockClient)
+
+	// Create components using DI
+	dataExtractor, err := knotsync.NewDataExtractorService(injector)
+	require.NoError(t, err)
+
+	diffEngine, err := knotsync.NewDiffEngine(injector)
+	require.NoError(t, err)
+
+	return dataExtractor, diffEngine
+}
+
 // TestSyncIntegration_EndToEnd tests the complete sync workflow
 func TestSyncIntegration_EndToEnd(t *testing.T) {
-	// Create a simple logger for testing
-	log := &noopLogger{}
-
 	// Create sync components
-	dataExtractor := NewDataExtractor(log)
-	diffEngine := NewDiffEngine(log)
+	dataExtractor, diffEngine := newTestIntegrationComponents(t)
 
 	ctx := context.Background()
 	projectID := uuid.New()
@@ -148,8 +202,7 @@ func TestSyncIntegration_FullWorkflow(t *testing.T) {
 
 // TestSyncIntegration_DataValidation tests data validation across the sync pipeline
 func TestSyncIntegration_DataValidation(t *testing.T) {
-	log := &noopLogger{}
-	dataExtractor := NewDataExtractor(log)
+	dataExtractor, _ := newTestIntegrationComponents(t)
 
 	ctx := context.Background()
 
@@ -195,8 +248,7 @@ func TestSyncIntegration_DataValidation(t *testing.T) {
 
 // TestSyncIntegration_PerformanceMonitoring tests the performance monitoring aspects
 func TestSyncIntegration_PerformanceMonitoring(t *testing.T) {
-	log := &noopLogger{}
-	diffEngine := NewDiffEngine(log)
+	_, diffEngine := newTestIntegrationComponents(t)
 
 	ctx := context.Background()
 

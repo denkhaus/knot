@@ -210,7 +210,7 @@ func (s *service) Sync(ctx context.Context, projectID uuid.UUID, direction share
 			return &SyncResult{Success: false, Errors: []string{err.Error()}, SyncedAt: time.Now()}, err
 		}
 
-		localData, err := s.dataExtractor.ExtractLocalData(ctx, s.projectManager, projectID)
+		localData, err := s.dataExtractor.ExtractLocalData(ctx, projectID)
 		if err != nil {
 			return &SyncResult{Success: false, Errors: []string{err.Error()}, SyncedAt: time.Now()}, err
 		}
@@ -229,7 +229,7 @@ func (s *service) Sync(ctx context.Context, projectID uuid.UUID, direction share
 			return &SyncResult{Success: false, Errors: []string{err.Error()}, SyncedAt: time.Now()}, err
 		}
 
-		localData, err := s.dataExtractor.ExtractLocalData(ctx, s.projectManager, projectID)
+		localData, err := s.dataExtractor.ExtractLocalData(ctx, projectID)
 		if err != nil {
 			return &SyncResult{Success: false, Errors: []string{err.Error()}, SyncedAt: time.Now()}, err
 		}

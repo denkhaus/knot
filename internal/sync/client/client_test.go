@@ -64,7 +64,6 @@ func createTestClient(t *testing.T, serverURL string) syncclient.RESTSyncClient 
 
 	cfg := &config.SyncConfig{
 		ServerURL:        serverURL,
-		PreferredFormat:  "json",
 		Timeout:          5 * time.Second,
 		RetryAttempts:    2,
 		RetryDelay:       100 * time.Millisecond,
@@ -151,7 +150,6 @@ func TestNewRESTSyncClient(t *testing.T) {
 	cfgSvc := mocks.NewMockService(ctrl)
 	cfg := &config.SyncConfig{
 		ServerURL:       "http://localhost:9094",
-		PreferredFormat: "json",
 		Timeout:         30 * time.Second,
 		RetryAttempts:   3,
 		RetryDelay:      1 * time.Second,
@@ -312,7 +310,6 @@ func TestClientGetRemoteData_WithAuthToken(t *testing.T) {
 
 	cfg := &config.SyncConfig{
 		ServerURL:       server.URL,
-		PreferredFormat: "json",
 		Timeout:         5 * time.Second,
 		RetryAttempts:   2,
 		RetryDelay:      100 * time.Millisecond,

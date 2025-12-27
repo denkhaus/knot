@@ -111,13 +111,8 @@ func (c *restSyncClientImpl) Sync(ctx context.Context, req *shared.SyncRequest) 
 		return nil, fmt.Errorf("failed to build endpoint URL: %w", err)
 	}
 
-	// Serialize request based on preferred format
-	format := c.config.PreferredFormat
-	if format == "" {
-		format = "json"
-	}
-
-	requestData, err := c.serializer.SerializeRequest(req, format)
+	// Serialize request to JSON (msgpack no longer supported)
+	requestData, err := c.serializer.SerializeRequest(req)
 	if err != nil {
 		return nil, fmt.Errorf("failed to serialize request: %w", err)
 	}
@@ -129,7 +124,7 @@ func (c *restSyncClientImpl) Sync(ctx context.Context, req *shared.SyncRequest) 
 	}
 
 	// Set headers
-	c.setRequestHeaders(httpReq, format)
+	c.setRequestHeaders(httpReq, "json")
 
 	// Execute request with retry logic
 	responseData, err := c.executeWithRetry(ctx, httpReq)
@@ -137,8 +132,8 @@ func (c *restSyncClientImpl) Sync(ctx context.Context, req *shared.SyncRequest) 
 		return nil, fmt.Errorf("failed to execute sync request: %w", err)
 	}
 
-	// Deserialize response
-	resp, err := c.serializer.DeserializeResponse(responseData, format)
+	// Deserialize response (JSON only)
+	resp, err := c.serializer.DeserializeResponse(responseData)
 	if err != nil {
 		return nil, fmt.Errorf("failed to deserialize response: %w", err)
 	}
@@ -418,14 +413,11 @@ func (c *restSyncClientImpl) formatErrorResponse(statusCode int, body []byte) er
 	return fmt.Errorf("sync server error (status %d): %s", statusCode, string(body))
 }
 
-// setRequestHeaders sets the required headers for an HTTP request
+// setRequestHeaders sets the required headers for an HTTP request (JSON only)
 func (c *restSyncClientImpl) setRequestHeaders(req *http.Request, format string) {
-	contentType := "application/json"
-	if format == "msgpack" {
-		contentType = "application/msgpack"
-	}
-	req.Header.Set("Content-Type", contentType)
-	req.Header.Set("Accept", contentType)
+	// format parameter is ignored - only JSON is supported
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
 
 	if c.config.AuthToken != "" {
 		req.Header.Set("Authorization", "Bearer "+c.config.AuthToken)

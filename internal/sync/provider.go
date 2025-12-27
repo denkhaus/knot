@@ -6,8 +6,8 @@ import (
 	"github.com/samber/do/v2"
 )
 
-// NewRESTSyncClientProvider creates a REST sync client from DI dependencies
-func NewRESTSyncClientProvider(injector do.Injector) (client.RESTSyncClient, error) {
+// NewSyncClient creates a REST sync client from DI dependencies
+func NewSyncClient(injector do.Injector) (client.RESTSyncClient, error) {
 	// The client package has its own provider that handles DI
 	return client.NewRESTSyncClient(injector)
 }

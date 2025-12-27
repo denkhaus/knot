@@ -6,6 +6,8 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/sync/client"
 	"github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
@@ -13,24 +15,16 @@ import (
 	"go.uber.org/zap"
 )
 
-// RESTClient defines the interface for REST sync client operations
-type RESTClient interface {
-	GetRemoteData(ctx context.Context, projectID *uuid.UUID) (*shared.SyncDataSet, error)
-}
-
 // DataExtractor defines the interface for data extraction operations
 type DataExtractor interface {
-	// SetClient sets the REST sync client for remote data extraction
-	SetClient(client RESTClient)
-
 	// ExtractLocalData extracts data from local storage (SQLite)
-	ExtractLocalData(ctx context.Context, projectManager interface{}, projectID uuid.UUID) (*shared.SyncDataSet, error)
+	ExtractLocalData(ctx context.Context, projectID uuid.UUID) (*shared.SyncDataSet, error)
 
 	// ExtractRemoteData extracts data from sync server via REST API
-	ExtractRemoteData(ctx context.Context, restClient RESTClient, projectID uuid.UUID) (*shared.SyncDataSet, error)
+	ExtractRemoteData(ctx context.Context, projectID uuid.UUID) (*shared.SyncDataSet, error)
 
 	// ExtractProjectData extracts data for a specific project from both sources
-	ExtractProjectData(ctx context.Context, projectManager interface{}, restClient RESTClient, projectID uuid.UUID) (*shared.SyncDataSet, error)
+	ExtractProjectData(ctx context.Context, projectID uuid.UUID) (*shared.SyncDataSet, error)
 
 	// ValidateDataSet validates a sync data set for consistency
 	ValidateDataSet(ctx context.Context, dataSet *shared.SyncDataSet) error
@@ -44,8 +38,9 @@ type DataExtractor interface {
 
 // dataExtractorImpl is the private implementation of DataExtractor
 type dataExtractorImpl struct {
-	logger logger.Logger
-	client RESTClient
+	logger         logger.Logger
+	client         client.RESTSyncClient
+	projectManager manager.ProjectManager
 }
 
 // Ensure dataExtractorImpl implements DataExtractor
@@ -54,28 +49,19 @@ var _ DataExtractor = (*dataExtractorImpl)(nil)
 // NewDataExtractorService creates a new data extractor service for DI
 func NewDataExtractorService(injector do.Injector) (DataExtractor, error) {
 	logger := do.MustInvoke[logger.Logger](injector)
+	projectManager := do.MustInvoke[manager.ProjectManager](injector)
+	restClient := do.MustInvoke[client.RESTSyncClient](injector)
 
 	logger.Debug("startup data extractor service")
 	return &dataExtractorImpl{
-		logger: logger,
+		logger:         logger,
+		projectManager: projectManager,
+		client:         restClient,
 	}, nil
 }
 
-// NewDataExtractor creates a new data extractor (deprecated - use DI instead)
-// Kept for backward compatibility with tests
-func NewDataExtractor(logger logger.Logger) DataExtractor {
-	return &dataExtractorImpl{
-		logger: logger,
-	}
-}
-
-// SetClient sets the REST sync client for remote data extraction
-func (e *dataExtractorImpl) SetClient(client RESTClient) {
-	e.client = client
-}
-
 // ExtractLocalData extracts data from local storage (SQLite)
-func (e *dataExtractorImpl) ExtractLocalData(ctx context.Context, projectManager interface{}, projectID uuid.UUID) (*shared.SyncDataSet, error) {
+func (e *dataExtractorImpl) ExtractLocalData(ctx context.Context, projectID uuid.UUID) (*shared.SyncDataSet, error) {
 	e.logger.Info("Extracting local data",
 		zap.String("project_id", projectID.String()))
 
@@ -83,7 +69,7 @@ func (e *dataExtractorImpl) ExtractLocalData(ctx context.Context, projectManager
 	dataSet := shared.NewSyncDataSet()
 
 	// Extract projects from local storage
-	projects, err := e.extractLocalProjects(ctx, projectManager)
+	projects, err := e.extractLocalProjects(ctx)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract local projects: %w", err)
 	}
@@ -93,7 +79,7 @@ func (e *dataExtractorImpl) ExtractLocalData(ctx context.Context, projectManager
 	}
 
 	// Extract tasks from local storage
-	tasks, err := e.extractLocalTasks(ctx, projectManager, projectID)
+	tasks, err := e.extractLocalTasks(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract local tasks: %w", err)
 	}
@@ -111,8 +97,8 @@ func (e *dataExtractorImpl) ExtractLocalData(ctx context.Context, projectManager
 }
 
 // ExtractRemoteData extracts data from sync server via REST API
-func (e *dataExtractorImpl) ExtractRemoteData(ctx context.Context, restClient RESTClient, projectID uuid.UUID) (*shared.SyncDataSet, error) {
-	if restClient == nil {
+func (e *dataExtractorImpl) ExtractRemoteData(ctx context.Context, projectID uuid.UUID) (*shared.SyncDataSet, error) {
+	if e.client == nil {
 		return nil, fmt.Errorf("REST client is required for remote data extraction")
 	}
 
@@ -122,7 +108,7 @@ func (e *dataExtractorImpl) ExtractRemoteData(ctx context.Context, restClient RE
 	startTime := time.Now()
 
 	// Fetch remote data using REST client
-	dataSet, err := restClient.GetRemoteData(ctx, &projectID)
+	dataSet, err := e.client.GetRemoteData(ctx, &projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to fetch remote data: %w", err)
 	}
@@ -136,7 +122,7 @@ func (e *dataExtractorImpl) ExtractRemoteData(ctx context.Context, restClient RE
 }
 
 // extractLocalProjects extracts projects from local storage
-func (e *dataExtractorImpl) extractLocalProjects(ctx context.Context, projectManager interface{}) ([]*types.Project, error) {
+func (e *dataExtractorImpl) extractLocalProjects(ctx context.Context) ([]*types.Project, error) {
 	e.logger.Debug("Extracting local projects from SQLite database")
 
 	// For now, we'll return empty slice since we extract projects by ID during sync
@@ -145,21 +131,12 @@ func (e *dataExtractorImpl) extractLocalProjects(ctx context.Context, projectMan
 }
 
 // extractLocalTasks extracts tasks from local storage
-func (e *dataExtractorImpl) extractLocalTasks(ctx context.Context, projectManager interface{}, projectID uuid.UUID) ([]*types.Task, error) {
+func (e *dataExtractorImpl) extractLocalTasks(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error) {
 	e.logger.Debug("Extracting local tasks from SQLite database",
 		zap.String("project_id", projectID.String()))
 
-	// Type assert projectManager to access methods
-	pm, ok := projectManager.(interface {
-		ListTasksForProject(ctx context.Context, projectID uuid.UUID) ([]*types.Task, error)
-		GetTasksWithDependencies(ctx context.Context, taskIDs []uuid.UUID) ([]*types.Task, error)
-	})
-	if !ok {
-		return nil, fmt.Errorf("projectManager does not support ListTasksForProject or GetTasksWithDependencies method")
-	}
-
 	// Get all tasks for the project
-	tasks, err := pm.ListTasksForProject(ctx, projectID)
+	tasks, err := e.projectManager.ListTasksForProject(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks from project manager: %w", err)
 	}
@@ -171,7 +148,7 @@ func (e *dataExtractorImpl) extractLocalTasks(ctx context.Context, projectManage
 	}
 
 	// Load tasks with dependencies
-	tasksWithDeps, err := pm.GetTasksWithDependencies(ctx, taskIDs)
+	tasksWithDeps, err := e.projectManager.GetTasksWithDependencies(ctx, taskIDs)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get tasks with dependencies: %w", err)
 	}
@@ -183,20 +160,20 @@ func (e *dataExtractorImpl) extractLocalTasks(ctx context.Context, projectManage
 }
 
 // ExtractProjectData extracts data for a specific project from both sources
-func (e *dataExtractorImpl) ExtractProjectData(ctx context.Context, projectManager interface{}, restClient RESTClient, projectID uuid.UUID) (*shared.SyncDataSet, error) {
+func (e *dataExtractorImpl) ExtractProjectData(ctx context.Context, projectID uuid.UUID) (*shared.SyncDataSet, error) {
 	e.logger.Info("Extracting project data from both sources",
 		zap.String("project_id", projectID.String()))
 
 	startTime := time.Now()
 
 	// Extract local data
-	localData, err := e.ExtractLocalData(ctx, projectManager, projectID)
+	localData, err := e.ExtractLocalData(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract local data: %w", err)
 	}
 
 	// Extract remote data
-	remoteData, err := e.ExtractRemoteData(ctx, restClient, projectID)
+	remoteData, err := e.ExtractRemoteData(ctx, projectID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to extract remote data: %w", err)
 	}

@@ -18,11 +18,17 @@ func newTestLogger() logger.Logger {
 	return &noopLogger{}
 }
 
+// newTestConflictResolver creates a conflict resolver for testing (not using DI)
+func newTestConflictResolver(strategy ConflictStrategy) *conflictResolverImpl {
+	return &conflictResolverImpl{
+		logger:   newTestLogger(),
+		strategy: strategy,
+	}
+}
+
 // TestConflictResolver_NewConflictResolver tests the constructor
 func TestConflictResolver_NewConflictResolver(t *testing.T) {
-	mockLogger := newTestLogger()
-
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver(ConflictStrategyLastWriterWins)
 
 	assert.NotNil(t, resolver)
 	assert.Equal(t, ConflictStrategyLastWriterWins, resolver.strategy)
@@ -30,8 +36,7 @@ func TestConflictResolver_NewConflictResolver(t *testing.T) {
 
 // TestConflictResolver_IdentifyConflicts_NoConflicts tests operations on different entities
 func TestConflictResolver_IdentifyConflicts_NoConflicts(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver(ConflictStrategyLastWriterWins)
 
 	now := time.Now()
 
@@ -76,8 +81,7 @@ func TestConflictResolver_IdentifyConflicts_NoConflicts(t *testing.T) {
 
 // TestConflictResolver_IdentifyConflicts_SameEntityDifferentTimestamps tests simple timestamp conflicts
 func TestConflictResolver_IdentifyConflicts_SameEntityDifferentTimestamps(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver( ConflictStrategyLastWriterWins)
 
 	now := time.Now()
 	projectID := uuid.New()
@@ -139,8 +143,7 @@ func TestConflictResolver_IdentifyConflicts_SameEntityDifferentTimestamps(t *tes
 
 // TestConflictResolver_IdentifyConflicts_SameTimestamp tests complex conflicts with same timestamps
 func TestConflictResolver_IdentifyConflicts_SameTimestamp(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver( ConflictStrategyLastWriterWins)
 
 	now := time.Now()
 	projectID := uuid.New()
@@ -197,8 +200,7 @@ func TestConflictResolver_IdentifyConflicts_SameTimestamp(t *testing.T) {
 
 // TestConflictResolver_MultipleConflicts tests resolving multiple conflicts at once
 func TestConflictResolver_MultipleConflicts(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver( ConflictStrategyLastWriterWins)
 
 	now := time.Now()
 	projectID := uuid.New()
@@ -284,15 +286,31 @@ func TestConflictResolver_MultipleConflicts(t *testing.T) {
 	assert.Len(t, result.Conflicts, 2, "Two conflicts expected")
 	assert.Len(t, result.Resolutions, 2, "Two resolutions expected")
 
+	// Find the project and task resolutions (order may vary)
+	var projectResolution *shared.ConflictResolution
+	var taskResolution *shared.ConflictResolution
+	for i := range result.Resolutions {
+		if result.Resolutions[i].ChosenData != nil {
+			switch result.Resolutions[i].ChosenData.(type) {
+			case *types.Project:
+				projectResolution = &result.Resolutions[i]
+			case *types.Task:
+				taskResolution = &result.Resolutions[i]
+			}
+		}
+	}
+
+	require.NotNil(t, projectResolution, "Project resolution not found")
+	require.NotNil(t, taskResolution, "Task resolution not found")
+
 	// Both should prefer remote (later timestamps)
-	assert.Equal(t, "Remote Project", result.Resolutions[0].ChosenData.(*types.Project).Title)
-	assert.Equal(t, "Remote Task", result.Resolutions[1].ChosenData.(*types.Task).Title)
+	assert.Equal(t, "Remote Project", projectResolution.ChosenData.(*types.Project).Title)
+	assert.Equal(t, "Remote Task", taskResolution.ChosenData.(*types.Task).Title)
 }
 
 // TestConflictResolver_NoOperations tests empty operations list
 func TestConflictResolver_NoOperations(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver( ConflictStrategyLastWriterWins)
 
 	diffResult := &DiffResult{
 		Operations: []shared.SyncOperation{},
@@ -309,8 +327,7 @@ func TestConflictResolver_NoOperations(t *testing.T) {
 
 // TestConflictResolver_StrategyPreferLocal tests PreferLocal strategy
 func TestConflictResolver_StrategyPreferLocal(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyPreferLocal)
+	resolver := newTestConflictResolver( ConflictStrategyPreferLocal)
 
 	now := time.Now()
 	projectID := uuid.New()
@@ -365,8 +382,7 @@ func TestConflictResolver_StrategyPreferLocal(t *testing.T) {
 
 // TestConflictResolver_StrategyPreferRemote tests PreferRemote strategy
 func TestConflictResolver_StrategyPreferRemote(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyPreferRemote)
+	resolver := newTestConflictResolver( ConflictStrategyPreferRemote)
 
 	now := time.Now()
 	projectID := uuid.New()
@@ -421,8 +437,7 @@ func TestConflictResolver_StrategyPreferRemote(t *testing.T) {
 
 // TestConflictResolver_TaskDependencyConflict tests dependency-related conflicts
 func TestConflictResolver_TaskDependencyConflict(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver( ConflictStrategyLastWriterWins)
 
 	now := time.Now()
 	taskID := uuid.New()
@@ -485,8 +500,7 @@ func TestConflictResolver_TaskDependencyConflict(t *testing.T) {
 
 // TestConflictResolver_CreateOperationsDontConflict tests that create operations don't conflict
 func TestConflictResolver_CreateOperationsDontConflict(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyLastWriterWins)
+	resolver := newTestConflictResolver( ConflictStrategyLastWriterWins)
 
 	now := time.Now()
 	projectID := uuid.New()
@@ -533,8 +547,7 @@ func TestConflictResolver_CreateOperationsDontConflict(t *testing.T) {
 
 // TestConflictResolver_DeleteVsUpdateConflict tests delete vs update conflicts
 func TestConflictResolver_DeleteVsUpdateConflict(t *testing.T) {
-	mockLogger := newTestLogger()
-	resolver := NewConflictResolver(mockLogger, ConflictStrategyPreferLocal)
+	resolver := newTestConflictResolver( ConflictStrategyPreferLocal)
 
 	now := time.Now()
 	taskID := uuid.New()

@@ -2,6 +2,8 @@
 package shared
 
 import (
+	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/types"
@@ -20,6 +22,42 @@ func NewSyncDataSet() *SyncDataSet {
 		Projects: make(map[uuid.UUID]*types.Project),
 		Tasks:    make(map[uuid.UUID]*types.Task),
 	}
+}
+
+// UnmarshalJSON implements custom JSON unmarshaling for SyncDataSet
+// to handle UUID keys in maps (which are represented as strings in JSON)
+func (s *SyncDataSet) UnmarshalJSON(data []byte) error {
+	// First, define a temporary struct with string keys
+	type tempSyncDataSet struct {
+		Projects map[string]*types.Project `json:"projects"`
+		Tasks    map[string]*types.Task    `json:"tasks"`
+	}
+
+	var temp tempSyncDataSet
+	if err := json.Unmarshal(data, &temp); err != nil {
+		return err
+	}
+
+	// Convert string keys to UUID keys
+	s.Projects = make(map[uuid.UUID]*types.Project)
+	for key, value := range temp.Projects {
+		id, err := uuid.Parse(key)
+		if err != nil {
+			return fmt.Errorf("invalid project UUID: %w", err)
+		}
+		s.Projects[id] = value
+	}
+
+	s.Tasks = make(map[uuid.UUID]*types.Task)
+	for key, value := range temp.Tasks {
+		id, err := uuid.Parse(key)
+		if err != nil {
+			return fmt.Errorf("invalid task UUID: %w", err)
+		}
+		s.Tasks[id] = value
+	}
+
+	return nil
 }
 
 // SyncConflict represents a synchronization conflict

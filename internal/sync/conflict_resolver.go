@@ -5,29 +5,65 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"go.uber.org/zap"
 )
 
-// ConflictResolver handles synchronization conflicts and provides resolution strategies
-type ConflictResolver struct {
+// ConflictResolver defines the interface for conflict resolution operations
+type ConflictResolver interface {
+	// ResolveConflicts processes and resolves conflicts in the diff result
+	ResolveConflicts(ctx context.Context, diffResult *DiffResult) (*ConflictResolutionResult, error)
+
+	// ValidateResolutions validates conflict resolutions for consistency
+	ValidateResolutions(ctx context.Context, result *ConflictResolutionResult) error
+}
+
+// conflictResolverImpl is the private implementation of ConflictResolver
+type conflictResolverImpl struct {
 	logger   logger.Logger
 	strategy ConflictStrategy
 }
 
-// NewConflictResolver creates a new conflict resolver
-func NewConflictResolver(logger logger.Logger, strategy ConflictStrategy) *ConflictResolver {
-	return &ConflictResolver{
+// Ensure conflictResolverImpl implements ConflictResolver
+var _ ConflictResolver = (*conflictResolverImpl)(nil)
+
+// NewConflictResolver creates a ConflictResolver provider for DI
+func NewConflictResolver(injector do.Injector) (ConflictResolver, error) {
+	logger := do.MustInvoke[logger.Logger](injector)
+	cfg := do.MustInvoke[config.Service](injector)
+
+	// Get conflict strategy from config
+	strategyStr := cfg.GetSyncConfig().ConflictStrategy
+	strategy := ConflictStrategy(strategyStr)
+
+	// Validate strategy
+	switch strategy {
+	case ConflictStrategyLastWriterWins, ConflictStrategyPreferLocal, ConflictStrategyPreferRemote, ConflictStrategyManual:
+		// Valid strategies
+	default:
+		// Default to last-writer-wins if invalid
+		strategy = ConflictStrategyLastWriterWins
+		logger.Warn("Invalid conflict strategy in config, using default",
+			zap.String("configured", strategyStr),
+			zap.String("default", string(strategy)))
+	}
+
+	logger.Debug("Conflict resolver initialized",
+		zap.String("strategy", string(strategy)))
+
+	return &conflictResolverImpl{
 		logger:   logger,
 		strategy: strategy,
-	}
+	}, nil
 }
 
 // ResolveConflicts processes and resolves conflicts in the diff result
-func (r *ConflictResolver) ResolveConflicts(ctx context.Context, diffResult *DiffResult) (*ConflictResolutionResult, error) {
+func (r *conflictResolverImpl) ResolveConflicts(ctx context.Context, diffResult *DiffResult) (*ConflictResolutionResult, error) {
 	r.logger.Info("Resolving sync conflicts",
 		zap.Int("operations", len(diffResult.Operations)),
 		zap.String("strategy", string(r.strategy)))
@@ -86,8 +122,32 @@ func (r *ConflictResolver) ResolveConflicts(ctx context.Context, diffResult *Dif
 	return result, nil
 }
 
+// ValidateResolutions validates conflict resolutions for consistency
+func (r *conflictResolverImpl) ValidateResolutions(ctx context.Context, result *ConflictResolutionResult) error {
+	r.logger.Debug("Validating conflict resolutions",
+		zap.Int("conflicts", len(result.Conflicts)),
+		zap.Int("resolutions", len(result.Resolutions)))
+
+	// Check that all conflicts have resolutions
+	for _, conflict := range result.Conflicts {
+		if conflict.Resolution == nil {
+			return fmt.Errorf("conflict %s has no resolution", conflict.ID)
+		}
+	}
+
+	// Validate resolution data
+	for _, resolution := range result.Resolutions {
+		if err := r.validateResolution(&resolution); err != nil {
+			return fmt.Errorf("invalid resolution for conflict: %w", err)
+		}
+	}
+
+	r.logger.Debug("Conflict resolution validation completed successfully")
+	return nil
+}
+
 // identifyConflicts identifies conflicts in the sync operations
-func (r *ConflictResolver) identifyConflicts(operations []shared.SyncOperation) []*shared.SyncConflict {
+func (r *conflictResolverImpl) identifyConflicts(operations []shared.SyncOperation) []*shared.SyncConflict {
 	conflicts := make([]*shared.SyncConflict, 0)
 	operationMap := make(map[string][]*shared.SyncOperation)
 
@@ -112,7 +172,7 @@ func (r *ConflictResolver) identifyConflicts(operations []shared.SyncOperation) 
 }
 
 // createConflictFromOperations creates a conflict from multiple operations on the same entity
-func (r *ConflictResolver) createConflictFromOperations(operations []*shared.SyncOperation) *shared.SyncConflict {
+func (r *conflictResolverImpl) createConflictFromOperations(operations []*shared.SyncOperation) *shared.SyncConflict {
 	if len(operations) < 2 {
 		return nil
 	}
@@ -166,7 +226,7 @@ func (r *ConflictResolver) createConflictFromOperations(operations []*shared.Syn
 }
 
 // determineConflictType determines the type of conflict
-func (r *ConflictResolver) determineConflictType(localOp, remoteOp *shared.SyncOperation) shared.ConflictType {
+func (r *conflictResolverImpl) determineConflictType(localOp, remoteOp *shared.SyncOperation) shared.ConflictType {
 	if localOp == nil || remoteOp == nil {
 		return "" // No conflict if only one side has operation
 	}
@@ -191,7 +251,7 @@ func (r *ConflictResolver) determineConflictType(localOp, remoteOp *shared.SyncO
 }
 
 // extractDataFromOperation extracts entity data from an operation
-func (r *ConflictResolver) extractDataFromOperation(op *shared.SyncOperation) interface{} {
+func (r *conflictResolverImpl) extractDataFromOperation(op *shared.SyncOperation) interface{} {
 	if op == nil {
 		return nil
 	}
@@ -209,7 +269,7 @@ func (r *ConflictResolver) extractDataFromOperation(op *shared.SyncOperation) in
 }
 
 // resolveConflict resolves a single conflict based on the configured strategy
-func (r *ConflictResolver) resolveConflict(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
+func (r *conflictResolverImpl) resolveConflict(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
 	r.logger.Debug("Resolving conflict",
 		zap.String("conflict_id", conflict.ID.String()),
 		zap.Any("entity_id", conflict.EntityID),
@@ -231,7 +291,7 @@ func (r *ConflictResolver) resolveConflict(ctx context.Context, conflict *shared
 }
 
 // resolveLastWriterWins resolves conflict by choosing the most recently updated entity
-func (r *ConflictResolver) resolveLastWriterWins(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
+func (r *conflictResolverImpl) resolveLastWriterWins(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
 	localTime := r.getEntityTimestamp(conflict.LocalData)
 	remoteTime := r.getEntityTimestamp(conflict.RemoteData)
 
@@ -254,7 +314,7 @@ func (r *ConflictResolver) resolveLastWriterWins(ctx context.Context, conflict *
 }
 
 // resolvePreferLocal resolves conflict by always choosing the local version
-func (r *ConflictResolver) resolvePreferLocal(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
+func (r *conflictResolverImpl) resolvePreferLocal(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
 	return &shared.ConflictResolution{
 		Strategy:   string(ConflictStrategyPreferLocal),
 		ResolvedBy: "system",
@@ -266,7 +326,7 @@ func (r *ConflictResolver) resolvePreferLocal(ctx context.Context, conflict *sha
 }
 
 // resolvePreferRemote resolves conflict by always choosing the remote version
-func (r *ConflictResolver) resolvePreferRemote(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
+func (r *conflictResolverImpl) resolvePreferRemote(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
 	return &shared.ConflictResolution{
 		Strategy:   string(ConflictStrategyPreferRemote),
 		ResolvedBy: "system",
@@ -278,7 +338,7 @@ func (r *ConflictResolver) resolvePreferRemote(ctx context.Context, conflict *sh
 }
 
 // resolveManual marks conflict for manual resolution
-func (r *ConflictResolver) resolveManual(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
+func (r *conflictResolverImpl) resolveManual(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
 	return &shared.ConflictResolution{
 		Strategy:   string(ConflictStrategyManual),
 		ResolvedBy: "system",
@@ -289,7 +349,7 @@ func (r *ConflictResolver) resolveManual(ctx context.Context, conflict *shared.S
 }
 
 // resolveMerge attempts to merge conflicting entities
-func (r *ConflictResolver) resolveMerge(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
+func (r *conflictResolverImpl) resolveMerge(ctx context.Context, conflict *shared.SyncConflict) (*shared.ConflictResolution, error) {
 	mergedData, err := r.mergeEntities(conflict.LocalData, conflict.RemoteData)
 	if err != nil {
 		r.logger.Warn("Failed to merge entities, falling back to last writer wins",
@@ -309,7 +369,7 @@ func (r *ConflictResolver) resolveMerge(ctx context.Context, conflict *shared.Sy
 }
 
 // mergeEntities attempts to merge two entities
-func (r *ConflictResolver) mergeEntities(localData, remoteData interface{}) (interface{}, error) {
+func (r *conflictResolverImpl) mergeEntities(localData, remoteData interface{}) (interface{}, error) {
 	// This is a simplified merge implementation
 	// In a real implementation, you might want more sophisticated merging logic
 
@@ -338,7 +398,7 @@ func (r *ConflictResolver) mergeEntities(localData, remoteData interface{}) (int
 }
 
 // mergeProjects merges two projects
-func (r *ConflictResolver) mergeProjects(local, remote *types.Project) *types.Project {
+func (r *conflictResolverImpl) mergeProjects(local, remote *types.Project) *types.Project {
 	if local == nil {
 		return remote
 	}
@@ -373,7 +433,7 @@ func (r *ConflictResolver) mergeProjects(local, remote *types.Project) *types.Pr
 }
 
 // mergeTasks merges two tasks
-func (r *ConflictResolver) mergeTasks(local, remote *types.Task) *types.Task {
+func (r *conflictResolverImpl) mergeTasks(local, remote *types.Task) *types.Task {
 	if local == nil {
 		return remote
 	}
@@ -413,7 +473,7 @@ func (r *ConflictResolver) mergeTasks(local, remote *types.Task) *types.Task {
 }
 
 // mergeStringSlices merges two string slices without duplicates
-func (r *ConflictResolver) mergeStringSlices(slice1, slice2 []string) []string {
+func (r *conflictResolverImpl) mergeStringSlices(slice1, slice2 []string) []string {
 	merged := make([]string, 0)
 	seen := make(map[string]bool)
 
@@ -435,7 +495,7 @@ func (r *ConflictResolver) mergeStringSlices(slice1, slice2 []string) []string {
 }
 
 // mergeStringMaps merges two string maps
-func (r *ConflictResolver) mergeStringMaps(map1, map2 map[string]string) map[string]string {
+func (r *conflictResolverImpl) mergeStringMaps(map1, map2 map[string]string) map[string]string {
 	merged := make(map[string]string)
 
 	for k, v := range map1 {
@@ -450,7 +510,7 @@ func (r *ConflictResolver) mergeStringMaps(map1, map2 map[string]string) map[str
 }
 
 // getEntityTimestamp extracts the updated timestamp from an entity
-func (r *ConflictResolver) getEntityTimestamp(data interface{}) time.Time {
+func (r *conflictResolverImpl) getEntityTimestamp(data interface{}) time.Time {
 	if data == nil {
 		return time.Time{}
 	}
@@ -466,7 +526,7 @@ func (r *ConflictResolver) getEntityTimestamp(data interface{}) time.Time {
 }
 
 // isConflictedOperation checks if an operation is part of a conflict
-func (r *ConflictResolver) isConflictedOperation(op shared.SyncOperation, conflicts []*shared.SyncConflict) bool {
+func (r *conflictResolverImpl) isConflictedOperation(op shared.SyncOperation, conflicts []*shared.SyncConflict) bool {
 	for _, conflict := range conflicts {
 		if conflict.EntityID == op.EntityID && conflict.EntityType == op.EntityType {
 			return true
@@ -475,42 +535,8 @@ func (r *ConflictResolver) isConflictedOperation(op shared.SyncOperation, confli
 	return false
 }
 
-// ConflictResolutionResult represents the result of conflict resolution
-type ConflictResolutionResult struct {
-	Strategy    ConflictStrategy            `json:"strategy"`
-	Resolved    []shared.SyncOperation      `json:"resolved_operations"`
-	Conflicts   []*shared.SyncConflict      `json:"conflicts"`
-	Unresolved  []shared.SyncOperation      `json:"unresolved_operations"`
-	Resolutions []shared.ConflictResolution `json:"resolutions"`
-	Duration    time.Duration               `json:"duration"`
-}
-
-// ValidateResolutions validates conflict resolutions for consistency
-func (r *ConflictResolver) ValidateResolutions(ctx context.Context, result *ConflictResolutionResult) error {
-	r.logger.Debug("Validating conflict resolutions",
-		zap.Int("conflicts", len(result.Conflicts)),
-		zap.Int("resolutions", len(result.Resolutions)))
-
-	// Check that all conflicts have resolutions
-	for _, conflict := range result.Conflicts {
-		if conflict.Resolution == nil {
-			return fmt.Errorf("conflict %s has no resolution", conflict.ID)
-		}
-	}
-
-	// Validate resolution data
-	for _, resolution := range result.Resolutions {
-		if err := r.validateResolution(&resolution); err != nil {
-			return fmt.Errorf("invalid resolution for conflict: %w", err)
-		}
-	}
-
-	r.logger.Debug("Conflict resolution validation completed successfully")
-	return nil
-}
-
 // validateResolution validates a single conflict resolution
-func (r *ConflictResolver) validateResolution(resolution *shared.ConflictResolution) error {
+func (r *conflictResolverImpl) validateResolution(resolution *shared.ConflictResolution) error {
 	if resolution.Timestamp.IsZero() {
 		return fmt.Errorf("resolution timestamp is required")
 	}
@@ -528,4 +554,14 @@ func (r *ConflictResolver) validateResolution(resolution *shared.ConflictResolut
 	}
 
 	return nil
+}
+
+// ConflictResolutionResult represents the result of conflict resolution
+type ConflictResolutionResult struct {
+	Strategy    ConflictStrategy            `json:"strategy"`
+	Resolved    []shared.SyncOperation      `json:"resolved_operations"`
+	Conflicts   []*shared.SyncConflict      `json:"conflicts"`
+	Unresolved  []shared.SyncOperation      `json:"unresolved_operations"`
+	Resolutions []shared.ConflictResolution `json:"resolutions"`
+	Duration    time.Duration               `json:"duration"`
 }

@@ -50,7 +50,6 @@ func (l *internalTestLogger) SetLevel(level string) {}
 func createInternalTestClient(serverURL string) *restSyncClientImpl {
 	cfg := &config.SyncConfig{
 		ServerURL:        serverURL,
-		PreferredFormat:  "json",
 		Timeout:          5 * time.Second,
 		RetryAttempts:    2,
 		RetryDelay:       100 * time.Millisecond,
@@ -227,7 +226,6 @@ func TestClientGetTasks_WithSinceParameter(t *testing.T) {
 
 	cfg := &config.SyncConfig{
 		ServerURL:       server.URL,
-		PreferredFormat: "json",
 		Timeout:         5 * time.Second,
 		RetryAttempts:   2,
 		RetryDelay:      100 * time.Millisecond,
@@ -586,15 +584,6 @@ func TestClientSetRequestHeaders(t *testing.T) {
 			expectUA:   true,
 		},
 		{
-			name:       "MessagePack format",
-			format:     "msgpack",
-			authToken:  "",
-			userAgent:  "",
-			expectedCT: "application/msgpack",
-			expectAuth: false,
-			expectUA:   false,
-		},
-		{
 			name:       "JSON format without auth",
 			format:     "json",
 			authToken:  "",
@@ -609,7 +598,6 @@ func TestClientSetRequestHeaders(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			cfg := &config.SyncConfig{
 				ServerURL:       "http://localhost:9094",
-				PreferredFormat: "json",
 				AuthToken:       tt.authToken,
 				UserAgent:       tt.userAgent,
 				Timeout:         5 * time.Second,

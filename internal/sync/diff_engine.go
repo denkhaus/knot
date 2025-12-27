@@ -30,22 +30,14 @@ type diffEngineImpl struct {
 // Ensure diffEngineImpl implements DiffEngine
 var _ DiffEngine = (*diffEngineImpl)(nil)
 
-// NewDiffEngineService creates a new diff engine service for DI
-func NewDiffEngineService(injector do.Injector) (DiffEngine, error) {
+// NewDiffEngine creates a new diff engine service for DI
+func NewDiffEngine(injector do.Injector) (DiffEngine, error) {
 	logger := do.MustInvoke[logger.Logger](injector)
 
 	logger.Debug("startup diff engine service")
 	return &diffEngineImpl{
 		logger: logger,
 	}, nil
-}
-
-// NewDiffEngine creates a new diff engine (deprecated - use DI instead)
-// Kept for backward compatibility with tests
-func NewDiffEngine(logger logger.Logger) DiffEngine {
-	return &diffEngineImpl{
-		logger: logger,
-	}
 }
 
 // CalculateDiff computes the differences between local and remote data

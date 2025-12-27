@@ -5,23 +5,34 @@ import (
 	"testing"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/sync/shared"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func TestNewDiffEngine(t *testing.T) {
-	log := &noopLogger{}
-	engine := NewDiffEngine(log)
+// newTestDiffEngine creates a test DiffEngine using DI
+func newTestDiffEngine() DiffEngine {
+	injector := do.New()
+	do.ProvideValue[logger.Logger](injector, &noopLogger{})
 
+	engine, err := NewDiffEngine(injector)
+	if err != nil {
+		panic(err)
+	}
+	return engine
+}
+
+func TestNewDiffEngine(t *testing.T) {
+	engine := newTestDiffEngine()
 	assert.NotNil(t, engine)
 }
 
 func TestDiffEngine_CalculateDiff_EmptyDataSets(t *testing.T) {
-	log := &noopLogger{}
-	engine := NewDiffEngine(log)
+	engine := newTestDiffEngine()
 	ctx := context.Background()
 
 	localData := shared.NewSyncDataSet()
@@ -37,8 +48,7 @@ func TestDiffEngine_CalculateDiff_EmptyDataSets(t *testing.T) {
 }
 
 func TestDiffEngine_CalculateDiff_ProjectDifferences(t *testing.T) {
-	log := &noopLogger{}
-	engine := NewDiffEngine(log)
+	engine := newTestDiffEngine()
 	ctx := context.Background()
 
 	localData := shared.NewSyncDataSet()
@@ -88,8 +98,7 @@ func TestDiffEngine_CalculateDiff_ProjectDifferences(t *testing.T) {
 }
 
 func TestDiffEngine_CalculateDiff_TaskDifferences(t *testing.T) {
-	log := &noopLogger{}
-	engine := NewDiffEngine(log)
+	engine := newTestDiffEngine()
 	ctx := context.Background()
 
 	localData := shared.NewSyncDataSet()
@@ -143,8 +152,7 @@ func TestDiffEngine_CalculateDiff_TaskDifferences(t *testing.T) {
 }
 
 func TestDiffEngine_ValidateDiff_ValidResult(t *testing.T) {
-	log := &noopLogger{}
-	engine := NewDiffEngine(log)
+	engine := newTestDiffEngine()
 	ctx := context.Background()
 
 	projectID := uuid.New()

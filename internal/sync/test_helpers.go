@@ -71,6 +71,5 @@ func createTestSyncConfig() *config.SyncConfig {
 		BatchSize:        100,
 		RetryAttempts:    3,
 		RetryDelay:       5 * time.Second,
-		PreferredFormat:  "json",
 	}
 }
