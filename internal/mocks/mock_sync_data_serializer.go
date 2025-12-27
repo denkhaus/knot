@@ -40,124 +40,79 @@ func (m *MockSyncDataSerializer) EXPECT() *MockSyncDataSerializerMockRecorder {
 	return m.recorder
 }
 
-// CompareSize mocks base method.
-func (m *MockSyncDataSerializer) CompareSize(data any) (int, int, float64, error) {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "CompareSize", data)
-	ret0, _ := ret[0].(int)
-	ret1, _ := ret[1].(int)
-	ret2, _ := ret[2].(float64)
-	ret3, _ := ret[3].(error)
-	return ret0, ret1, ret2, ret3
-}
-
-// CompareSize indicates an expected call of CompareSize.
-func (mr *MockSyncDataSerializerMockRecorder) CompareSize(data any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "CompareSize", reflect.TypeOf((*MockSyncDataSerializer)(nil).CompareSize), data)
-}
-
 // DeserializeRequest mocks base method.
-func (m *MockSyncDataSerializer) DeserializeRequest(data []byte, format string) (*shared.SyncRequest, error) {
+func (m *MockSyncDataSerializer) DeserializeRequest(data []byte) (*shared.SyncRequest, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeserializeRequest", data, format)
+	ret := m.ctrl.Call(m, "DeserializeRequest", data)
 	ret0, _ := ret[0].(*shared.SyncRequest)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeserializeRequest indicates an expected call of DeserializeRequest.
-func (mr *MockSyncDataSerializerMockRecorder) DeserializeRequest(data, format any) *gomock.Call {
+func (mr *MockSyncDataSerializerMockRecorder) DeserializeRequest(data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeserializeRequest", reflect.TypeOf((*MockSyncDataSerializer)(nil).DeserializeRequest), data, format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeserializeRequest", reflect.TypeOf((*MockSyncDataSerializer)(nil).DeserializeRequest), data)
 }
 
 // DeserializeResponse mocks base method.
-func (m *MockSyncDataSerializer) DeserializeResponse(data []byte, format string) (*shared.SyncResponse, error) {
+func (m *MockSyncDataSerializer) DeserializeResponse(data []byte) (*shared.SyncResponse, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DeserializeResponse", data, format)
+	ret := m.ctrl.Call(m, "DeserializeResponse", data)
 	ret0, _ := ret[0].(*shared.SyncResponse)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // DeserializeResponse indicates an expected call of DeserializeResponse.
-func (mr *MockSyncDataSerializerMockRecorder) DeserializeResponse(data, format any) *gomock.Call {
+func (mr *MockSyncDataSerializerMockRecorder) DeserializeResponse(data any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeserializeResponse", reflect.TypeOf((*MockSyncDataSerializer)(nil).DeserializeResponse), data, format)
-}
-
-// DetectFormat mocks base method.
-func (m *MockSyncDataSerializer) DetectFormat(contentType string) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "DetectFormat", contentType)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// DetectFormat indicates an expected call of DetectFormat.
-func (mr *MockSyncDataSerializerMockRecorder) DetectFormat(contentType any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DetectFormat", reflect.TypeOf((*MockSyncDataSerializer)(nil).DetectFormat), contentType)
-}
-
-// GetContentType mocks base method.
-func (m *MockSyncDataSerializer) GetContentType(format string) string {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetContentType", format)
-	ret0, _ := ret[0].(string)
-	return ret0
-}
-
-// GetContentType indicates an expected call of GetContentType.
-func (mr *MockSyncDataSerializerMockRecorder) GetContentType(format any) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetContentType", reflect.TypeOf((*MockSyncDataSerializer)(nil).GetContentType), format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "DeserializeResponse", reflect.TypeOf((*MockSyncDataSerializer)(nil).DeserializeResponse), data)
 }
 
 // SerializeErrorResponse mocks base method.
-func (m *MockSyncDataSerializer) SerializeErrorResponse(errResp *shared.ErrorResponse, format string) ([]byte, error) {
+func (m *MockSyncDataSerializer) SerializeErrorResponse(errResp *shared.ErrorResponse) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SerializeErrorResponse", errResp, format)
+	ret := m.ctrl.Call(m, "SerializeErrorResponse", errResp)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SerializeErrorResponse indicates an expected call of SerializeErrorResponse.
-func (mr *MockSyncDataSerializerMockRecorder) SerializeErrorResponse(errResp, format any) *gomock.Call {
+func (mr *MockSyncDataSerializerMockRecorder) SerializeErrorResponse(errResp any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SerializeErrorResponse", reflect.TypeOf((*MockSyncDataSerializer)(nil).SerializeErrorResponse), errResp, format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SerializeErrorResponse", reflect.TypeOf((*MockSyncDataSerializer)(nil).SerializeErrorResponse), errResp)
 }
 
 // SerializeRequest mocks base method.
-func (m *MockSyncDataSerializer) SerializeRequest(req *shared.SyncRequest, format string) ([]byte, error) {
+func (m *MockSyncDataSerializer) SerializeRequest(req *shared.SyncRequest) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SerializeRequest", req, format)
+	ret := m.ctrl.Call(m, "SerializeRequest", req)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SerializeRequest indicates an expected call of SerializeRequest.
-func (mr *MockSyncDataSerializerMockRecorder) SerializeRequest(req, format any) *gomock.Call {
+func (mr *MockSyncDataSerializerMockRecorder) SerializeRequest(req any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SerializeRequest", reflect.TypeOf((*MockSyncDataSerializer)(nil).SerializeRequest), req, format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SerializeRequest", reflect.TypeOf((*MockSyncDataSerializer)(nil).SerializeRequest), req)
 }
 
 // SerializeResponse mocks base method.
-func (m *MockSyncDataSerializer) SerializeResponse(resp *shared.SyncResponse, format string) ([]byte, error) {
+func (m *MockSyncDataSerializer) SerializeResponse(resp *shared.SyncResponse) ([]byte, error) {
 	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "SerializeResponse", resp, format)
+	ret := m.ctrl.Call(m, "SerializeResponse", resp)
 	ret0, _ := ret[0].([]byte)
 	ret1, _ := ret[1].(error)
 	return ret0, ret1
 }
 
 // SerializeResponse indicates an expected call of SerializeResponse.
-func (mr *MockSyncDataSerializerMockRecorder) SerializeResponse(resp, format any) *gomock.Call {
+func (mr *MockSyncDataSerializerMockRecorder) SerializeResponse(resp any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SerializeResponse", reflect.TypeOf((*MockSyncDataSerializer)(nil).SerializeResponse), resp, format)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SerializeResponse", reflect.TypeOf((*MockSyncDataSerializer)(nil).SerializeResponse), resp)
 }
 
 // ValidateRequest mocks base method.
