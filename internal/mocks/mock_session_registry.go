@@ -115,6 +115,20 @@ func (mr *MockSessionRegistryMockRecorder) RemoveSession(ctx, sessionID any) *go
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "RemoveSession", reflect.TypeOf((*MockSessionRegistry)(nil).RemoveSession), ctx, sessionID)
 }
 
+// SetSessionProject mocks base method.
+func (m *MockSessionRegistry) SetSessionProject(ctx context.Context, sessionID uuid.UUID, projectID *uuid.UUID, actor string) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "SetSessionProject", ctx, sessionID, projectID, actor)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// SetSessionProject indicates an expected call of SetSessionProject.
+func (mr *MockSessionRegistryMockRecorder) SetSessionProject(ctx, sessionID, projectID, actor any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "SetSessionProject", reflect.TypeOf((*MockSessionRegistry)(nil).SetSessionProject), ctx, sessionID, projectID, actor)
+}
+
 // SyncExistingSessions mocks base method.
 func (m *MockSessionRegistry) SyncExistingSessions(ctx context.Context) error {
 	m.ctrl.T.Helper()

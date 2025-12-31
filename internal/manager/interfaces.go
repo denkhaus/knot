@@ -108,6 +108,11 @@ type ProjectManager interface {
 	// Utility methods
 	GetCurrentTime() time.Time
 	ResolveProjectID(ctx context.Context) (uuid.UUID, error)
+
+	// Health check operations
+	HealthCheck(ctx context.Context) (*types.HealthStatus, error)
+	Ping(ctx context.Context) error
+	ValidateConnection(ctx context.Context) error
 }
 
 // ToolSetProvider defines the interface for creating project task tool sets (not used in CLI)

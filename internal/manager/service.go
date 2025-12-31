@@ -1390,3 +1390,20 @@ func (s *projectManagerImpl) HasSelectedProject(ctx context.Context) (bool, erro
 func (s *projectManagerImpl) GetCurrentTime() time.Time {
 	return time.Now()
 }
+
+// Health check operations
+
+// HealthCheck performs a comprehensive health check of the database connection
+func (s *projectManagerImpl) HealthCheck(ctx context.Context) (*types.HealthStatus, error) {
+	return s.repo.HealthCheck(ctx)
+}
+
+// Ping performs a simple connectivity test
+func (s *projectManagerImpl) Ping(ctx context.Context) error {
+	return s.repo.Ping(ctx)
+}
+
+// ValidateConnection performs a comprehensive connection validation
+func (s *projectManagerImpl) ValidateConnection(ctx context.Context) error {
+	return s.repo.ValidateConnection(ctx)
+}

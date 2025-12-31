@@ -412,6 +412,21 @@ func (mr *MockProjectManagerMockRecorder) HasSelectedProject(ctx any) *gomock.Ca
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HasSelectedProject", reflect.TypeOf((*MockProjectManager)(nil).HasSelectedProject), ctx)
 }
 
+// HealthCheck mocks base method.
+func (m *MockProjectManager) HealthCheck(ctx context.Context) (*types.HealthStatus, error) {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "HealthCheck", ctx)
+	ret0, _ := ret[0].(*types.HealthStatus)
+	ret1, _ := ret[1].(error)
+	return ret0, ret1
+}
+
+// HealthCheck indicates an expected call of HealthCheck.
+func (mr *MockProjectManagerMockRecorder) HealthCheck(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "HealthCheck", reflect.TypeOf((*MockProjectManager)(nil).HealthCheck), ctx)
+}
+
 // ListProjects mocks base method.
 func (m *MockProjectManager) ListProjects(ctx context.Context) ([]*types.Project, error) {
 	m.ctrl.T.Helper()
@@ -499,6 +514,20 @@ func (m *MockProjectManager) LoadConfigFromFile() error {
 func (mr *MockProjectManagerMockRecorder) LoadConfigFromFile() *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "LoadConfigFromFile", reflect.TypeOf((*MockProjectManager)(nil).LoadConfigFromFile))
+}
+
+// Ping mocks base method.
+func (m *MockProjectManager) Ping(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "Ping", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// Ping indicates an expected call of Ping.
+func (mr *MockProjectManagerMockRecorder) Ping(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Ping", reflect.TypeOf((*MockProjectManager)(nil).Ping), ctx)
 }
 
 // RemoveTaskDependency mocks base method.
@@ -779,4 +808,18 @@ func (m *MockProjectManager) UpdateTaskTitle(ctx context.Context, taskID uuid.UU
 func (mr *MockProjectManagerMockRecorder) UpdateTaskTitle(ctx, taskID, title, actor any) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "UpdateTaskTitle", reflect.TypeOf((*MockProjectManager)(nil).UpdateTaskTitle), ctx, taskID, title, actor)
+}
+
+// ValidateConnection mocks base method.
+func (m *MockProjectManager) ValidateConnection(ctx context.Context) error {
+	m.ctrl.T.Helper()
+	ret := m.ctrl.Call(m, "ValidateConnection", ctx)
+	ret0, _ := ret[0].(error)
+	return ret0
+}
+
+// ValidateConnection indicates an expected call of ValidateConnection.
+func (mr *MockProjectManagerMockRecorder) ValidateConnection(ctx any) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "ValidateConnection", reflect.TypeOf((*MockProjectManager)(nil).ValidateConnection), ctx)
 }
