@@ -137,6 +137,12 @@ func TestSyncService_PerformPullSync_ExistingProject(t *testing.T) {
 		Return(tasks, nil).
 		Times(1)
 
+	// Expect GetTasksWithDependencies call with the task IDs
+	mockProjectManager.EXPECT().
+		GetTasksWithDependencies(gomock.Any(), []uuid.UUID{taskID1, taskID2}).
+		Return(tasks, nil).
+		Times(1)
+
 	// Perform pull sync
 	response, err := service.PerformPullSync(context.Background(), request)
 

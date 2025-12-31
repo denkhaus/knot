@@ -671,3 +671,320 @@ func indexOfString(s, substr string) int {
 	}
 	return -1
 }
+
+// Sync method tests
+func TestClientSync_PushDirection(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	testData := createInternalTestDataSet()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/sync/push" {
+			// Verify method
+			if r.Method != "POST" {
+				t.Errorf("Expected POST, got %s", r.Method)
+			}
+
+			// Verify headers
+			if r.Header.Get("Content-Type") != "application/json" {
+				t.Errorf("Expected Content-Type application/json, got %s", r.Header.Get("Content-Type"))
+			}
+
+			// Verify request body contains sync data
+			var reqBody map[string]interface{}
+			json.NewDecoder(r.Body).Decode(&reqBody)
+
+			if reqBody["request_id"] == nil {
+				t.Error("Expected request_id in body")
+			}
+
+			// Return success response
+			response := map[string]interface{}{
+				"success":   true,
+				"processed": 1,
+				"message":   "Sync completed",
+				"data": map[string]interface{}{
+					"projects": testData.Projects,
+					"tasks":    testData.Tasks,
+				},
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		t.Fatalf("Unexpected request to %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := createInternalTestClient(server.URL)
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncLocalToMCP,
+		LocalData: testData,
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	resp, err := client.Sync(ctx, req)
+
+	if err != nil {
+		t.Fatalf("Sync failed: %v", err)
+	}
+
+	if resp == nil {
+		t.Fatal("Expected non-nil response")
+	}
+
+	if !resp.Success {
+		t.Error("Expected success to be true")
+	}
+
+	if resp.Processed != 1 {
+		t.Errorf("Expected processed=1, got %d", resp.Processed)
+	}
+}
+
+func TestClientSync_PullDirection(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/sync/pull" {
+			// Return success response
+			response := map[string]interface{}{
+				"success":   true,
+				"processed": 5,
+				"message":   "Pull completed",
+				"data":      createInternalTestDataSet(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		t.Fatalf("Unexpected request to %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := createInternalTestClient(server.URL)
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncMcpToLocal,
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	resp, err := client.Sync(ctx, req)
+
+	if err != nil {
+		t.Fatalf("Sync failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Error("Expected success to be true")
+	}
+
+	if resp.Processed != 5 {
+		t.Errorf("Expected processed=5, got %d", resp.Processed)
+	}
+}
+
+func TestClientSync_BidirectionalDirection(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path == "/api/sync/full" {
+			// Return success response
+			response := map[string]interface{}{
+				"success":   true,
+				"processed": 10,
+				"message":   "Full sync completed",
+				"data":      createInternalTestDataSet(),
+			}
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			json.NewEncoder(w).Encode(response)
+			return
+		}
+		t.Fatalf("Unexpected request to %s", r.URL.Path)
+	}))
+	defer server.Close()
+
+	client := createInternalTestClient(server.URL)
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncBidirectional,
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	resp, err := client.Sync(ctx, req)
+
+	if err != nil {
+		t.Fatalf("Sync failed: %v", err)
+	}
+
+	if !resp.Success {
+		t.Error("Expected success to be true")
+	}
+
+	if resp.Processed != 10 {
+		t.Errorf("Expected processed=10, got %d", resp.Processed)
+	}
+}
+
+func TestClientSync_UnsupportedDirection(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	client := createInternalTestClient("http://localhost:9094")
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncDirection("invalid"),
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	_, err := client.Sync(ctx, req)
+
+	if err == nil {
+		t.Fatal("Expected error for unsupported direction, got nil")
+	}
+
+	if !containsString(err.Error(), "unsupported sync direction") {
+		t.Errorf("Expected 'unsupported sync direction' error, got: %v", err)
+	}
+}
+
+func TestClientSync_InvalidServerURL(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	// Create client with invalid URL
+	client := createInternalTestClient(":invalid-url")
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncLocalToMCP,
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	_, err := client.Sync(ctx, req)
+
+	if err == nil {
+		t.Fatal("Expected error for invalid URL, got nil")
+	}
+
+	if !containsString(err.Error(), "failed to build endpoint URL") {
+		t.Errorf("Expected 'failed to build endpoint URL' error, got: %v", err)
+	}
+}
+
+func TestClientSync_ServerError(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.WriteHeader(http.StatusInternalServerError)
+		w.Write([]byte(`{"error":"internal server error"}`))
+	}))
+	defer server.Close()
+
+	client := createInternalTestClient(server.URL)
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncLocalToMCP,
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	_, err := client.Sync(ctx, req)
+
+	if err == nil {
+		t.Fatal("Expected error from server, got nil")
+	}
+}
+
+func TestClientSync_InvalidResponseJSON(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		w.WriteHeader(http.StatusOK)
+		w.Write([]byte(`{invalid json`))
+	}))
+	defer server.Close()
+
+	client := createInternalTestClient(server.URL)
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncLocalToMCP,
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx := context.Background()
+	_, err := client.Sync(ctx, req)
+
+	if err == nil {
+		t.Fatal("Expected error for invalid JSON, got nil")
+	}
+
+	if !containsString(err.Error(), "failed to deserialize response") {
+		t.Errorf("Expected 'failed to deserialize response' error, got: %v", err)
+	}
+}
+
+func TestClientSync_ContextCancellation(t *testing.T) {
+	projectID := uuid.New()
+	requestID := uuid.New()
+
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		// Don't respond, wait for context cancellation
+		<-r.Context().Done()
+	}))
+	defer server.Close()
+
+	client := createInternalTestClient(server.URL)
+
+	req := &shared.SyncRequest{
+		RequestID: requestID,
+		ProjectID: projectID,
+		Direction: shared.SyncLocalToMCP,
+		LocalData: createInternalTestDataSet(),
+		Timestamp: time.Now(),
+	}
+
+	ctx, cancel := context.WithCancel(context.Background())
+	// Cancel immediately
+	cancel()
+
+	_, err := client.Sync(ctx, req)
+
+	if err == nil {
+		t.Fatal("Expected error due to context cancellation, got nil")
+	}
+}

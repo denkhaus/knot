@@ -511,3 +511,184 @@ func TestSessionRegistry_ConcurrentAccess(t *testing.T) {
 		assert.Equal(t, numGoroutines, count)
 	})
 }
+
+func TestSessionRegistry_SetSessionProject(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockSessionManager := mocks.NewMockSessionManager(ctrl)
+	mockLogger := mocks.NewMockLogger(ctrl)
+	mcpServer := server.NewMCPServer("test", "1.0.0")
+
+	// Allow any number of info/debug calls from the registry
+	mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	injector := do.New()
+	do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+	do.ProvideValue[logger.Logger](injector, mockLogger)
+	do.ProvideValue[*server.MCPServer](injector, mcpServer)
+	registry, _ := shared.NewSessionRegistry(injector)
+
+	ctx := context.Background()
+
+	t.Run("sets project ID successfully", func(t *testing.T) {
+		testUUID := uuid.New()
+		projectID := uuid.New()
+		existingSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Setup mock expectations
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(existingSession, nil)
+		mockSessionManager.EXPECT().SetProject(testUUID, projectID).Return(nil)
+
+		// Set the project
+		err := registry.SetSessionProject(ctx, testUUID, &projectID, "test-actor")
+
+		require.NoError(t, err)
+	})
+
+	t.Run("clears project ID (nil projectID)", func(t *testing.T) {
+		testUUID := uuid.New()
+		existingSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Setup mock expectations
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(existingSession, nil)
+		mockSessionManager.EXPECT().ClearProject(testUUID).Return(nil)
+
+		// Clear the project
+		err := registry.SetSessionProject(ctx, testUUID, nil, "test-actor")
+
+		require.NoError(t, err)
+	})
+
+	t.Run("returns error when session not found", func(t *testing.T) {
+		nonExistentUUID := uuid.New()
+
+		// Setup mock expectations - session not found anywhere
+		mockSessionManager.EXPECT().GetSession(nonExistentUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(nonExistentUUID.String()).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().CreateSessionWithID(nonExistentUUID, nonExistentUUID.String()).Return(nil, assert.AnError)
+
+		// Try to set project on non-existent session
+		err := registry.SetSessionProject(ctx, nonExistentUUID, nil, "test-actor")
+
+		require.Error(t, err)
+	})
+
+	t.Run("returns error when SetProject fails", func(t *testing.T) {
+		testUUID := uuid.New()
+		projectID := uuid.New()
+		existingSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Setup mock expectations
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(existingSession, nil)
+		mockSessionManager.EXPECT().SetProject(testUUID, projectID).Return(assert.AnError)
+
+		// Try to set project - should fail
+		err := registry.SetSessionProject(ctx, testUUID, &projectID, "test-actor")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to set project in session")
+	})
+
+	t.Run("returns error when ClearProject fails", func(t *testing.T) {
+		testUUID := uuid.New()
+		existingSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Setup mock expectations
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(existingSession, nil)
+		mockSessionManager.EXPECT().ClearProject(testUUID).Return(assert.AnError)
+
+		// Try to clear project - should fail
+		err := registry.SetSessionProject(ctx, testUUID, nil, "test-actor")
+
+		require.Error(t, err)
+		assert.Contains(t, err.Error(), "failed to clear project in session")
+	})
+
+	t.Run("uses cached session if available", func(t *testing.T) {
+		testUUID := uuid.New()
+		projectID := uuid.New()
+		newSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Create a session first (this will cache it)
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().CreateSessionWithID(testUUID, testUUID.String()).Return(newSession, nil)
+		registry.GetOrCreateSession(ctx, testUUID)
+
+		// Now set project - should use cached session (no GetSessionByClientID call expected)
+		mockSessionManager.EXPECT().SetProject(testUUID, projectID).Return(nil)
+
+		err := registry.SetSessionProject(ctx, testUUID, &projectID, "test-actor")
+
+		require.NoError(t, err)
+	})
+
+	t.Run("updates MCP session project ID", func(t *testing.T) {
+		testUUID := uuid.New()
+		projectID := uuid.New()
+		existingSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Setup mock expectations
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(existingSession, nil)
+		mockSessionManager.EXPECT().SetProject(testUUID, projectID).Return(nil)
+
+		// Set the project
+		err := registry.SetSessionProject(ctx, testUUID, &projectID, "test-actor")
+		require.NoError(t, err)
+
+		// Verify the MCP session was updated - get it from cache (no mock calls needed)
+		mcpSession, err := registry.GetSession(testUUID)
+		require.NoError(t, err)
+		assert.Equal(t, &projectID, mcpSession.GetProjectID())
+	})
+
+	t.Run("sets and then clears project ID", func(t *testing.T) {
+		testUUID := uuid.New()
+		projectID := uuid.New()
+		existingSession := &session.SessionContext{
+			SessionID: testUUID,
+			ClientID:  testUUID.String(),
+		}
+
+		// Setup expectations for setting project
+		mockSessionManager.EXPECT().GetSession(testUUID).Return(nil, assert.AnError)
+		mockSessionManager.EXPECT().GetSessionByClientID(testUUID.String()).Return(existingSession, nil)
+		mockSessionManager.EXPECT().SetProject(testUUID, projectID).Return(nil)
+
+		// Set the project
+		err := registry.SetSessionProject(ctx, testUUID, &projectID, "test-actor")
+		require.NoError(t, err)
+
+		// Setup expectations for clearing project
+		mockSessionManager.EXPECT().ClearProject(testUUID).Return(nil)
+
+		// Clear the project
+		err = registry.SetSessionProject(ctx, testUUID, nil, "test-actor")
+		require.NoError(t, err)
+	})
+}

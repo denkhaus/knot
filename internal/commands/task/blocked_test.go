@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/shared"
 	"github.com/denkhaus/knot/v2/internal/testutil"
 	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/denkhaus/knot/v2/internal/utils"
@@ -375,3 +376,113 @@ func TestBlockedCommandDependencyChains(t *testing.T) {
 		assert.True(t, utils.IsTaskReady(taskMap[taskD.ID], taskMap), "Task D should be ready after C is completed")
 	})
 }
+
+// TestBlockedActionCLI tests the BlockedAction CLI function directly
+func TestBlockedActionCLI(t *testing.T) {
+	t.Run("no blocked tasks in empty project", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
+		action := BlockedAction()
+		err = action(cliCtx)
+		assert.NoError(t, err)
+	})
+
+	t.Run("single blocked task", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
+		// Create a blocker task
+		blockerTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Blocker Task", "Must complete first", 3, types.TaskPriorityHigh, "test-user")
+		require.NoError(t, err)
+
+		// Create a blocked task with no parent initially, then add dependency
+		blockedTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Blocked Task", "Waiting for blocker", 2, types.TaskPriorityMedium, "test-user")
+		require.NoError(t, err)
+
+		_, err = projectManager.AddTaskDependency(context.TODO(), blockedTask.ID, blockerTask.ID, "test-user")
+		require.NoError(t, err)
+
+		action := BlockedAction()
+		err = action(cliCtx)
+		assert.NoError(t, err)
+	})
+
+	t.Run("multiple blocked tasks with limit", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
+		// Create multiple blocker/blocked pairs
+		for i := 0; i < 5; i++ {
+			blocker, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Blocker Task", "Must complete first", 3, types.TaskPriorityHigh, "test-user")
+			require.NoError(t, err)
+
+			blockedTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Blocked Task", "Waiting for blocker", 2, types.TaskPriorityMedium, "test-user")
+			require.NoError(t, err)
+
+			_, err = projectManager.AddTaskDependency(context.TODO(), blockedTask.ID, blocker.ID, "test-user")
+			require.NoError(t, err)
+		}
+
+		// Set limit flag on the existing context
+		_ = cliCtx.Set("limit", "2")
+
+		action := BlockedAction()
+		err = action(cliCtx)
+		assert.NoError(t, err)
+	})
+
+	t.Run("blocked tasks with completed dependencies", func(t *testing.T) {
+		cliCtx, _ := setupCLIContextWithDI(t, "")
+
+		diContainer := shared.GetContainerFromContext(cliCtx)
+		injector := diContainer.GetInjector()
+		projectManager := do.MustInvoke[manager.ProjectManager](injector)
+
+		project := testutil.CreateTestProject(t, projectManager)
+		err := projectManager.SetSelectedProject(context.TODO(), project.ID, "test-user")
+		require.NoError(t, err)
+
+		// Create and complete a blocker task
+		blockerTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Completed Blocker", "Will be completed", 3, types.TaskPriorityHigh, "test-user")
+		require.NoError(t, err)
+
+		_, err = projectManager.UpdateTaskState(context.TODO(), blockerTask.ID, types.TaskStateInProgress, "test-user")
+		require.NoError(t, err)
+		_, err = projectManager.UpdateTaskState(context.TODO(), blockerTask.ID, types.TaskStateCompleted, "test-user")
+		require.NoError(t, err)
+
+		// Create a task that depends on the completed blocker, then add dependency
+		readyTask, err := projectManager.CreateTask(context.TODO(), project.ID, nil, "Ready Task", "Dependency is completed", 2, types.TaskPriorityMedium, "test-user")
+		require.NoError(t, err)
+
+		_, err = projectManager.AddTaskDependency(context.TODO(), readyTask.ID, blockerTask.ID, "test-user")
+		require.NoError(t, err)
+
+		action := BlockedAction()
+		err = action(cliCtx)
+		assert.NoError(t, err)
+	})
+}
+

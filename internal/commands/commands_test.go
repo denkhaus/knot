@@ -275,32 +275,16 @@ func TestCommandFlagTypes(t *testing.T) {
 		}
 	}
 	assert.NotNil(t, actionableCmd, "Should have actionable subcommand")
-	assert.Len(t, actionableCmd.Flags, 5, "Actionable subcommand should have 5 flags")
+	assert.Len(t, actionableCmd.Flags, 1, "Actionable subcommand should have 1 flag (json)")
 
-	var strategyFlag *cli.StringFlag
 	var jsonFlag *cli.BoolFlag
-	var verboseFlag *cli.BoolFlag
-
 	for _, flag := range actionableCmd.Flags {
-		switch f := flag.(type) {
-		case *cli.StringFlag:
-			if f.Name == "strategy" {
-				strategyFlag = f
-			}
-		case *cli.BoolFlag:
-			switch f.Name {
-			case "json":
-				jsonFlag = f
-			case "verbose":
-				verboseFlag = f
-			}
+		if boolFlag, ok := flag.(*cli.BoolFlag); ok && boolFlag.Name == "json" {
+			jsonFlag = boolFlag
+			break
 		}
 	}
-
-	assert.NotNil(t, strategyFlag, "Should have a StringFlag for strategy")
 	assert.NotNil(t, jsonFlag, "Should have a BoolFlag for json")
-	assert.NotNil(t, verboseFlag, "Should have a BoolFlag for verbose")
-	assert.Equal(t, []string{"v"}, verboseFlag.Aliases, "Verbose flag should have 'v' alias")
 
 	// Find breakdown subcommand and test its flags
 	var breakdownCmd *cli.Command

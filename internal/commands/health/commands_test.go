@@ -592,3 +592,191 @@ func Test_printStatus(t *testing.T) {
 		})
 	}
 }
+
+// TestCheckAction tests the check CLI action
+func TestCheckAction(t *testing.T) {
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	diContainer := di.NewContainer()
+	app := &cli.App{
+		Metadata: make(map[string]interface{}),
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	flagSet.Bool("json", false, "")
+	flagSet.Duration("health-test-timeout", 10000000000, "") // 10 seconds in nanoseconds
+	flagSet.Duration("timeout", 10000000000, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	testInjector2 := diContainer.RegisterAllServices(cliCtx)
+	repo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(testInjector2, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
+	// Set the container in app metadata for shared.GetContainerFromContext to find it
+	app.Metadata["container"] = diContainer
+
+	t.Run("check action with healthy database", func(t *testing.T) {
+		// Capture stdout
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		action := checkAction()
+		err := action(cliCtx)
+
+		_ = w.Close()
+		os.Stdout = oldStdout
+
+		// Read output
+		out, _ := io.ReadAll(r)
+		output := string(out)
+
+		// Should succeed and show healthy status
+		assert.NoError(t, err)
+		assert.Contains(t, output, "Healthy")
+	})
+
+	t.Run("check action with json output", func(t *testing.T) {
+		flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+		flagSet.String("log-level", "info", "")
+		flagSet.Int("complexity-threshold", 5, "")
+		flagSet.Int("max-depth", 10, "")
+		flagSet.Int("max-tasks-per-depth", 50, "")
+		flagSet.Int("max-description-length", 500, "")
+		flagSet.Bool("auto-reduce-complexity", true, "")
+		flagSet.Bool("json", true, "")
+		flagSet.Duration("health-test-timeout", 10000000000, "")
+		flagSet.Duration("timeout", 10000000000, "")
+		cliCtx := cli.NewContext(app, flagSet, nil)
+
+		// Capture stdout
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		action := checkAction()
+		err := action(cliCtx)
+
+		_ = w.Close()
+		os.Stdout = oldStdout
+
+		// Read output
+		out, _ := io.ReadAll(r)
+		output := string(out)
+
+		// Should succeed and output JSON
+		assert.NoError(t, err)
+		assert.Contains(t, output, "{")
+		assert.Contains(t, output, "healthy")
+	})
+}
+
+// TestPingAction tests the ping CLI action
+func TestPingAction(t *testing.T) {
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	diContainer := di.NewContainer()
+	app := &cli.App{
+		Metadata: make(map[string]interface{}),
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	flagSet.Duration("health-test-timeout", 5000000000, "") // 5 seconds in nanoseconds
+	flagSet.Duration("timeout", 5000000000, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	testInjector2 := diContainer.RegisterAllServices(cliCtx)
+	repo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(testInjector2, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
+	// Set the container in app metadata for shared.GetContainerFromContext to find it
+	app.Metadata["container"] = diContainer
+
+	t.Run("ping action success", func(t *testing.T) {
+		// Capture stdout
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		action := pingAction()
+		err := action(cliCtx)
+
+		_ = w.Close()
+		os.Stdout = oldStdout
+
+		// Read output
+		out, _ := io.ReadAll(r)
+		output := string(out)
+
+		// Should succeed
+		assert.NoError(t, err)
+		assert.Contains(t, output, "ping successful")
+	})
+}
+
+// TestValidateAction tests the validate CLI action
+func TestValidateAction(t *testing.T) {
+	config := testutil.NewTestConfig(t)
+	testInjector := config.SetupTestInjector(t)
+
+	diContainer := di.NewContainer()
+	app := &cli.App{
+		Metadata: make(map[string]interface{}),
+	}
+	flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
+	flagSet.String("log-level", "info", "")
+	flagSet.Int("complexity-threshold", 5, "")
+	flagSet.Int("max-depth", 10, "")
+	flagSet.Int("max-tasks-per-depth", 50, "")
+	flagSet.Int("max-description-length", 500, "")
+	flagSet.Bool("auto-reduce-complexity", true, "")
+	flagSet.Duration("health-test-timeout", 30000000000, "") // 30 seconds in nanoseconds
+	flagSet.Duration("timeout", 30000000000, "")
+	cliCtx := cli.NewContext(app, flagSet, nil)
+
+	testInjector2 := diContainer.RegisterAllServices(cliCtx)
+	repo := do.MustInvoke[types.Repository](testInjector)
+	do.Override(testInjector2, func(do.Injector) (types.Repository, error) {
+		return repo, nil
+	})
+
+	// Set the container in app metadata for shared.GetContainerFromContext to find it
+	app.Metadata["container"] = diContainer
+
+	t.Run("validate action success", func(t *testing.T) {
+		// Capture stdout
+		oldStdout := os.Stdout
+		r, w, _ := os.Pipe()
+		os.Stdout = w
+
+		action := validateAction()
+		err := action(cliCtx)
+
+		_ = w.Close()
+		os.Stdout = oldStdout
+
+		// Read output
+		out, _ := io.ReadAll(r)
+		output := string(out)
+
+		// Should succeed
+		assert.NoError(t, err)
+		assert.Contains(t, output, "validation successful")
+	})
+}

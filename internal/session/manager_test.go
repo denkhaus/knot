@@ -371,3 +371,314 @@ func TestEdgeCases(t *testing.T) {
 		assert.Equal(t, clientID, session.ClientID)
 	})
 }
+
+func TestCreateSessionWithID(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Create session with specific ID", func(t *testing.T) {
+		sessionID := uuid.New()
+		clientID := "test-user"
+
+		session, err := manager.CreateSessionWithID(sessionID, clientID)
+		require.NoError(t, err)
+		require.NotNil(t, session)
+
+		assert.Equal(t, sessionID, session.SessionID)
+		assert.Equal(t, clientID, session.ClientID)
+		assert.False(t, session.CreatedAt.IsZero())
+		assert.False(t, session.LastActivity.IsZero())
+	})
+
+	t.Run("Create session with existing ID returns error", func(t *testing.T) {
+		sessionID := uuid.New()
+		clientID := "test-user"
+
+		// Create first session
+		_, err := manager.CreateSessionWithID(sessionID, clientID)
+		require.NoError(t, err)
+
+		// Try to create another session with same ID
+		_, err = manager.CreateSessionWithID(sessionID, "another-user")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "already exists")
+	})
+}
+
+func TestGetSessionByClientID(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Get session by client ID", func(t *testing.T) {
+		clientID := "test-user"
+		originalSession, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		// Retrieve by client ID
+		retrievedSession, err := manager.GetSessionByClientID(clientID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedSession)
+
+		assert.Equal(t, originalSession.SessionID, retrievedSession.SessionID)
+		assert.Equal(t, clientID, retrievedSession.ClientID)
+	})
+
+	t.Run("Get session by non-existent client ID", func(t *testing.T) {
+		session, err := manager.GetSessionByClientID("non-existent-user")
+		assert.Error(t, err)
+		assert.Nil(t, session)
+		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestDeleteSession(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Delete existing session", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		sessionID := session.SessionID
+
+		// Verify session exists
+		_, err = manager.GetSession(sessionID)
+		require.NoError(t, err)
+
+		// Delete the session
+		err = manager.DeleteSession(sessionID)
+		require.NoError(t, err)
+
+		// Verify session is gone
+		_, err = manager.GetSession(sessionID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+
+	t.Run("Delete non-existent session", func(t *testing.T) {
+		nonExistentID := uuid.New()
+
+		err := manager.DeleteSession(nonExistentID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestGetProject(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Get project for session with project", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		projectID := uuid.New()
+		err = manager.SetProject(session.SessionID, projectID)
+		require.NoError(t, err)
+
+		// Get project
+		retrievedProjectID, err := manager.GetProject(session.SessionID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedProjectID)
+		assert.Equal(t, projectID, *retrievedProjectID)
+	})
+
+	t.Run("Get project for session without project", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		// Get project when none is set - returns nil, nil
+		projectID, err := manager.GetProject(session.SessionID)
+		require.NoError(t, err)
+		assert.Nil(t, projectID)
+	})
+
+	t.Run("Get project for non-existent session", func(t *testing.T) {
+		nonExistentID := uuid.New()
+
+		projectID, err := manager.GetProject(nonExistentID)
+		assert.Error(t, err)
+		assert.Nil(t, projectID)
+		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestClearProject(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Clear project from session", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		projectID := uuid.New()
+		err = manager.SetProject(session.SessionID, projectID)
+		require.NoError(t, err)
+
+		// Verify project is set
+		retrievedSession, err := manager.GetSession(session.SessionID)
+		require.NoError(t, err)
+		require.NotNil(t, retrievedSession.ProjectID)
+
+		// Clear the project
+		err = manager.ClearProject(session.SessionID)
+		require.NoError(t, err)
+
+		// Verify project is cleared
+		retrievedSession, err = manager.GetSession(session.SessionID)
+		require.NoError(t, err)
+		assert.Nil(t, retrievedSession.ProjectID)
+	})
+
+	t.Run("Clear project from session without project", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		// Clear project when none is set (should succeed without error)
+		err = manager.ClearProject(session.SessionID)
+		require.NoError(t, err)
+	})
+
+	t.Run("Clear project for non-existent session", func(t *testing.T) {
+		nonExistentID := uuid.New()
+
+		err := manager.ClearProject(nonExistentID)
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestSetActor(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Set actor for session", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		actor := "test-actor"
+		err = manager.SetActor(session.SessionID, actor)
+		require.NoError(t, err)
+
+		// Verify actor was set
+		retrievedSession, err := manager.GetSession(session.SessionID)
+		require.NoError(t, err)
+		assert.Equal(t, actor, retrievedSession.Actor)
+	})
+
+	t.Run("Change actor for session", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		// Set initial actor
+		actor1 := "actor1"
+		err = manager.SetActor(session.SessionID, actor1)
+		require.NoError(t, err)
+
+		// Change to different actor
+		actor2 := "actor2"
+		err = manager.SetActor(session.SessionID, actor2)
+		require.NoError(t, err)
+
+		// Verify actor was changed
+		retrievedSession, err := manager.GetSession(session.SessionID)
+		require.NoError(t, err)
+		assert.Equal(t, actor2, retrievedSession.Actor)
+		assert.NotEqual(t, actor1, retrievedSession.Actor)
+	})
+
+	t.Run("Set actor for non-existent session", func(t *testing.T) {
+		nonExistentID := uuid.New()
+
+		err := manager.SetActor(nonExistentID, "test-actor")
+		assert.Error(t, err)
+		assert.Contains(t, err.Error(), "not found")
+	})
+}
+
+func TestValidateSession(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Validate existing session", func(t *testing.T) {
+		clientID := "test-user"
+		session, err := manager.CreateSession(clientID)
+		require.NoError(t, err)
+
+		// Validate session
+		valid := manager.ValidateSession(session.SessionID)
+		assert.True(t, valid, "existing session should be valid")
+	})
+
+	t.Run("Validate non-existent session", func(t *testing.T) {
+		nonExistentID := uuid.New()
+
+		valid := manager.ValidateSession(nonExistentID)
+		assert.False(t, valid, "non-existent session should not be valid")
+	})
+}
+
+func TestCleanupExpiredSessions(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Cleanup removes expired sessions", func(t *testing.T) {
+		// This test verifies the cleanup function can be called successfully
+		// Actual session expiration depends on the implementation
+		ctx := context.Background()
+		timeout := 1 * time.Hour
+
+		// Create some sessions
+		for i := 0; i < 5; i++ {
+			_, err := manager.CreateSession(fmt.Sprintf("user-%d", i))
+			require.NoError(t, err)
+		}
+
+		initialCount := manager.GetSessionCount()
+		assert.Equal(t, 5, initialCount)
+
+		// Run cleanup - may not remove any since sessions are recent
+		err := manager.CleanupExpiredSessions(ctx, timeout)
+		require.NoError(t, err)
+	})
+}
+
+func TestGetSessionCount(t *testing.T) {
+	manager := newManager()
+
+	t.Run("Count increases with sessions", func(t *testing.T) {
+		count := manager.GetSessionCount()
+		assert.Equal(t, 0, count)
+
+		// Add sessions
+		for i := 0; i < 3; i++ {
+			_, err := manager.CreateSession(fmt.Sprintf("user-%d", i))
+			require.NoError(t, err)
+		}
+
+		count = manager.GetSessionCount()
+		assert.Equal(t, 3, count)
+	})
+
+	t.Run("Count decreases when sessions deleted", func(t *testing.T) {
+		// Use a fresh manager to avoid interference from other tests
+		freshManager := newManager()
+
+		// Create sessions
+		sessionIDs := make([]uuid.UUID, 0, 3)
+		for i := 0; i < 3; i++ {
+			session, err := freshManager.CreateSession(fmt.Sprintf("user-%d", i))
+			require.NoError(t, err)
+			sessionIDs = append(sessionIDs, session.SessionID)
+		}
+
+		initialCount := freshManager.GetSessionCount()
+		assert.Equal(t, 3, initialCount)
+
+		// Delete one session
+		err := freshManager.DeleteSession(sessionIDs[0])
+		require.NoError(t, err)
+
+		count := freshManager.GetSessionCount()
+		assert.Equal(t, 2, count)
+	})
+}

@@ -6,6 +6,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/repository/inmemory"
@@ -519,5 +520,518 @@ func TestManagerWithSQLite(t *testing.T) {
 		updated, err := service.UpdateTaskState(ctx, task.ID, types.TaskStateInProgress, "updater")
 		assert.NoError(t, err)
 		assert.Equal(t, types.TaskStateInProgress, updated.State)
+	})
+}
+
+// TestSyncCreateProjectWithTimestamps tests project sync/upsert functionality
+func TestSyncCreateProjectWithTimestamps(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("create new project with specific ID", func(t *testing.T) {
+		specificID := uuid.MustParse("00000000-0000-0000-0000-000000000001")
+		now := time.Now()
+		project := &types.Project{
+			ID:          specificID,
+			Title:       "Sync Test Project",
+			Description: "Created via sync",
+			State:       types.ProjectStateActive,
+			CreatedBy:   "sync-user",
+			UpdatedBy:   "sync-user",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+
+		result, err := service.SyncCreateProjectWithTimestamps(ctx, project)
+		require.NoError(t, err)
+		assert.Equal(t, specificID, result.ID)
+		assert.Equal(t, "Sync Test Project", result.Title)
+	})
+
+	t.Run("update existing project with same ID", func(t *testing.T) {
+		// Create initial project
+		existing, err := service.CreateProject(ctx, "Original Title", "Original description", "creator")
+		require.NoError(t, err)
+
+		// Sync with same ID but different data
+		updatedProject := &types.Project{
+			ID:          existing.ID,
+			Title:       "Updated Title",
+			Description: "Updated description",
+			State:       types.ProjectStateArchived,
+			TotalTasks:  10,
+			CompletedTasks: 5,
+			Progress:    50.0,
+			CreatedBy:   existing.CreatedBy,
+			UpdatedBy:   "updater",
+			CreatedAt:   existing.CreatedAt,
+			UpdatedAt:   time.Now(),
+		}
+
+		result, err := service.SyncCreateProjectWithTimestamps(ctx, updatedProject)
+		require.NoError(t, err)
+		assert.Equal(t, existing.ID, result.ID)
+		assert.Equal(t, "Updated Title", result.Title)
+		assert.Equal(t, "Updated description", result.Description)
+		assert.Equal(t, types.ProjectStateArchived, result.State)
+	})
+}
+
+// TestUpdateProjectDescription tests updating only the project description
+func TestUpdateProjectDescription(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("update description successfully", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Original description", "creator")
+		require.NoError(t, err)
+
+		updated, err := service.UpdateProjectDescription(ctx, project.ID, "New description", "updater")
+		require.NoError(t, err)
+		assert.Equal(t, "New description", updated.Description)
+		assert.Equal(t, "updater", updated.UpdatedBy)
+	})
+
+	t.Run("update description on non-existent project", func(t *testing.T) {
+		_, err := service.UpdateProjectDescription(ctx, uuid.New(), "Description", "updater")
+		assert.Error(t, err)
+	})
+}
+
+// TestUpdateProjectState tests updating the project state
+func TestUpdateProjectState(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("update state successfully", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		updated, err := service.UpdateProjectState(ctx, project.ID, types.ProjectStateArchived, "updater")
+		require.NoError(t, err)
+		assert.Equal(t, types.ProjectStateArchived, updated.State)
+		assert.Equal(t, "updater", updated.UpdatedBy)
+	})
+
+	t.Run("update state on non-existent project", func(t *testing.T) {
+		_, err := service.UpdateProjectState(ctx, uuid.New(), types.ProjectStateArchived, "updater")
+		assert.Error(t, err)
+	})
+}
+
+// TestGetTasksWithDependencies tests retrieving tasks with their dependencies
+func TestGetTasksWithDependencies(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("get tasks with dependencies", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		// Create tasks
+		task1, err := service.CreateTask(ctx, project.ID, nil, "Task 1", "First task", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		task2, err := service.CreateTask(ctx, project.ID, nil, "Task 2", "Second task", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Add dependency
+		_, err = service.AddTaskDependency(ctx, task2.ID, task1.ID, "creator")
+		require.NoError(t, err)
+
+		// Get tasks with dependencies
+		tasks, err := service.GetTasksWithDependencies(ctx, []uuid.UUID{task1.ID, task2.ID})
+		require.NoError(t, err)
+		assert.Len(t, tasks, 2)
+
+		// Verify task2 has task1 as dependency
+		task2WithDep := findTaskByID(tasks, task2.ID)
+		require.NotNil(t, task2WithDep)
+		assert.Contains(t, task2WithDep.Dependencies, task1.ID)
+	})
+
+	t.Run("get tasks with empty list", func(t *testing.T) {
+		tasks, err := service.GetTasksWithDependencies(ctx, []uuid.UUID{})
+		require.NoError(t, err)
+		assert.Len(t, tasks, 0)
+	})
+}
+
+func findTaskByID(tasks []*types.Task, id uuid.UUID) *types.Task {
+	for _, task := range tasks {
+		if task.ID == id {
+			return task
+		}
+	}
+	return nil
+}
+
+// TestSyncCreateTaskWithTimestamps tests task sync/upsert functionality
+func TestSyncCreateTaskWithTimestamps(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("create new task with specific ID", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		specificID := uuid.MustParse("00000000-0000-0000-0000-000000000002")
+		now := time.Now()
+		task := &types.Task{
+			ID:          specificID,
+			ProjectID:   project.ID,
+			Title:       "Sync Test Task",
+			Description: "Created via sync",
+			State:       types.TaskStatePending,
+			Priority:    types.TaskPriorityMedium,
+			Complexity:  5,
+			Depth:       0,
+			CreatedBy:   "sync-user",
+			UpdatedBy:   "sync-user",
+			CreatedAt:   now,
+			UpdatedAt:   now,
+		}
+
+		result, err := service.SyncCreateTaskWithTimestamps(ctx, task)
+		require.NoError(t, err)
+		assert.Equal(t, specificID, result.ID)
+		assert.Equal(t, "Sync Test Task", result.Title)
+	})
+
+	t.Run("update existing task with same ID", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project 2", "Description", "creator")
+		require.NoError(t, err)
+
+		// Create initial task
+		existing, err := service.CreateTask(ctx, project.ID, nil, "Original Task", "Original description", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Sync with same ID but different data
+		updatedTask := &types.Task{
+			ID:          existing.ID,
+			ProjectID:   project.ID,
+			Title:       "Updated Task Title",
+			Description: "Updated description",
+			State:       types.TaskStateInProgress,
+			Priority:    types.TaskPriorityHigh,
+			Complexity:  7,
+			CreatedBy:   existing.CreatedBy,
+			UpdatedBy:   "updater",
+			CreatedAt:   existing.CreatedAt,
+			UpdatedAt:   time.Now(),
+		}
+
+		result, err := service.SyncCreateTaskWithTimestamps(ctx, updatedTask)
+		require.NoError(t, err)
+		assert.Equal(t, existing.ID, result.ID)
+		assert.Equal(t, "Updated Task Title", result.Title)
+		assert.Equal(t, types.TaskStateInProgress, result.State)
+	})
+}
+
+// TestUpdateTaskPriority tests updating task priority
+func TestUpdateTaskPriority(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("update priority successfully", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		task, err := service.CreateTask(ctx, project.ID, nil, "Task", "Description", 3, types.TaskPriorityLow, "creator")
+		require.NoError(t, err)
+
+		updated, err := service.UpdateTaskPriority(ctx, task.ID, types.TaskPriorityHigh, "updater")
+		require.NoError(t, err)
+		assert.Equal(t, types.TaskPriorityHigh, updated.Priority)
+	})
+
+	t.Run("update priority on non-existent task", func(t *testing.T) {
+		_, err := service.UpdateTaskPriority(ctx, uuid.New(), types.TaskPriorityHigh, "updater")
+		assert.Error(t, err)
+	})
+}
+
+// TestUpdateTaskComplexity tests updating task complexity
+func TestUpdateTaskComplexity(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("update complexity successfully", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		task, err := service.CreateTask(ctx, project.ID, nil, "Task", "Description", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		updated, err := service.UpdateTaskComplexity(ctx, task.ID, 8, "updater")
+		require.NoError(t, err)
+		assert.Equal(t, 8, updated.Complexity)
+	})
+
+	t.Run("update complexity on non-existent task", func(t *testing.T) {
+		_, err := service.UpdateTaskComplexity(ctx, uuid.New(), 5, "updater")
+		assert.Error(t, err)
+	})
+}
+
+// TestGetParentTask tests getting parent task
+func TestGetParentTask(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("get parent task successfully", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		parent, err := service.CreateTask(ctx, project.ID, nil, "Parent Task", "Parent", 5, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		child, err := service.CreateTask(ctx, project.ID, &parent.ID, "Child Task", "Child", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		retrievedParent, err := service.GetParentTask(ctx, child.ID)
+		require.NoError(t, err)
+		assert.Equal(t, parent.ID, retrievedParent.ID)
+		assert.Equal(t, "Parent Task", retrievedParent.Title)
+	})
+
+	t.Run("get parent of task with no parent", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project 2", "Description", "creator")
+		require.NoError(t, err)
+
+		task, err := service.CreateTask(ctx, project.ID, nil, "Orphan Task", "No parent", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// A task with no parent returns nil, not an error
+		parent, err := service.GetParentTask(ctx, task.ID)
+		assert.NoError(t, err)
+		assert.Nil(t, parent)
+	})
+}
+
+// TestGetChildTasks tests getting child tasks
+func TestGetChildTasks(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("get child tasks successfully", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		parent, err := service.CreateTask(ctx, project.ID, nil, "Parent Task", "Parent", 5, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		child1, err := service.CreateTask(ctx, project.ID, &parent.ID, "Child 1", "First child", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		child2, err := service.CreateTask(ctx, project.ID, &parent.ID, "Child 2", "Second child", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		children, err := service.GetChildTasks(ctx, parent.ID)
+		require.NoError(t, err)
+		assert.Len(t, children, 2)
+
+		childIDs := make(map[uuid.UUID]bool)
+		for _, child := range children {
+			childIDs[child.ID] = true
+		}
+		assert.True(t, childIDs[child1.ID])
+		assert.True(t, childIDs[child2.ID])
+	})
+
+	t.Run("get children of task with no children", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project 2", "Description", "creator")
+		require.NoError(t, err)
+
+		task, err := service.CreateTask(ctx, project.ID, nil, "Leaf Task", "No children", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		children, err := service.GetChildTasks(ctx, task.ID)
+		require.NoError(t, err)
+		assert.Len(t, children, 0)
+	})
+}
+
+// TestGetRootTasks tests getting root tasks
+func TestGetRootTasks(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("get root tasks", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		// Create root task
+		root, err := service.CreateTask(ctx, project.ID, nil, "Root Task", "Root", 5, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Create child task
+		_, err = service.CreateTask(ctx, project.ID, &root.ID, "Child Task", "Child", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Create another root task
+		root2, err := service.CreateTask(ctx, project.ID, nil, "Root Task 2", "Another root", 4, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		rootTasks, err := service.GetRootTasks(ctx, project.ID)
+		require.NoError(t, err)
+		assert.Len(t, rootTasks, 2)
+
+		rootIDs := make(map[uuid.UUID]bool)
+		for _, task := range rootTasks {
+			rootIDs[task.ID] = true
+		}
+		assert.True(t, rootIDs[root.ID])
+		assert.True(t, rootIDs[root2.ID])
+	})
+}
+
+// TestListTasksByState tests listing tasks by state
+func TestListTasksByState(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("list pending tasks", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		// Create tasks with different states
+		task1, err := service.CreateTask(ctx, project.ID, nil, "Pending Task 1", "Pending", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		_, err = service.CreateTask(ctx, project.ID, nil, "Pending Task 2", "Pending", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		task3, err := service.CreateTask(ctx, project.ID, nil, "In Progress Task", "In progress", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Update one task to in-progress
+		_, err = service.UpdateTaskState(ctx, task3.ID, types.TaskStateInProgress, "updater")
+		require.NoError(t, err)
+
+		// List pending tasks
+		pendingTasks, err := service.ListTasksByState(ctx, project.ID, types.TaskStatePending)
+		require.NoError(t, err)
+		assert.Len(t, pendingTasks, 2)
+
+		// Verify we got the pending tasks
+		taskIDs := make(map[uuid.UUID]bool)
+		for _, task := range pendingTasks {
+			taskIDs[task.ID] = true
+		}
+		assert.True(t, taskIDs[task1.ID])
+		assert.False(t, taskIDs[task3.ID])
+	})
+
+	t.Run("list tasks with empty state", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project 2", "Description", "creator")
+		require.NoError(t, err)
+
+		_, err = service.CreateTask(ctx, project.ID, nil, "Task", "Description", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Empty state should return no tasks
+		tasks, err := service.ListTasksByState(ctx, project.ID, "")
+		require.NoError(t, err)
+		assert.Len(t, tasks, 0)
+	})
+}
+
+// TestEvaluateAndUpdateParentTask tests parent task state evaluation
+// Note: This tests the behavior via UpdateTaskState which triggers parent evaluation
+func TestEvaluateAndUpdateParentTask(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("parent marked completed when all children completed", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		// Create parent task
+		parent, err := service.CreateTask(ctx, project.ID, nil, "Parent Task", "Parent", 5, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Create child tasks
+		child1, err := service.CreateTask(ctx, project.ID, &parent.ID, "Child 1", "First child", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		child2, err := service.CreateTask(ctx, project.ID, &parent.ID, "Child 2", "Second child", 3, types.TaskPriorityMedium, "creator")
+		require.NoError(t, err)
+
+		// Mark children as in-progress first
+		_, err = service.UpdateTaskState(ctx, child1.ID, types.TaskStateInProgress, "updater")
+		require.NoError(t, err)
+		_, err = service.UpdateTaskState(ctx, child2.ID, types.TaskStateInProgress, "updater")
+		require.NoError(t, err)
+
+		// Mark children as completed
+		_, err = service.UpdateTaskState(ctx, child1.ID, types.TaskStateCompleted, "updater")
+		require.NoError(t, err)
+		_, err = service.UpdateTaskState(ctx, child2.ID, types.TaskStateCompleted, "updater")
+		require.NoError(t, err)
+
+		// Verify parent was automatically updated to completed
+		updatedParent, err := service.GetTask(ctx, parent.ID)
+		require.NoError(t, err)
+		assert.Equal(t, types.TaskStateCompleted, updatedParent.State)
+	})
+}
+
+// TestDuplicateTask tests duplicating tasks
+func TestDuplicateTask(t *testing.T) {
+	repo := inmemory.NewMemoryRepository()
+	cfg := config.DefaultConfig()
+	service := NewManagerWithRepository(repo, cfg)
+	ctx := context.Background()
+
+	t.Run("duplicate task to same project", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project", "Description", "creator")
+		require.NoError(t, err)
+
+		original, err := service.CreateTask(ctx, project.ID, nil, "Original Task", "Original description", 5, types.TaskPriorityHigh, "creator")
+		require.NoError(t, err)
+
+		// Duplicate the task
+		duplicate, err := service.DuplicateTask(ctx, original.ID, project.ID)
+		require.NoError(t, err)
+
+		assert.NotEqual(t, original.ID, duplicate.ID)
+		assert.Equal(t, original.Title, duplicate.Title)
+		assert.Equal(t, original.Description, duplicate.Description)
+		assert.Equal(t, original.Complexity, duplicate.Complexity)
+		assert.Equal(t, types.TaskStatePending, duplicate.State) // Should reset to pending
+	})
+
+	t.Run("duplicate non-existent task", func(t *testing.T) {
+		project, err := service.CreateProject(ctx, "Test Project 2", "Description", "creator")
+		require.NoError(t, err)
+
+		_, err = service.DuplicateTask(ctx, uuid.New(), project.ID)
+		assert.Error(t, err)
 	})
 }

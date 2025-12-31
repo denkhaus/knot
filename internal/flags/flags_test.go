@@ -7,6 +7,99 @@ import (
 	"github.com/urfave/cli/v2"
 )
 
+func TestNewQuietFlag(t *testing.T) {
+	flag := NewQuietFlag()
+
+	assert.Equal(t, "quiet", flag.Names()[0])
+	assert.Equal(t, "Suppress project context display", getUsage(flag))
+
+	// Test that it's a BoolFlag
+	_, ok := flag.(*cli.BoolFlag)
+	assert.True(t, ok)
+}
+
+func TestNewTaskIDFlag(t *testing.T) {
+	flag := NewTaskIDFlag()
+
+	assert.Equal(t, "id", flag.Names()[0])
+	assert.Equal(t, "Task ID", getUsage(flag))
+
+	// Test that it's a StringFlag
+	stringFlag, ok := flag.(*cli.StringFlag)
+	assert.True(t, ok)
+	assert.True(t, stringFlag.Required) // Task ID should be required
+}
+
+func TestNewActorFlag(t *testing.T) {
+	flag := NewActorFlag()
+
+	assert.Equal(t, "actor", flag.Names()[0])
+	assert.Contains(t, getUsage(flag), "Actor name for audit trail")
+
+	// Test that it's a StringFlag
+	stringFlag, ok := flag.(*cli.StringFlag)
+	assert.True(t, ok)
+	assert.Contains(t, stringFlag.EnvVars, "KNOT_ACTOR")
+	assert.Contains(t, stringFlag.EnvVars, "USER")
+}
+
+func TestNewManagerConfigFlags(t *testing.T) {
+	flags := NewManagerConfigFlags()
+	assert.Len(t, flags, 5)
+
+	// Verify expected flag names
+	flagNames := make([]string, len(flags))
+	for i, f := range flags {
+		flagNames[i] = f.Names()[0]
+	}
+	assert.Contains(t, flagNames, "max-tasks-per-depth")
+	assert.Contains(t, flagNames, "complexity-threshold")
+	assert.Contains(t, flagNames, "max-depth")
+	assert.Contains(t, flagNames, "max-description-length")
+	assert.Contains(t, flagNames, "auto-reduce-complexity")
+}
+
+func TestNewMCPConfigFlags(t *testing.T) {
+	flags := NewMCPConfigFlags()
+	assert.Len(t, flags, 8)
+
+	// Verify expected flag names
+	flagNames := make([]string, len(flags))
+	for i, f := range flags {
+		flagNames[i] = f.Names()[0]
+	}
+	assert.Contains(t, flagNames, "mcp-address")
+	assert.Contains(t, flagNames, "mcp-port")
+	assert.Contains(t, flagNames, "postgres-endpoint")
+	assert.Contains(t, flagNames, "mcp-timeout")
+	assert.Contains(t, flagNames, "mcp-max-sessions")
+	assert.Contains(t, flagNames, "mcp-hints-max")
+	assert.Contains(t, flagNames, "mcp-transport-mode")
+	assert.Contains(t, flagNames, "default-task-complexity")
+}
+
+func TestNewSyncConfigFlags(t *testing.T) {
+	flags := NewSyncConfigFlags()
+	assert.Len(t, flags, 11)
+
+	// Verify expected flag names
+	flagNames := make([]string, len(flags))
+	for i, f := range flags {
+		flagNames[i] = f.Names()[0]
+	}
+	assert.Contains(t, flagNames, "server-url")
+	assert.Contains(t, flagNames, "sync-auth-token")
+	assert.Contains(t, flagNames, "sync-timeout")
+	assert.Contains(t, flagNames, "retry-attempts")
+	assert.Contains(t, flagNames, "retry-delay")
+	assert.Contains(t, flagNames, "max-retry-delay")
+	assert.Contains(t, flagNames, "max-idle-conns")
+	assert.Contains(t, flagNames, "idle-conn-timeout")
+	assert.Contains(t, flagNames, "conflict-strategy")
+	assert.Contains(t, flagNames, "batch-size")
+	assert.Contains(t, flagNames, "sync-user-agent")
+}
+
 func TestNewTaskLimitFlag(t *testing.T) {
 	flag := NewTaskLimitFlag()
 
@@ -102,6 +195,10 @@ func getUsage(flag cli.Flag) string {
 	case *cli.IntFlag:
 		return f.Usage
 	case *cli.BoolFlag:
+		return f.Usage
+	case *cli.DurationFlag:
+		return f.Usage
+	case *cli.TimestampFlag:
 		return f.Usage
 	default:
 		return ""

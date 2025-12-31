@@ -6,8 +6,12 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/logger"
+	"github.com/denkhaus/knot/v2/internal/manager"
+	"github.com/denkhaus/knot/v2/internal/mcp/hints"
 	"github.com/denkhaus/knot/v2/internal/mocks"
+	"github.com/denkhaus/knot/v2/internal/session"
 	"github.com/mark3labs/mcp-go/server"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
@@ -391,5 +395,129 @@ func TestBaseTransport_CancelFunc(t *testing.T) {
 		default:
 			t.Error("context should be cancelled")
 		}
+	})
+}
+
+func TestNewTransport(t *testing.T) {
+	// Allow any number of log calls for all tests
+
+	t.Run("creates stdio transport", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockLogger := mocks.NewMockLogger(ctrl)
+		mockConfigService := mocks.NewMockService(ctrl)
+		mockManager := mocks.NewMockProjectManager(ctrl)
+		mockSessionManager := mocks.NewMockSessionManager(ctrl)
+		mockHintIntegration := mocks.NewMockIntegration(ctrl)
+		mcpServer := server.NewMCPServer("test", "1.0.0")
+
+		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+		serverConfig := &config.MCPConfig{
+			Address: "localhost",
+			Port:    8080,
+			Transport: config.TransportConfig{
+				Mode: config.TransportTypeStdio,
+			},
+		}
+
+		mockConfigService.EXPECT().GetMCPConfig().Return(serverConfig).AnyTimes()
+
+		injector := do.New()
+		do.ProvideValue[config.Service](injector, mockConfigService)
+		do.ProvideValue[logger.Logger](injector, mockLogger)
+		do.ProvideValue(injector, mcpServer)
+		do.ProvideValue[manager.ProjectManager](injector, mockManager)
+		do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+		do.ProvideValue[hints.Integration](injector, mockHintIntegration)
+
+		transport, err := NewTransport(injector)
+
+		require.NoError(t, err)
+		require.NotNil(t, transport)
+		assert.Equal(t, config.TransportTypeStdio, transport.GetType())
+	})
+
+	t.Run("creates sse transport", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockLogger := mocks.NewMockLogger(ctrl)
+		mockConfigService := mocks.NewMockService(ctrl)
+		mockManager := mocks.NewMockProjectManager(ctrl)
+		mockSessionManager := mocks.NewMockSessionManager(ctrl)
+		mockHintIntegration := mocks.NewMockIntegration(ctrl)
+		mcpServer := server.NewMCPServer("test", "1.0.0")
+
+		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+		serverConfig := &config.MCPConfig{
+			Address: "localhost",
+			Port:    8080,
+			Transport: config.TransportConfig{
+				Mode: config.TransportTypeSSE,
+			},
+		}
+
+		mockConfigService.EXPECT().GetMCPConfig().Return(serverConfig).AnyTimes()
+
+		injector := do.New()
+		do.ProvideValue[config.Service](injector, mockConfigService)
+		do.ProvideValue[logger.Logger](injector, mockLogger)
+		do.ProvideValue(injector, mcpServer)
+		do.ProvideValue[manager.ProjectManager](injector, mockManager)
+		do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+		do.ProvideValue[hints.Integration](injector, mockHintIntegration)
+
+		transport, err := NewTransport(injector)
+
+		require.NoError(t, err)
+		require.NotNil(t, transport)
+		assert.Equal(t, config.TransportTypeSSE, transport.GetType())
+	})
+
+	t.Run("returns error for invalid transport type", func(t *testing.T) {
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+
+		mockConfigService := mocks.NewMockService(ctrl)
+		mockLogger := mocks.NewMockLogger(ctrl)
+		mockManager := mocks.NewMockProjectManager(ctrl)
+		mockSessionManager := mocks.NewMockSessionManager(ctrl)
+		mockHintIntegration := mocks.NewMockIntegration(ctrl)
+		mcpServer := server.NewMCPServer("test", "1.0.0")
+
+		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+		serverConfig := &config.MCPConfig{
+			Address: "localhost",
+			Port:    8080,
+			Transport: config.TransportConfig{
+				Mode: config.TransportType("invalid"),
+			},
+		}
+
+		mockConfigService.EXPECT().GetMCPConfig().Return(serverConfig)
+
+		injector := do.New()
+		do.ProvideValue[config.Service](injector, mockConfigService)
+		do.ProvideValue[logger.Logger](injector, mockLogger)
+		do.ProvideValue(injector, mcpServer)
+		do.ProvideValue[manager.ProjectManager](injector, mockManager)
+		do.ProvideValue[session.SessionManager](injector, mockSessionManager)
+		do.ProvideValue[hints.Integration](injector, mockHintIntegration)
+
+		transport, err := NewTransport(injector)
+
+		assert.Error(t, err)
+		assert.Nil(t, transport)
+		assert.Contains(t, err.Error(), "invalid transport type")
 	})
 }

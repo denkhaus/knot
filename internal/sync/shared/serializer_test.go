@@ -2,12 +2,16 @@
 package shared
 
 import (
+	"encoding/json"
 	"testing"
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/samber/do/v2"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/denkhaus/knot/v2/internal/types"
 )
 
 // TestSerializerImpl_SerializeRequestJSON tests JSON serialization of sync request
@@ -242,4 +246,149 @@ func TestSerializerImpl_ValidateResponse(t *testing.T) {
 	}
 	result = serializer.ValidateResponse(invalidResp)
 	assert.False(t, result.Valid)
+}
+
+// TestNewSerializerProvider tests the DI provider function
+func TestNewSerializerProvider(t *testing.T) {
+	injector := do.New()
+
+	serializer, err := NewSerializerProvider(injector)
+	require.NoError(t, err)
+	assert.NotNil(t, serializer)
+
+	// Verify it implements the interface
+	_, ok := serializer.(SyncDataSerializer)
+	assert.True(t, ok, "NewSerializerProvider should return a SyncDataSerializer")
+}
+
+// TestSyncDataSetUnmarshalJSON tests custom JSON unmarshaling for SyncDataSet
+func TestSyncDataSetUnmarshalJSON(t *testing.T) {
+	projectID := uuid.New()
+	taskID := uuid.New()
+
+	validJSON := `{
+		"projects": {
+			"` + projectID.String() + `": {
+				"id": "` + projectID.String() + `",
+				"title": "Test Project",
+				"description": "Test Description",
+				"state": "active",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		},
+		"tasks": {
+			"` + taskID.String() + `": {
+				"id": "` + taskID.String() + `",
+				"project_id": "` + projectID.String() + `",
+				"title": "Test Task",
+				"state": "pending",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		}
+	}`
+
+	var dataset SyncDataSet
+	err := json.Unmarshal([]byte(validJSON), &dataset)
+	require.NoError(t, err)
+	assert.Len(t, dataset.Projects, 1)
+	assert.Len(t, dataset.Tasks, 1)
+
+	// Verify the keys were properly converted from strings to UUIDs
+	assert.Contains(t, dataset.Projects, projectID)
+	assert.Contains(t, dataset.Tasks, taskID)
+
+	// Verify project data - the values should be unmarshaled correctly
+	project := dataset.Projects[projectID]
+	assert.Equal(t, projectID, project.ID)
+	// Note: JSON unmarshaling into the pointer value works correctly
+	assert.NotNil(t, project)
+	assert.Equal(t, types.ProjectStateActive, project.State)
+}
+
+// TestSyncDataSetUnmarshalJSON_EmptyMaps tests unmarshaling with empty maps
+func TestSyncDataSetUnmarshalJSON_EmptyMaps(t *testing.T) {
+	emptyJSON := `{
+		"projects": {},
+		"tasks": {}
+	}`
+
+	var dataset SyncDataSet
+	err := json.Unmarshal([]byte(emptyJSON), &dataset)
+	require.NoError(t, err)
+	assert.Empty(t, dataset.Projects)
+	assert.Empty(t, dataset.Tasks)
+}
+
+// TestSyncDataSetUnmarshalJSON_InvalidUUID tests unmarshaling with invalid UUID
+func TestSyncDataSetUnmarshalJSON_InvalidUUID(t *testing.T) {
+	invalidJSON := `{
+		"projects": {
+			"invalid": {
+				"id": "some-id",
+				"title": "Test Project",
+				"state": "active",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		},
+		"tasks": {}
+	}`
+
+	var dataset SyncDataSet
+	err := json.Unmarshal([]byte(invalidJSON), &dataset)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid")
+}
+
+// TestSyncDataSetUnmarshalJSON_InvalidTaskUUID tests unmarshaling with invalid task UUID
+func TestSyncDataSetUnmarshalJSON_InvalidTaskUUID(t *testing.T) {
+	projectID := uuid.New()
+
+	invalidJSON := `{
+		"projects": {
+			"` + projectID.String() + `": {
+				"id": "` + projectID.String() + `",
+				"title": "Test Project",
+				"state": "active",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		},
+		"tasks": {
+			"invalid": {
+				"id": "some-id",
+				"project_id": "` + projectID.String() + `",
+				"title": "Test Task",
+				"state": "pending",
+				"created_at": "2024-01-01T00:00:00Z",
+				"updated_at": "2024-01-01T00:00:00Z"
+			}
+		}
+	}`
+
+	var dataset SyncDataSet
+	err := json.Unmarshal([]byte(invalidJSON), &dataset)
+	assert.Error(t, err)
+	assert.Contains(t, err.Error(), "invalid")
+}
+
+// TestSyncDataSetUnmarshalJSON_MalformedJSON tests unmarshaling with malformed JSON
+func TestSyncDataSetUnmarshalJSON_MalformedJSON(t *testing.T) {
+	malformedJSON := `{invalid json`
+
+	var dataset SyncDataSet
+	err := json.Unmarshal([]byte(malformedJSON), &dataset)
+	assert.Error(t, err)
+}
+
+// TestNewSyncDataSet tests creating a new SyncDataSet
+func TestNewSyncDataSet(t *testing.T) {
+	dataset := NewSyncDataSet()
+	assert.NotNil(t, dataset)
+	assert.NotNil(t, dataset.Projects)
+	assert.NotNil(t, dataset.Tasks)
+	assert.Empty(t, dataset.Projects)
+	assert.Empty(t, dataset.Tasks)
 }

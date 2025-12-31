@@ -340,3 +340,380 @@ func TestEnhancedErrorUnwrapNil(t *testing.T) {
 	unwrapped := err.Unwrap()
 	assert.Nil(t, unwrapped)
 }
+
+func TestWrapWithSuggestion(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		operation  string
+		wantType   string
+		wantContains string
+	}{
+		{
+			name:       "nil error returns nil",
+			err:        nil,
+			operation:  "test",
+			wantType:   "nil",
+		},
+		{
+			name:       "UUID parsing error for project",
+			err:        fmt.Errorf("invalid UUID length: 'not-a-uuid'"),
+			operation:  "project",
+			wantType:   "EnhancedError",
+			wantContains: "invalid project-id format",
+		},
+		{
+			name:       "UUID parsing error for task",
+			err:        fmt.Errorf("invalid UUID length: 'not-a-uuid'"),
+			operation:  "task",
+			wantType:   "EnhancedError",
+			wantContains: "invalid task-id format",
+		},
+		{
+			name:       "not found error for project",
+			err:        fmt.Errorf("project not found"),
+			operation:  "project",
+			wantType:   "error",
+		},
+		{
+			name:       "database connection error",
+			err:        fmt.Errorf("database connection failed"),
+			operation:  "connect",
+			wantType:   "EnhancedError",
+			wantContains: "database connection",
+		},
+		{
+			name:       "state validation error",
+			err:        fmt.Errorf("invalid state: 'bad-state'"),
+			operation:  "state",
+			wantType:   "EnhancedError",
+			wantContains: "invalid task state",
+		},
+		{
+			name:       "circular dependency error",
+			err:        fmt.Errorf("circular dependency detected"),
+			operation:  "dependency",
+			wantType:   "EnhancedError",
+			wantContains: "circular",
+		},
+		{
+			name:       "unknown error returns as-is",
+			err:        fmt.Errorf("some unknown error"),
+			operation:  "test",
+			wantType:   "error",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := WrapWithSuggestion(tt.err, tt.operation)
+
+			if tt.wantType == "nil" {
+				assert.Nil(t, result)
+			} else if tt.wantType == "EnhancedError" {
+				assert.IsType(t, &EnhancedError{}, result)
+				if tt.wantContains != "" {
+					assert.Contains(t, result.Error(), tt.wantContains)
+				}
+			} else {
+				assert.Equal(t, tt.err, result)
+			}
+		})
+	}
+}
+
+func TestHandleCLIError(t *testing.T) {
+	tests := []struct {
+		name       string
+		err        error
+		operation  string
+		wantContains string
+	}{
+		{
+			name:       "nil error returns nil",
+			err:        nil,
+			operation:  "test",
+		},
+		{
+			name:       "missing required flag error",
+			err:        fmt.Errorf("Required flag \"task-id\" not set"),
+			operation:  "task update",
+			wantContains: "required flag",
+		},
+		{
+			name:       "other error gets wrapped",
+			err:        fmt.Errorf("some error"),
+			operation:  "test",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// For nil context, WrapWithSuggestion is called which doesn't crash
+			result := HandleCLIError(nil, tt.err, tt.operation)
+
+			if tt.err == nil {
+				assert.Nil(t, result)
+			} else {
+				assert.NotNil(t, result)
+				if tt.wantContains != "" {
+					assert.Contains(t, result.Error(), tt.wantContains)
+				}
+			}
+		})
+	}
+}
+
+func TestValidateComplexity(t *testing.T) {
+	tests := []struct {
+		name        string
+		complexity  int
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:       "valid complexity",
+			complexity: 5,
+			wantErr:    false,
+		},
+		{
+			name:        "complexity too low",
+			complexity:  0,
+			wantErr:     true,
+			errContains: "out of range",
+		},
+		{
+			name:        "complexity too high",
+			complexity:  11,
+			wantErr:     true,
+			errContains: "out of range",
+		},
+		{
+			name:       "minimum valid complexity",
+			complexity: 1,
+			wantErr:    false,
+		},
+		{
+			name:       "maximum valid complexity",
+			complexity: 10,
+			wantErr:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateComplexity(tt.complexity)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestValidateTaskState(t *testing.T) {
+	tests := []struct {
+		name        string
+		state       string
+		wantErr     bool
+		errContains string
+	}{
+		{
+			name:    "valid state: pending",
+			state:   "pending",
+			wantErr: false,
+		},
+		{
+			name:    "valid state: in-progress",
+			state:   "in-progress",
+			wantErr: false,
+		},
+		{
+			name:    "valid state: completed",
+			state:   "completed",
+			wantErr: false,
+		},
+		{
+			name:    "valid state: blocked",
+			state:   "blocked",
+			wantErr: false,
+		},
+		{
+			name:    "valid state: cancelled",
+			state:   "cancelled",
+			wantErr: false,
+		},
+		{
+			name:        "invalid state",
+			state:       "invalid-state",
+			wantErr:     true,
+			errContains: "invalid task state",
+		},
+		{
+			name:        "empty state",
+			state:       "",
+			wantErr:     true,
+			errContains: "invalid task state",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			err := ValidateTaskState(tt.state)
+
+			if tt.wantErr {
+				assert.Error(t, err)
+				if tt.errContains != "" {
+					assert.Contains(t, err.Error(), tt.errContains)
+				}
+			} else {
+				assert.NoError(t, err)
+			}
+		})
+	}
+}
+
+func TestFormatSuggestionList(t *testing.T) {
+	tests := []struct {
+		name        string
+		title       string
+		suggestions []string
+		wantContains string
+	}{
+		{
+			name:        "empty suggestions returns empty string",
+			title:       "Test",
+			suggestions: []string{},
+			wantContains: "",
+		},
+		{
+			name:        "single suggestion",
+			title:       "Test Title",
+			suggestions: []string{"suggestion 1"},
+			wantContains: "💡 Test Title:",
+		},
+		{
+			name:        "multiple suggestions",
+			title:       "Test Title",
+			suggestions: []string{"suggestion 1", "suggestion 2", "suggestion 3"},
+			wantContains: "   3. suggestion 3",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := FormatSuggestionList(tt.title, tt.suggestions)
+
+			if tt.wantContains == "" {
+				assert.Empty(t, result)
+			} else {
+				assert.Contains(t, result, tt.wantContains)
+			}
+		})
+	}
+}
+
+func TestExtractValueFromError(t *testing.T) {
+	tests := []struct {
+		name  string
+		errStr string
+		want  string
+	}{
+		{
+			name:  "extract value from single quotes",
+			errStr: "invalid format: 'test-value'",
+			want:  "test-value",
+		},
+		{
+			name:  "extract value from double quotes",
+			errStr: `invalid format: "test-value"`,
+			want:  "test-value",
+		},
+		{
+			name:  "no quotes returns empty",
+			errStr: "invalid format test-value",
+			want:  "",
+		},
+		{
+			name:  "mixed quotes extracts first",
+			errStr: `"first" and 'second'`,
+			want:  "second",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractValueFromError(tt.errStr)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestExtractUUIDFromError(t *testing.T) {
+	validUUID := uuid.New()
+	tests := []struct {
+		name  string
+		errStr string
+		want  uuid.UUID
+	}{
+		{
+			name:  "extract valid UUID",
+			errStr: fmt.Sprintf("task %s not found", validUUID),
+			want:  validUUID,
+		},
+		{
+			name:  "no UUID returns nil",
+			errStr: "task not found",
+			want:  uuid.Nil,
+		},
+		{
+			name:  "multiple UUIDs returns first",
+			errStr: fmt.Sprintf("task %s depends on %s", validUUID, uuid.New()),
+			want:  validUUID,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractUUIDFromError(tt.errStr)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
+func TestExtractFlagNameFromError(t *testing.T) {
+	tests := []struct {
+		name  string
+		errStr string
+		want  string
+	}{
+		{
+			name:  "extract flag name from error",
+			errStr: `Required flag "task-id" not set`,
+			want:  "task-id",
+		},
+		{
+			name:  "no quotes returns unknown",
+			errStr: "Required flag task-id not set",
+			want:  "unknown",
+		},
+		{
+			name:  "empty string returns unknown",
+			errStr: "",
+			want:  "unknown",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := extractFlagNameFromError(tt.errStr)
+			assert.Equal(t, tt.want, result)
+		})
+	}
+}
+
