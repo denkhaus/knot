@@ -120,6 +120,11 @@ func extractFlagNameFromError(errStr string) string {
 func buildCommandContext(c *cli.Context) string {
 	var parts []string
 
+	// Handle nil context
+	if c == nil {
+		return "unknown"
+	}
+
 	// Add command hierarchy
 	if c.Command != nil {
 		parts = append(parts, c.Command.Name)
@@ -133,6 +138,10 @@ func buildCommandContext(c *cli.Context) string {
 	// Fallback to app name
 	if len(parts) == 0 && c.App != nil {
 		parts = append(parts, c.App.Name)
+	}
+
+	if len(parts) == 0 {
+		return "unknown"
 	}
 
 	return strings.Join(parts, " ")

@@ -16,6 +16,7 @@ import (
 type SessionRegistry interface {
 	GetOrCreateSession(ctx context.Context, sessionID uuid.UUID) (*MCPClientSession, error)
 	GetSession(sessionID uuid.UUID) (*MCPClientSession, error)
+	SetSessionProject(ctx context.Context, sessionID uuid.UUID, projectID *uuid.UUID, actor string) error
 	RemoveSession(ctx context.Context, sessionID uuid.UUID) error
 	CleanupExpiredSessions(ctx context.Context, timeout time.Duration) error
 	SyncExistingSessions(ctx context.Context) error
@@ -204,9 +205,15 @@ func (r *sessionRegistryImpl) SetSessionProject(ctx context.Context, sessionID u
 		}
 	}
 
-	r.logger.Info("Session project updated",
-		logger.String("session_id", sessionID.String()),
-		logger.String("project_id", projectID.String()))
+	// Log the update
+	if projectID != nil {
+		r.logger.Info("Session project updated",
+			logger.String("session_id", sessionID.String()),
+			logger.String("project_id", projectID.String()))
+	} else {
+		r.logger.Info("Session project cleared",
+			logger.String("session_id", sessionID.String()))
+	}
 
 	return nil
 }
