@@ -6,27 +6,13 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/denkhaus/knot/v2/internal/types"
 	"go.uber.org/zap"
 )
 
-// HealthStatus represents the health status of the database connection
-type HealthStatus struct {
-	Healthy          bool          `json:"healthy"`
-	ConnectionActive bool          `json:"connection_active"`
-	PingLatency      time.Duration `json:"ping_latency"`
-	OpenConnections  int           `json:"open_connections"`
-	IdleConnections  int           `json:"idle_connections"`
-	InUseConnections int           `json:"in_use_connections"`
-	ErrorMessage     string        `json:"error_message,omitempty"`
-	LastChecked      time.Time     `json:"last_checked"`
-	DatabasePath     string        `json:"database_path"`
-	WALModeEnabled   bool          `json:"wal_mode_enabled"`
-	ForeignKeys      bool          `json:"foreign_keys_enabled"`
-}
-
 // HealthCheck performs a comprehensive health check of the database connection
-func (r *sqliteRepository) HealthCheck(ctx context.Context) (*HealthStatus, error) {
-	status := &HealthStatus{
+func (r *sqliteRepository) HealthCheck(ctx context.Context) (*types.HealthStatus, error) {
+	status := &types.HealthStatus{
 		LastChecked:  time.Now(),
 		DatabasePath: r.config.DatabasePath,
 	}
@@ -136,7 +122,7 @@ func (r *sqliteRepository) testBasicQuery(ctx context.Context, db *sql.DB) error
 }
 
 // checkSQLiteSettings verifies SQLite-specific configuration
-func (r *sqliteRepository) checkSQLiteSettings(ctx context.Context, db *sql.DB, status *HealthStatus) error {
+func (r *sqliteRepository) checkSQLiteSettings(ctx context.Context, db *sql.DB, status *types.HealthStatus) error {
 	settings := []struct {
 		name     string
 		query    string

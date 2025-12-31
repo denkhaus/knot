@@ -500,6 +500,40 @@ func (r *simpleMemoryRepository) HasSelectedProject(ctx context.Context) (bool, 
 	return r.selectedProjectID != nil, nil
 }
 
+// Health check operations
+
+// HealthCheck performs a comprehensive health check of the in-memory repository
+func (r *simpleMemoryRepository) HealthCheck(ctx context.Context) (*types.HealthStatus, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	return &types.HealthStatus{
+		Healthy:          true,
+		ConnectionActive: true,
+		PingLatency:      0,
+		OpenConnections:  1,
+		IdleConnections:  0,
+		InUseConnections: 1,
+		ErrorMessage:     "",
+		LastChecked:      time.Now(),
+		DatabasePath:     "in-memory",
+		WALModeEnabled:   false,
+		ForeignKeys:      false,
+	}, nil
+}
+
+// Ping performs a simple connectivity test
+func (r *simpleMemoryRepository) Ping(ctx context.Context) error {
+	// In-memory repository is always available
+	return nil
+}
+
+// ValidateConnection performs a comprehensive connection validation
+func (r *simpleMemoryRepository) ValidateConnection(ctx context.Context) error {
+	// In-memory repository is always valid
+	return nil
+}
+
 // Helper function to match tasks against filter
 func (r *simpleMemoryRepository) matchesFilter(task *types.Task, filter types.TaskFilter) bool {
 	if filter.ProjectID != nil && task.ProjectID != *filter.ProjectID {

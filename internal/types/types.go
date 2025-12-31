@@ -193,6 +193,21 @@ type TaskUpdates struct {
 	Complexity *int          `json:"complexity,omitempty"`
 }
 
+// HealthStatus represents the health status of the database connection
+type HealthStatus struct {
+	Healthy          bool          `json:"healthy"`
+	ConnectionActive bool          `json:"connection_active"`
+	PingLatency      time.Duration `json:"ping_latency"`
+	OpenConnections  int           `json:"open_connections"`
+	IdleConnections  int           `json:"idle_connections"`
+	InUseConnections int           `json:"in_use_connections"`
+	ErrorMessage     string        `json:"error_message,omitempty"`
+	LastChecked      time.Time     `json:"last_checked"`
+	DatabasePath     string        `json:"database_path"`
+	WALModeEnabled   bool          `json:"wal_mode_enabled"`
+	ForeignKeys      bool          `json:"foreign_keys_enabled"`
+}
+
 // Repository defines the interface for task and project persistence and retrieval.
 //
 // This interface provides a complete abstraction layer for data storage operations,
@@ -265,6 +280,11 @@ type Repository interface {
 	SetSelectedProject(ctx context.Context, projectID uuid.UUID, actor string) error
 	ClearSelectedProject(ctx context.Context) error
 	HasSelectedProject(ctx context.Context) (bool, error)
+
+	// Health check operations
+	HealthCheck(ctx context.Context) (*HealthStatus, error)
+	Ping(ctx context.Context) error
+	ValidateConnection(ctx context.Context) error
 }
 
 // RepositoryProvider defines the interface for creating in-memory repository instances

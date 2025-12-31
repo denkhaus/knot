@@ -10,7 +10,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/denkhaus/knot/v2/internal/config"
 	"github.com/denkhaus/knot/v2/internal/di"
 	"github.com/denkhaus/knot/v2/internal/logger"
 	"github.com/denkhaus/knot/v2/internal/mocks"
@@ -307,21 +306,52 @@ func Test_performHealthCheck(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
+	healthyStatus := &types.HealthStatus{
+		Healthy:          true,
+		ConnectionActive: true,
+		PingLatency:      10 * time.Millisecond,
+		OpenConnections:  5,
+		IdleConnections:  2,
+		InUseConnections: 3,
+		ErrorMessage:     "",
+		LastChecked:      time.Now(),
+		DatabasePath:     "test.db",
+		WALModeEnabled:   true,
+		ForeignKeys:      true,
+	}
+
+	unhealthyStatus := &types.HealthStatus{
+		Healthy:          false,
+		ConnectionActive: false,
+		PingLatency:      0,
+		OpenConnections:  0,
+		IdleConnections:  0,
+		InUseConnections: 0,
+		ErrorMessage:     "db connection failed",
+		LastChecked:      time.Now(),
+		DatabasePath:     "test.db",
+		WALModeEnabled:   false,
+		ForeignKeys:      false,
+	}
+
 	tests := []struct {
 		name                 string
-		listProjectsErr      error
+		mockHealthStatus     *types.HealthStatus
+		mockHealthErr        error
 		expectedHealthy      bool
 		expectedErrorMessage string
 	}{
 		{
 			name:                 "healthy check",
-			listProjectsErr:      nil,
+			mockHealthStatus:     healthyStatus,
+			mockHealthErr:        nil,
 			expectedHealthy:      true,
 			expectedErrorMessage: "",
 		},
 		{
 			name:                 "unhealthy check",
-			listProjectsErr:      errors.New("db connection failed"),
+			mockHealthStatus:     unhealthyStatus,
+			mockHealthErr:        nil,
 			expectedHealthy:      false,
 			expectedErrorMessage: "db connection failed",
 		},
@@ -331,9 +361,9 @@ func Test_performHealthCheck(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockMgr := mocks.NewMockProjectManager(ctrl)
 			mockMgr.EXPECT().
-				ListProjects(gomock.Any()).
-				Return([]*types.Project{}, tt.listProjectsErr)
-				// Use DI injector with mock manager
+				HealthCheck(gomock.Any()).
+				Return(tt.mockHealthStatus, tt.mockHealthErr)
+			// Use DI injector with mock manager
 			diContainer := di.NewContainer()
 			app := &cli.App{}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
@@ -354,7 +384,7 @@ func Test_performHealthCheck(t *testing.T) {
 				assert.True(t, healthStatus.Healthy)
 				assert.Empty(t, healthStatus.ErrorMessage)
 			} else {
-				require.Error(t, err)
+				require.NoError(t, err) // performHealthCheck doesn't return error for unhealthy status
 				assert.False(t, healthStatus.Healthy)
 				assert.Contains(t, healthStatus.ErrorMessage, tt.expectedErrorMessage)
 			}
@@ -369,19 +399,19 @@ func Test_performPing(t *testing.T) {
 	defer ctrl.Finish()
 
 	tests := []struct {
-		name            string
-		listProjectsErr error
-		expectedErr     bool
+		name        string
+		pingErr     error
+		expectedErr bool
 	}{
 		{
-			name:            "successful ping",
-			listProjectsErr: nil,
-			expectedErr:     false,
+			name:        "successful ping",
+			pingErr:     nil,
+			expectedErr: false,
 		},
 		{
-			name:            "failed ping",
-			listProjectsErr: errors.New("network unreachable"),
-			expectedErr:     true,
+			name:        "failed ping",
+			pingErr:     errors.New("network unreachable"),
+			expectedErr: true,
 		},
 	}
 
@@ -389,9 +419,9 @@ func Test_performPing(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockMgr := mocks.NewMockProjectManager(ctrl)
 			mockMgr.EXPECT().
-				ListProjects(gomock.Any()).
-				Return([]*types.Project{}, tt.listProjectsErr)
-				// Use DI injector with mock manager
+				Ping(gomock.Any()).
+				Return(tt.pingErr)
+			// Use DI injector with mock manager
 			diContainer := di.NewContainer()
 			app := &cli.App{}
 			flagSet := flag.NewFlagSet("test", flag.ContinueOnError)
@@ -409,7 +439,7 @@ func Test_performPing(t *testing.T) {
 
 			if tt.expectedErr {
 				require.Error(t, err)
-				assert.Contains(t, err.Error(), tt.listProjectsErr.Error())
+				assert.Contains(t, err.Error(), tt.pingErr.Error())
 			} else {
 				require.NoError(t, err)
 			}
@@ -423,30 +453,20 @@ func Test_performValidation(t *testing.T) {
 
 	tests := []struct {
 		name                 string
-		listProjectsErr      error
-		getConfigReturn      *config.ManagerConfig
+		validateConnErr      error
 		expectedErr          bool
 		expectedErrorMessage string
 	}{
 		{
 			name:            "successful validation",
-			listProjectsErr: nil,
-			getConfigReturn: &config.ManagerConfig{},
+			validateConnErr: nil,
 			expectedErr:     false,
 		},
 		{
-			name:                 "list projects fails",
-			listProjectsErr:      errors.New("list projects error"),
-			getConfigReturn:      &config.ManagerConfig{},
+			name:                 "validation fails",
+			validateConnErr:      errors.New("validation error"),
 			expectedErr:          true,
-			expectedErrorMessage: "List Projects failed: list projects error",
-		},
-		{
-			name:                 "get config returns nil",
-			listProjectsErr:      nil,
-			getConfigReturn:      nil,
-			expectedErr:          true,
-			expectedErrorMessage: "Get Config failed: config is nil",
+			expectedErrorMessage: "validation error",
 		},
 	}
 
@@ -456,15 +476,8 @@ func Test_performValidation(t *testing.T) {
 
 			// Set up expectations based on the test case
 			mockMgr.EXPECT().
-				ListProjects(gomock.Any()).
-				Return([]*types.Project{}, tt.listProjectsErr)
-
-			// Only expect GetConfig if ListProjects succeeds (function short-circuits on error)
-			if tt.listProjectsErr == nil {
-				mockMgr.EXPECT().
-					GetConfig().
-					Return(tt.getConfigReturn)
-			}
+				ValidateConnection(gomock.Any()).
+				Return(tt.validateConnErr)
 
 			// Use DI injector with mock manager
 			diContainer := di.NewContainer()
@@ -495,12 +508,12 @@ func Test_performValidation(t *testing.T) {
 func Test_printStatus(t *testing.T) {
 	tests := []struct {
 		name           string
-		healthStatus   *Status
+		healthStatus   *types.HealthStatus
 		expectedOutput string
 	}{
 		{
 			name: "healthy status",
-			healthStatus: &Status{
+			healthStatus: &types.HealthStatus{
 				Healthy:          true,
 				ConnectionActive: true,
 				PingLatency:      10 * time.Millisecond,
@@ -519,7 +532,7 @@ func Test_printStatus(t *testing.T) {
 		},
 		{
 			name: "unhealthy status with error",
-			healthStatus: &Status{
+			healthStatus: &types.HealthStatus{
 				Healthy:          false,
 				ConnectionActive: false,
 				PingLatency:      500 * time.Millisecond,
@@ -540,7 +553,7 @@ func Test_printStatus(t *testing.T) {
 		},
 		{
 			name: "status with connection pool and sqlite settings",
-			healthStatus: &Status{
+			healthStatus: &types.HealthStatus{
 				Healthy:          true,
 				ConnectionActive: true,
 				PingLatency:      5 * time.Millisecond,

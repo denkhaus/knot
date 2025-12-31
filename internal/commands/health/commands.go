@@ -20,6 +20,7 @@ import (
 
 	"github.com/denkhaus/knot/v2/internal/manager"
 	"github.com/denkhaus/knot/v2/internal/shared"
+	"github.com/denkhaus/knot/v2/internal/types"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/zap"
 )
@@ -175,86 +176,26 @@ func validateAction() cli.ActionFunc {
 	}
 }
 
-// Status represents database health information (renamed from Status to avoid stuttering)
-type Status struct {
-	Healthy          bool          `json:"healthy"`
-	ConnectionActive bool          `json:"connection_active"`
-	PingLatency      time.Duration `json:"ping_latency"`
-	OpenConnections  int           `json:"open_connections"`
-	IdleConnections  int           `json:"idle_connections"`
-	InUseConnections int           `json:"in_use_connections"`
-	ErrorMessage     string        `json:"error_message,omitempty"`
-	LastChecked      time.Time     `json:"last_checked"`
-	DatabasePath     string        `json:"database_path"`
-	WALModeEnabled   bool          `json:"wal_mode_enabled"`
-	ForeignKeys      bool          `json:"foreign_keys_enabled"`
-}
-
 // performHealthCheck performs a health check using the project manager
-func performHealthCheck(ctx context.Context, projectManager manager.ProjectManager) (*Status, error) {
-	// For now, we'll implement a basic health check
-	// TODO(knot-f7r): Extend manager interface to expose repository health checks
-
-	start := time.Now()
-
-	// Test basic functionality by listing projects
-	_, err := projectManager.ListProjects(ctx)
-	latency := time.Since(start)
-
-	health := &Status{
-		LastChecked:      time.Now(),
-		PingLatency:      latency,
-		ConnectionActive: err == nil,
-		Healthy:          err == nil,
-		DatabasePath:     ".knot/knot.db", // Default path
-	}
-
-	if err != nil {
-		health.ErrorMessage = err.Error()
-		return health, err // Return the error here
-	}
-
-	return health, nil
+func performHealthCheck(ctx context.Context, projectManager manager.ProjectManager) (*types.HealthStatus, error) {
+	// Use the manager's HealthCheck method
+	return projectManager.HealthCheck(ctx)
 }
 
 // performPing performs a simple connectivity test
 func performPing(ctx context.Context, projectManager manager.ProjectManager) error {
-	// Test basic connectivity by attempting to list projects
-	_, err := projectManager.ListProjects(ctx)
-	return err
+	// Use the manager's Ping method
+	return projectManager.Ping(ctx)
 }
 
 // performValidation performs comprehensive validation
 func performValidation(ctx context.Context, projectManager manager.ProjectManager) error {
-	// Test multiple operations to validate connection
-	tests := []struct {
-		name string
-		test func() error
-	}{
-		{"List Projects", func() error {
-			_, err := projectManager.ListProjects(ctx)
-			return err
-		}},
-		{"Get Config", func() error {
-			config := projectManager.GetConfig()
-			if config == nil {
-				return fmt.Errorf("config is nil")
-			}
-			return nil
-		}},
-	}
-
-	for _, test := range tests {
-		if err := test.test(); err != nil {
-			return fmt.Errorf("%s failed: %w", test.name, err)
-		}
-	}
-
-	return nil
+	// Use the manager's ValidateConnection method
+	return projectManager.ValidateConnection(ctx)
 }
 
 // printStatus prints health status in human-readable format
-func printStatus(health *Status) {
+func printStatus(health *types.HealthStatus) {
 	fmt.Printf("Database Health Status:\n\n")
 
 	if health.Healthy {
