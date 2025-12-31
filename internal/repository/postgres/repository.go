@@ -19,6 +19,7 @@ import (
 // postgresRepository implements the Repository interface using ent ORM with PostgreSQL
 type postgresRepository struct {
 	client    *ent.Client
+	db        *sql.DB // Store db reference for health checks
 	logger    *zap.Logger
 	dsn       string
 	autoMigrate bool
@@ -92,6 +93,7 @@ func (r *postgresRepository) initialize() error {
 	}
 
 	r.client = client
+	r.db = db // Store db reference for health checks
 	return nil
 }
 
@@ -443,16 +445,15 @@ func (r *postgresRepository) HealthCheck(ctx context.Context) (*types.HealthStat
 		DatabasePath: r.dsn,
 	}
 
-	// Get underlying database connection
-	db, err := r.getUnderlyingDB()
-	if err != nil {
-		status.ErrorMessage = fmt.Sprintf("failed to get database connection: %v", err)
+	// Check db reference
+	if r.db == nil {
+		status.ErrorMessage = "database not initialized"
 		return status, nil
 	}
 
 	// Test basic connectivity with ping
 	start := time.Now()
-	if err := db.PingContext(ctx); err != nil {
+	if err := r.db.PingContext(ctx); err != nil {
 		status.ErrorMessage = fmt.Sprintf("ping failed: %v", err)
 		return status, nil
 	}
@@ -460,13 +461,13 @@ func (r *postgresRepository) HealthCheck(ctx context.Context) (*types.HealthStat
 	status.ConnectionActive = true
 
 	// Get connection pool statistics
-	stats := db.Stats()
+	stats := r.db.Stats()
 	status.OpenConnections = stats.OpenConnections
 	status.IdleConnections = stats.Idle
 	status.InUseConnections = stats.InUse
 
 	// Test basic query execution
-	if err := r.testBasicQuery(ctx, db); err != nil {
+	if err := r.testBasicQuery(ctx); err != nil {
 		status.ErrorMessage = fmt.Sprintf("basic query test failed: %v", err)
 		return status, nil
 	}
@@ -477,12 +478,10 @@ func (r *postgresRepository) HealthCheck(ctx context.Context) (*types.HealthStat
 
 // Ping performs a simple connectivity test
 func (r *postgresRepository) Ping(ctx context.Context) error {
-	db, err := r.getUnderlyingDB()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
 	}
-
-	return db.PingContext(ctx)
+	return r.db.PingContext(ctx)
 }
 
 // ValidateConnection performs a comprehensive connection validation
@@ -513,22 +512,15 @@ func (r *postgresRepository) ValidateConnection(ctx context.Context) error {
 	return nil
 }
 
-// getUnderlyingDB extracts the underlying sql.DB from ent client
-func (r *postgresRepository) getUnderlyingDB() (*sql.DB, error) {
-	if r.client == nil {
-		return nil, fmt.Errorf("ent client not initialized")
+// testBasicQuery tests basic database functionality
+func (r *postgresRepository) testBasicQuery(ctx context.Context) error {
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
 	}
 
-	// For now, we'll use a simpler approach - test through ent client
-	// TODO: Find a way to access underlying sql.DB if needed for advanced health checks
-	return nil, fmt.Errorf("direct database access not available through ent client")
-}
-
-// testBasicQuery tests basic database functionality
-func (r *postgresRepository) testBasicQuery(ctx context.Context, db *sql.DB) error {
 	// Test a simple SELECT query
 	var result int
-	err := db.QueryRowContext(ctx, "SELECT 1").Scan(&result)
+	err := r.db.QueryRowContext(ctx, "SELECT 1").Scan(&result)
 	if err != nil {
 		return fmt.Errorf("basic query failed: %w", err)
 	}
