@@ -17,16 +17,15 @@ func (r *sqliteRepository) HealthCheck(ctx context.Context) (*types.HealthStatus
 		DatabasePath: r.config.DatabasePath,
 	}
 
-	// Get underlying database connection
-	db, err := r.getUnderlyingDB()
-	if err != nil {
-		status.ErrorMessage = fmt.Sprintf("failed to get database connection: %v", err)
+	// Check db reference
+	if r.db == nil {
+		status.ErrorMessage = "database not initialized"
 		return status, nil
 	}
 
 	// Test basic connectivity with ping
 	start := time.Now()
-	if err := db.PingContext(ctx); err != nil {
+	if err := r.db.PingContext(ctx); err != nil {
 		status.ErrorMessage = fmt.Sprintf("ping failed: %v", err)
 		return status, nil
 	}
@@ -34,19 +33,19 @@ func (r *sqliteRepository) HealthCheck(ctx context.Context) (*types.HealthStatus
 	status.ConnectionActive = true
 
 	// Get connection pool statistics
-	stats := db.Stats()
+	stats := r.db.Stats()
 	status.OpenConnections = stats.OpenConnections
 	status.IdleConnections = stats.Idle
 	status.InUseConnections = stats.InUse
 
 	// Test basic query execution
-	if err := r.testBasicQuery(ctx, db); err != nil {
+	if err := r.testBasicQuery(ctx, r.db); err != nil {
 		status.ErrorMessage = fmt.Sprintf("basic query test failed: %v", err)
 		return status, nil
 	}
 
 	// Check SQLite-specific settings
-	if err := r.checkSQLiteSettings(ctx, db, status); err != nil {
+	if err := r.checkSQLiteSettings(ctx, r.db, status); err != nil {
 		r.config.Logger.Warn("Failed to check SQLite settings", zap.Error(err))
 		// Don't fail health check for settings check failure
 	}
@@ -57,12 +56,10 @@ func (r *sqliteRepository) HealthCheck(ctx context.Context) (*types.HealthStatus
 
 // Ping performs a simple connectivity test
 func (r *sqliteRepository) Ping(ctx context.Context) error {
-	db, err := r.getUnderlyingDB()
-	if err != nil {
-		return fmt.Errorf("failed to get database connection: %w", err)
+	if r.db == nil {
+		return fmt.Errorf("database not initialized")
 	}
-
-	return db.PingContext(ctx)
+	return r.db.PingContext(ctx)
 }
 
 // ValidateConnection performs a comprehensive connection validation
@@ -92,17 +89,6 @@ func (r *sqliteRepository) ValidateConnection(ctx context.Context) error {
 		zap.Bool("wal_mode", health.WALModeEnabled))
 
 	return nil
-}
-
-// getUnderlyingDB extracts the underlying sql.DB from ent client
-func (r *sqliteRepository) getUnderlyingDB() (*sql.DB, error) {
-	if r.client == nil {
-		return nil, fmt.Errorf("ent client not initialized")
-	}
-
-	// For now, we'll use a simpler approach - test through ent client
-	// TODO(knot-h2i): Find a way to access underlying sql.DB if needed for advanced health checks
-	return nil, fmt.Errorf("direct database access not available through ent client")
 }
 
 // testBasicQuery tests basic database functionality

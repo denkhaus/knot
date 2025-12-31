@@ -20,6 +20,7 @@ import (
 // sqliteRepository implements the Repository interface using ent ORM
 type sqliteRepository struct {
 	client *ent.Client
+	db     *sql.DB // Store db reference for health checks
 	config *Config
 	logger *zap.Logger
 }
@@ -75,6 +76,9 @@ func (r *sqliteRepository) initialize(dbPath string) error {
 	if err := r.validateInitialConnection(db); err != nil {
 		return NewConnectionError("database connection validation failed", err)
 	}
+
+	// Store db reference for health checks
+	r.db = db
 
 	// Create ent client with SQLite driver
 	drv := entsql.OpenDB(dialect.SQLite, db)

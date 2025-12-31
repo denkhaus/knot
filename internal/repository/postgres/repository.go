@@ -442,7 +442,8 @@ func (r *postgresRepository) convertSessionEntToTypes(sessionEnt *ent.Session) *
 func (r *postgresRepository) HealthCheck(ctx context.Context) (*types.HealthStatus, error) {
 	status := &types.HealthStatus{
 		LastChecked:  time.Now(),
-		DatabasePath: r.dsn,
+		// Don't expose full DSN for security - it may contain credentials
+		DatabasePath: "postgresql",
 	}
 
 	// Check db reference
