@@ -1,3 +1,4 @@
 knot
-**/config/.knot
-**/app/.knot
+!./.knot
+**/.knot
+*.out
